@@ -22,7 +22,12 @@ export const useUsersStore = defineStore( 'users', () =>{
             users.value.splice(0, users.value.length, ...data)
         }
       
-            function createUser(){}
+        function createUser (user: UserDto){
+
+            users.value.push(user)
+        }
+
+
             function deleteUser(){}
             function updateUser(){}
 
