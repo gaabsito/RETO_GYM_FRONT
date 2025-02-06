@@ -1,0 +1,58 @@
+@mixin flex-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@mixin responsive($breakpoint) {
+    @if $breakpoint ==tablet {
+        @media (min-width: 768px) {
+            @content;
+        }
+    }
+
+    @else if $breakpoint ==desktop {
+        @media (min-width: 1024px) {
+            @content;
+        }
+    }
+}
+
+// Mixins adicionales útiles
+@mixin flex($direction: row, $justify: flex-start, $align: stretch) {
+    display: flex;
+    flex-direction: $direction;
+    justify-content: $justify;
+    align-items: $align;
+}
+
+@mixin grid($columns: 1, $gap: $spacing-md) {
+    display: grid;
+    grid-template-columns: repeat($columns, 1fr);
+    gap: $gap;
+}
+
+@mixin button-base {
+    padding: $spacing-sm $spacing-md;
+    border-radius: $border-radius;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+        transform: translateY(-1px);
+    }
+}
+
+@mixin card {
+    background: white;
+    border-radius: $border-radius;
+    box-shadow: $box-shadow;
+    padding: $spacing-md;
+}
+
+@mixin truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

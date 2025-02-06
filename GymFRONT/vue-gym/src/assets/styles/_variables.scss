@@ -1,0 +1,34 @@
+$primary-color: #2c3e50;
+$accent-color: #42b883;
+$text-color: #333;
+$light-gray: #f5f5f5;
+$header-height: 60px;
+
+// Colores adicionales que podríamos necesitar
+$error-color: #dc3545;
+$success-color: #28a745;
+$warning-color: #ffc107;
+$info-color: #17a2b8;
+
+// Variables de espaciado
+$spacing-xs: 0.25rem;
+$spacing-sm: 0.5rem;
+$spacing-md: 1rem;
+$spacing-lg: 1.5rem;
+$spacing-xl: 2rem;
+
+// Variables de tipografía
+$font-family-base: 'Arial', sans-serif;
+$font-size-base: 1rem;
+$font-size-sm: 0.875rem;
+$font-size-lg: 1.25rem;
+
+// Variables de breakpoints
+$breakpoint-sm: 576px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 992px;
+$breakpoint-xl: 1200px;
+
+// Variables de bordes y sombras
+$border-radius: 4px;
+$box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
