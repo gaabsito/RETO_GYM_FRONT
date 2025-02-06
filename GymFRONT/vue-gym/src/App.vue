@@ -1,141 +1,151 @@
 <script setup lang="ts">
 import { RouterLink, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 
 const authStore = useAuthStore()
-const isMenuOpen = ref(false)
+const drawer = ref(false)
 
-const toggleMenu = () => {
-  isMenuOpen.value = !isMenuOpen.value
-}
+const menuItems = [
+  { title: 'Inicio', icon: 'mdi-home', route: '/' },
+  { title: 'Entrenamientos', icon: 'mdi-dumbbell', route: '/entrenamientos' },
+  { title: 'Ejercicios', icon: 'mdi-run', route: '/ejercicios' },
+]
 
-// Cerrar menú al cambiar de ruta
-const closeMenu = () => {
-  isMenuOpen.value = false
-}
+const authMenuItems = [
+  { title: 'Mi Perfil', icon: 'mdi-account', route: '/perfil' },
+  { title: 'Mis Entrenamientos', icon: 'mdi-playlist-check', route: '/mis-entrenamientos' },
+]
 </script>
 
 <template>
-  <div class="app-container">
-    <header class="header">
-      <div class="header__content container">
-        <RouterLink to="/" class="header__logo" @click="closeMenu">
+  <v-app>
+    <!-- App Bar -->
+    <v-app-bar color="primary">
+      <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
+      
+      <v-app-bar-title>
+        <router-link to="/" class="text-decoration-none text-white">
           GymApp
-        </RouterLink>
-        
-        <button 
-          class="header__menu-toggle" 
-          @click="toggleMenu"
-          :aria-expanded="isMenuOpen"
-          aria-label="Toggle menu"
+        </router-link>
+      </v-app-bar-title>
+
+      <v-spacer></v-spacer>
+
+      <!-- Botones de autenticación para pantallas grandes -->
+      <template v-if="!authStore.isAuthenticated">
+        <v-btn
+          variant="text"
+          to="/login"
+          class="hidden-sm-and-down"
         >
-          <span class="header__menu-icon" :class="{ 'is-active': isMenuOpen }"></span>
-        </button>
+          Iniciar Sesión
+        </v-btn>
+        <v-btn
+          color="secondary"
+          to="/registro"
+          class="hidden-sm-and-down"
+        >
+          Registrarse
+        </v-btn>
+      </template>
+      <template v-else>
+        <v-btn
+          variant="text"
+          @click="authStore.logout"
+          class="hidden-sm-and-down"
+        >
+          Cerrar Sesión
+        </v-btn>
+      </template>
+    </v-app-bar>
 
-        <nav class="header__nav" :class="{ 'is-open': isMenuOpen }">
-          <RouterLink 
-            to="/" 
-            class="nav-link" 
-            @click="closeMenu"
-          >
-            Inicio
-          </RouterLink>
+    <!-- Navigation Drawer -->
+    <v-navigation-drawer
+      v-model="drawer"
+      temporary
+    >
+      <v-list>
+        <v-list-item
+          v-for="item in menuItems"
+          :key="item.title"
+          :to="item.route"
+          :prepend-icon="item.icon"
+          :title="item.title"
+        ></v-list-item>
+
+        <v-divider class="my-2"></v-divider>
+
+        <template v-if="authStore.isAuthenticated">
+          <v-list-item
+            v-for="item in authMenuItems"
+            :key="item.title"
+            :to="item.route"
+            :prepend-icon="item.icon"
+            :title="item.title"
+          ></v-list-item>
           
-          <RouterLink 
-            to="/entrenamientos" 
-            class="nav-link"
-            @click="closeMenu"
-          >
-            Entrenamientos
-          </RouterLink>
-          
-          <RouterLink 
-            to="/ejercicios" 
-            class="nav-link"
-            @click="closeMenu"
-          >
-            Ejercicios
-          </RouterLink>
-          
-          <!-- Enlaces condicionados por autenticación -->
-          <template v-if="authStore.isAuthenticated">
-            <RouterLink 
-              to="/perfil" 
-              class="nav-link"
-              @click="closeMenu"
-            >
-              Mi Perfil
-            </RouterLink>
-            
-            <RouterLink 
-              to="/mis-entrenamientos" 
-              class="nav-link"
-              @click="closeMenu"
-            >
-              Mis Entrenamientos
-            </RouterLink>
-            
-            <button 
-              @click="authStore.logout" 
-              class="nav-link nav-link--button"
-            >
-              Cerrar Sesión
-            </button>
-          </template>
-          
-          <template v-else>
-            <RouterLink 
-              to="/login" 
-              class="nav-link"
-              @click="closeMenu"
-            >
-              Iniciar Sesión
-            </RouterLink>
-            
-            <RouterLink 
-              to="/registro" 
-              class="nav-link nav-link--accent"
-              @click="closeMenu"
-            >
-              Registrarse
-            </RouterLink>
-          </template>
-        </nav>
+          <v-list-item
+            @click="authStore.logout"
+            prepend-icon="mdi-logout"
+            title="Cerrar Sesión"
+          ></v-list-item>
+        </template>
+        <template v-else>
+          <v-list-item
+            to="/login"
+            prepend-icon="mdi-login"
+            title="Iniciar Sesión"
+          ></v-list-item>
+          <v-list-item
+            to="/registro"
+            prepend-icon="mdi-account-plus"
+            title="Registrarse"
+          ></v-list-item>
+        </template>
+      </v-list>
+    </v-navigation-drawer>
+
+    <!-- Main Content -->
+    <v-main>
+      <v-container>
+        <RouterView />
+      </v-container>
+    </v-main>
+
+    <!-- Footer -->
+    <v-footer
+      class="bg-primary text-center d-flex flex-column"
+    >
+      <div>
+        <v-btn
+          v-for="icon in ['mdi-facebook', 'mdi-twitter', 'mdi-instagram']"
+          :key="icon"
+          class="mx-4"
+          :icon="icon"
+          variant="text"
+        ></v-btn>
       </div>
-    </header>
 
-    <main class="main-content">
-      <RouterView />
-    </main>
-
-    <footer class="footer">
-      <div class="container">
-        <div class="footer__content">
-          <div class="footer__section">
-            <h3 class="footer__title">GymApp</h3>
-            <p>Tu compañero perfecto para el entrenamiento</p>
-          </div>
-          
-          <div class="footer__section">
-            <h4 class="footer__subtitle">Enlaces</h4>
-            <RouterLink to="/about" class="footer__link">Sobre Nosotros</RouterLink>
-            <RouterLink to="/privacy" class="footer__link">Privacidad</RouterLink>
-            <RouterLink to="/terms" class="footer__link">Términos</RouterLink>
-          </div>
-          
-          <div class="footer__section">
-            <h4 class="footer__subtitle">Contacto</h4>
-            <a href="mailto:info@gymapp.com" class="footer__link">info@gymapp.com</a>
-          </div>
-        </div>
-        
-        <div class="footer__bottom">
-          <p>&copy; {{ new Date().getFullYear() }} GymApp. Todos los derechos reservados.</p>
-        </div>
+      <div class="pt-4">
+        <v-btn
+          v-for="link in ['Sobre Nosotros', 'Contacto', 'Términos de Uso']"
+          :key="link"
+          variant="text"
+          class="mx-2"
+          color="white"
+        >
+          {{ link }}
+        </v-btn>
       </div>
-    </footer>
-  </div>
+
+      <v-divider></v-divider>
+
+      <div class="px-4 py-2 text-center w-100">
+        {{ new Date().getFullYear() }} — <strong>GymApp</strong>
+      </div>
+    </v-footer>
+  </v-app>
 </template>
 
 <style lang="scss">
