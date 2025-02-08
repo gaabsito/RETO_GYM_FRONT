@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logo ENTRÉNATE</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #222;
+        }
+        canvas {
+            border: 2px solid white;
+            background-color: black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="logoCanvas"></canvas>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const canvas = document.getElementById("logoCanvas");
+            const ctx = canvas.getContext("2d");
+
+            // Ajustar dimensiones del canvas
+            canvas.width = 400;
+            canvas.height = 200;
+
+            // Variables de posición
+            let textY = 110;
+            let dumbbellStartX = 140;
+            let dumbbellEndX = 260;
+            let leftCircleX = dumbbellStartX - 10;
+            let rightCircleX = dumbbellEndX + 10;
+
+            function drawLogo() {
+                // Limpiar canvas
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Fondo degradado en tonos naranjas
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
+                gradient.addColorStop(0, "#FF8C00"); // Naranja fuerte
+                gradient.addColorStop(1, "#FF4500"); // Rojo anaranjado
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Texto principal en blanco con un nuevo enfoque de fuente
+                ctx.font = "bold 45px Impact";
+                ctx.fillStyle = "white";
+                ctx.textAlign = "center";
+                ctx.fillText("ENTRÉNATE", canvas.width / 2, textY);
+
+                // Dibujar un icono representativo (mancuerna estilizada)
+                ctx.lineWidth = 6;
+                ctx.strokeStyle = "white";
+            
+                // Mancuerna
+                ctx.beginPath();
+                ctx.moveTo(dumbbellStartX, 150);
+                ctx.lineTo(dumbbellEndX, 150);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(leftCircleX, 150, 10, 0, Math.PI * 2); // Extremo izquierdo
+                ctx.fill();
+            
+                ctx.beginPath();
+                ctx.arc(rightCircleX, 150, 10, 0, Math.PI * 2); // Extremo derecho
+                ctx.fill();
+            }
+
+            // Evento para cambiar el tamaño o posición al pasar el ratón
+            canvas.addEventListener("mouseover", function() {
+                textY = 90;
+                dumbbellStartX = 130;
+                dumbbellEndX = 270;
+                leftCircleX = dumbbellStartX - 10;
+                rightCircleX = dumbbellEndX + 10;
+                drawLogo();
+            });
+
+            canvas.addEventListener("mouseout", function() {
+                textY = 110;
+                dumbbellStartX = 140;
+                dumbbellEndX = 260;
+                leftCircleX = dumbbellStartX - 10;
+                rightCircleX = dumbbellEndX + 10;
+                drawLogo();
+            });
+
+            drawLogo();
+        });
+    </script>
+</body>
+</html>
