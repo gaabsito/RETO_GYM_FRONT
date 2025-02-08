@@ -20,10 +20,7 @@ onMounted(async () => {
 <template>
   <v-container class="pa-0" fluid>
     <!-- Hero Section -->
-    <v-parallax
-      src="https://cdn.pixabay.com/photo/2017/08/07/14/02/man-2604149_1280.jpg"
-      height="400"
-    >
+    <v-parallax src="https://cdn.pixabay.com/photo/2017/08/07/14/02/man-2604149_1280.jpg" height="400">
       <div class="d-flex flex-column fill-height justify-center align-center text-white">
         <h1 class="text-h2 font-weight-bold mb-4">
           Transforma tu cuerpo
@@ -31,24 +28,15 @@ onMounted(async () => {
         <h2 class="text-h5 mb-6 text-center">
           Encuentra los mejores entrenamientos personalizados para alcanzar tus objetivos
         </h2>
-        <div class="d-flex">
-          <v-btn
-            color="secondary"
-            size="x-large"
-            class="me-4"
-            to="/registro"
-          >
+        <div class="d-flex flex-column align-center gap-4">
+          <v-btn color="secondary" size="x-large" to="/registro">
             Empieza Ahora
           </v-btn>
-          <v-btn
-            color="primary"
-            size="x-large"
-            variant="outlined"
-            to="/entrenamientos"
-          >
+          <v-btn color="primary" size="x-large" variant="outlined" to="/entrenamientos">
             Ver Entrenamientos
           </v-btn>
         </div>
+
       </div>
     </v-parallax>
 
@@ -59,11 +47,7 @@ onMounted(async () => {
           <v-card class="mx-auto" variant="elevated">
             <v-card-item>
               <template v-slot:prepend>
-                <v-icon
-                  color="secondary"
-                  size="x-large"
-                  icon="mdi-dumbbell"
-                ></v-icon>
+                <v-icon color="secondary" size="x-large" icon="mdi-dumbbell"></v-icon>
               </template>
               <v-card-title>Entrenamientos Personalizados</v-card-title>
               <v-card-text>
@@ -77,11 +61,7 @@ onMounted(async () => {
           <v-card class="mx-auto" variant="elevated">
             <v-card-item>
               <template v-slot:prepend>
-                <v-icon
-                  color="secondary"
-                  size="x-large"
-                  icon="mdi-account-group"
-                ></v-icon>
+                <v-icon color="secondary" size="x-large" icon="mdi-account-group"></v-icon>
               </template>
               <v-card-title>Comunidad Activa</v-card-title>
               <v-card-text>
@@ -95,11 +75,7 @@ onMounted(async () => {
           <v-card class="mx-auto" variant="elevated">
             <v-card-item>
               <template v-slot:prepend>
-                <v-icon
-                  color="secondary"
-                  size="x-large"
-                  icon="mdi-chart-line"
-                ></v-icon>
+                <v-icon color="secondary" size="x-large" icon="mdi-chart-line"></v-icon>
               </template>
               <v-card-title>Seguimiento de Progreso</v-card-title>
               <v-card-text>
@@ -114,21 +90,11 @@ onMounted(async () => {
     <!-- Featured Workouts Section -->
     <v-container class="my-8">
       <h2 class="text-h4 mb-6">Entrenamientos Destacados</h2>
-      
+
       <v-row v-if="!loading">
-        <v-col 
-          v-for="workout in featuredWorkouts" 
-          :key="workout.entrenamientoID"
-          cols="12" 
-          sm="6" 
-          md="4"
-        >
+        <v-col v-for="workout in featuredWorkouts" :key="workout.entrenamientoID" cols="12" sm="6" md="4">
           <v-card class="h-100">
-            <v-img
-              :src="`https://picsum.photos/400/200?random=${workout.entrenamientoID}`"
-              height="200"
-              cover
-            ></v-img>
+            <v-img :src="`https://picsum.photos/400/200?random=${workout.entrenamientoID}`" height="200" cover></v-img>
 
             <v-card-item>
               <v-card-title>{{ workout.titulo }}</v-card-title>
@@ -143,11 +109,7 @@ onMounted(async () => {
 
             <v-card-actions>
               <v-spacer></v-spacer>
-              <v-btn
-                color="primary"
-                variant="text"
-                :to="`/entrenamientos/${workout.entrenamientoID}`"
-              >
+              <v-btn color="primary" variant="text" :to="`/entrenamientos/${workout.entrenamientoID}`">
                 Ver más
               </v-btn>
             </v-card-actions>
@@ -157,28 +119,17 @@ onMounted(async () => {
 
       <v-row v-else>
         <v-col cols="12" class="text-center">
-          <v-progress-circular
-            indeterminate
-            color="primary"
-            size="64"
-          ></v-progress-circular>
+          <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
         </v-col>
       </v-row>
     </v-container>
 
     <!-- CTA Section -->
-    <v-sheet
-      color="primary"
-      class="pa-12 text-center"
-    >
+    <v-sheet color="primary" class="pa-12 text-center">
       <h2 class="text-h4 text-white mb-6">
         ¿Listo para comenzar tu transformación?
       </h2>
-      <v-btn
-        color="secondary"
-        size="x-large"
-        to="/registro"
-      >
+      <v-btn color="secondary" size="x-large" to="/registro">
         Únete Ahora
       </v-btn>
     </v-sheet>
