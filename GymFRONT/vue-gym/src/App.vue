@@ -26,7 +26,7 @@ const authMenuItems = [
       
       <v-app-bar-title>
         <router-link to="/" class="app-bar__logo">
-          GymApp
+          ENTÉNATE
         </router-link>
       </v-app-bar-title>
 
