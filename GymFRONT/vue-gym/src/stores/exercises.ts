@@ -4,7 +4,7 @@ import type { Exercise } from '@/types/Exercise'
 import type { ApiResponse } from '@/types/ApiResponse'
 import { useAuthStore } from './auth'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5288'
+const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087'
 
 export const useExerciseStore = defineStore('exercises', () => {
     const exercises = ref<Exercise[]>([])
