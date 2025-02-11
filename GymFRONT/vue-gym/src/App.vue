@@ -21,7 +21,7 @@ const authMenuItems = [
 <template>
   <v-app>
     <!-- App Bar (Optimizado para móviles) -->
-    <v-app-bar color="primary">
+    <v-app-bar class="app-bar">
       <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
       
       <v-app-bar-title>
@@ -128,6 +128,11 @@ const authMenuItems = [
 .main-content {
   flex: 1;
   padding: 20px;
+}
+
+/* Encabezado */
+.app-bar {
+  background-color: $primary-color !important;
 }
 
 /* Footer */
