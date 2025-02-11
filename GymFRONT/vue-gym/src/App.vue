@@ -2,6 +2,8 @@
 import { RouterLink, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ref } from 'vue'
+import LogoCanvas from "./components/LogoCanvas.vue";
+
 
 const authStore = useAuthStore()
 const drawer = ref(false)
@@ -24,9 +26,11 @@ const authMenuItems = [
     <v-app-bar class="app-bar">
       <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
       
-      <v-app-bar-title>
+      <v-app-bar-title class="logoo">
         <router-link to="/" class="app-bar__logo">
-          ENTÉNATE
+          <div class="logo-container">
+      <LogoCanvas />
+    </div>
         </router-link>
       </v-app-bar-title>
 
@@ -105,6 +109,21 @@ const authMenuItems = [
   flex-direction: column;
   min-height: 100vh;
 }
+.logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 150px;  /* Tamaño fijo para mantenerlo cuadrado */
+  height: 150px;
+  overflow: hidden;
+  
+}
+
+canvas {
+  width: 150px;  /* Asegura que no se estire */
+  height: 150px;
+  display: block;
+}
 
 /* Encabezado */
 .app-bar__logo {
@@ -112,6 +131,14 @@ const authMenuItems = [
   font-weight: bold;
   text-decoration: none;
   font-size: 1.2rem;
+}
+.logo-frame {
+  width: 150px;
+  height: 50px;
+  border: none;
+  overflow: hidden;
+  display: block;
+
 }
 
 /* Menú lateral */
@@ -175,6 +202,15 @@ const authMenuItems = [
 
 /* Escritorio (>= 1024px) */
 @media (min-width: 1024px) {
+  .logo-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 150px;  /* Tamaño fijo para mantenerlo cuadrado */
+  height: 150px;
+  overflow: hidden;
+}
+
   .main-content {
     padding: 40px;
   }

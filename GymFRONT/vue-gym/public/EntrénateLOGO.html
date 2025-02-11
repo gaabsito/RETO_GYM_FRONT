@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 150px;
+            height: 150px;
+            overflow: hidden;
+            background: transparent;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="logoCanvas"></canvas>
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            const canvas = document.getElementById("logoCanvas");
+            const ctx = canvas.getContext("2d");
+
+            canvas.width = 150;
+            canvas.height = 150;
+
+            ctx.fillStyle = "#FFFAE5"; // Fondo blanco anaranjado
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.font = "bold 80px Impact";
+            ctx.fillStyle = "#FF8C00"; // Naranja
+            ctx.textAlign = "center";
+            ctx.fillText("E", canvas.width / 2, 90);
+
+            // Barra de mancuerna
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = "#FF8C00";
+            ctx.beginPath();
+            ctx.moveTo(30, 110);
+            ctx.lineTo(120, 110);
+            ctx.stroke();
+
+            // Discos
+            ctx.fillRect(25, 90, 10, 30);
+            ctx.fillRect(115, 90, 10, 30);
+        });
+    </script>
+</body>
+</html>
