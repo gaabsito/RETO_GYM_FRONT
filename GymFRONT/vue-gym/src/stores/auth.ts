@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import type { User, LoginCredentials, RegisterData } from '@/types/User'
 import type { ApiResponse } from '@/types/ApiResponse'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5288'
+const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087'
 
 export const useAuthStore = defineStore('auth', () => {
     const user = ref<User | null>(null)

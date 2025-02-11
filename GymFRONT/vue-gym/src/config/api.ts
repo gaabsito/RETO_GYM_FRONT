@@ -1,4 +1,4 @@
-export const API_URL = 'http://localhost:5288'
+export const API_URL = 'https://localhost:7087'
 
 export default {
     api: {
@@ -10,8 +10,8 @@ export default {
                 verify: '/auth/verify'
             },
             workouts: {
-                base: '/entrenamientos',
-                public: '/entrenamientos/public'
+                base: '/api/entrenamiento',
+                public: '/api/entrenamiento/public'
             },
             exercises: {
                 base: '/ejercicios'

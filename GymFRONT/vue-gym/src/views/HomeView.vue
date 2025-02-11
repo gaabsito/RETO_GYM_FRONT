@@ -9,7 +9,7 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    await workoutStore.fetchWorkouts(true)
+    await workoutStore.fetchWorkouts()
     featuredWorkouts.value = workoutStore.workouts.slice(0, 6)
   } finally {
     loading.value = false

@@ -4,7 +4,7 @@ import type { Workout, CreateWorkoutDTO } from '@/types/Workout'
 import type { ApiResponse } from '@/types/ApiResponse'
 import { useAuthStore } from './auth'
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5288'
+const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087/api'
 
 export const useWorkoutStore = defineStore('workouts', () => {
     const workouts = ref<Workout[]>([])
@@ -19,20 +19,20 @@ export const useWorkoutStore = defineStore('workouts', () => {
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json'
             }
-
+    
             if (authStore.token) {
                 headers['Authorization'] = `Bearer ${authStore.token}`
             }
-
+    
             const response = await fetch(
-                `${API_URL}/entrenamientos${isPublic ? '/public' : ''}`,
+                `${API_URL}/Entrenamiento`,
                 { headers }
             )
-
+    
             const data: ApiResponse<Workout[]> = await response.json()
-
+    
             if (!response.ok) throw new Error(data.message || 'Error cargando entrenamientos')
-
+    
             workouts.value = data.data
             return data.data
         } catch (e) {
@@ -56,7 +56,7 @@ export const useWorkoutStore = defineStore('workouts', () => {
                 headers['Authorization'] = `Bearer ${authStore.token}`
             }
 
-            const response = await fetch(`${API_URL}/entrenamientos/${id}`, { headers })
+            const response = await fetch(`${API_URL}/entrenamiento/${id}`, { headers })
             const data: ApiResponse<Workout> = await response.json()
 
             if (!response.ok) throw new Error(data.message || 'Error cargando entrenamiento')
@@ -77,7 +77,7 @@ export const useWorkoutStore = defineStore('workouts', () => {
             const authStore = useAuthStore()
             if (!authStore.token) throw new Error('No autorizado')
 
-            const response = await fetch(`${API_URL}/entrenamientos`, {
+            const response = await fetch(`${API_URL}/entrenamiento`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
