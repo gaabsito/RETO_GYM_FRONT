@@ -9,8 +9,10 @@ const loading = ref(true)
 
 onMounted(async () => {
   try {
-    await workoutStore.fetchWorkouts()
-    featuredWorkouts.value = workoutStore.workouts.slice(0, 6)
+    const workouts = await workoutStore.fetchWorkouts()
+    featuredWorkouts.value = workouts.slice(0, 6)
+  } catch (error) {
+    console.error('Error cargando entrenamientos:', error)
   } finally {
     loading.value = false
   }

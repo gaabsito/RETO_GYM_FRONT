@@ -11,7 +11,7 @@ export const useWorkoutStore = defineStore('workouts', () => {
     const loading = ref(false)
     const error = ref<string | null>(null)
 
-    async function fetchWorkouts(isPublic: boolean = true) {
+    async function fetchWorkouts() {
         loading.value = true
         error.value = null
         try {
@@ -29,14 +29,17 @@ export const useWorkoutStore = defineStore('workouts', () => {
                 { headers }
             )
     
-            const data: ApiResponse<Workout[]> = await response.json()
+            if (!response.ok) {
+                throw new Error('Error al cargar los entrenamientos')
+            }
     
-            if (!response.ok) throw new Error(data.message || 'Error cargando entrenamientos')
+            const data: Workout[] = await response.json()
+            workouts.value = data
+            return data
     
-            workouts.value = data.data
-            return data.data
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
+            workouts.value = []
             throw e
         } finally {
             loading.value = false
