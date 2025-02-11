@@ -13,7 +13,7 @@
             background-color: #222;
         }
         canvas {
-            border: 2px solid white;
+
             background-color: black;
         }
     </style>
@@ -25,16 +25,19 @@
             const canvas = document.getElementById("logoCanvas");
             const ctx = canvas.getContext("2d");
 
-            // Ajustar dimensiones del canvas
-            canvas.width = 400;
-            canvas.height = 200;
+            // Ajustar dimensiones del canvas a un cuadrado
+            canvas.width = 300;
+            canvas.height = 300;
 
             // Variables de posición
-            let textY = 110;
-            let dumbbellStartX = 140;
-            let dumbbellEndX = 260;
-            let leftCircleX = dumbbellStartX - 10;
-            let rightCircleX = dumbbellEndX + 10;
+            let textY = 170;
+            let dumbbellStartX = 100;
+            let dumbbellEndX = 200;
+            let leftRectX = dumbbellStartX - 15;
+            let rightRectX = dumbbellEndX;
+            let rectWidth = 15;
+            let rectHeight = 40;
+            let rectY = 180;
 
             function drawLogo() {
                 // Limpiar canvas
@@ -47,47 +50,46 @@
                 ctx.fillStyle = gradient;
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                // Texto principal en blanco con un nuevo enfoque de fuente
-                ctx.font = "bold 45px Impact";
+                // Marco cuadrado
+                ctx.strokeStyle = "white";
+                ctx.lineWidth = 6;
+                ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+
+                // Texto principal con la tipografía original
+                ctx.font = "bold 120px Impact";
                 ctx.fillStyle = "white";
                 ctx.textAlign = "center";
-                ctx.fillText("ENTRÉNATE", canvas.width / 2, textY);
+                ctx.fillText("E", canvas.width / 2, textY);
 
-                // Dibujar un icono representativo (mancuerna estilizada)
-                ctx.lineWidth = 6;
-                ctx.strokeStyle = "white";
-            
-                // Mancuerna
+                // Mancuerna con discos centrados
+                ctx.lineWidth = 8;
                 ctx.beginPath();
-                ctx.moveTo(dumbbellStartX, 150);
-                ctx.lineTo(dumbbellEndX, 150);
+                ctx.moveTo(dumbbellStartX, 200);
+                ctx.lineTo(dumbbellEndX, 200);
                 ctx.stroke();
 
-                ctx.beginPath();
-                ctx.arc(leftCircleX, 150, 10, 0, Math.PI * 2); // Extremo izquierdo
-                ctx.fill();
-            
-                ctx.beginPath();
-                ctx.arc(rightCircleX, 150, 10, 0, Math.PI * 2); // Extremo derecho
-                ctx.fill();
+                // Discos rectangulares alineados con la barra
+                ctx.fillStyle = "white";
+                ctx.fillRect(leftRectX, rectY, rectWidth, rectHeight); // Izquierdo
+                ctx.fillRect(rightRectX, rectY, rectWidth, rectHeight); // Derecho
             }
 
             // Evento para cambiar el tamaño o posición al pasar el ratón
             canvas.addEventListener("mouseover", function() {
-                textY = 90;
-                dumbbellStartX = 130;
-                dumbbellEndX = 270;
-                leftCircleX = dumbbellStartX - 10;
-                rightCircleX = dumbbellEndX + 10;
+                textY = 150;
+                dumbbellStartX = 90;
+                dumbbellEndX = 210;
+                leftRectX = dumbbellStartX - 15;
+                rightRectX = dumbbellEndX;
                 drawLogo();
             });
 
             canvas.addEventListener("mouseout", function() {
-                textY = 110;
-                dumbbellStartX = 140;
-                dumbbellEndX = 260;
-                leftCircleX = dumbbellStartX - 10;
-                rightCircleX = dumbbellEndX + 10;
+                textY = 170;
+                dumbbellStartX = 100;
+                dumbbellEndX = 200;
+                leftRectX = dumbbellStartX - 15;
+                rightRectX = dumbbellEndX;
                 drawLogo();
             });
 
