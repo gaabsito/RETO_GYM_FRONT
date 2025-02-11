@@ -10,10 +10,9 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #222;
+            background-color: #FFFAE5; /* Blanco anaranjado */
         }
         canvas {
-
             background-color: black;
         }
     </style>
@@ -43,11 +42,8 @@
                 // Limpiar canvas
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                // Fondo degradado en tonos naranjas
-                const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-                gradient.addColorStop(0, "#FF8C00"); // Naranja fuerte
-                gradient.addColorStop(1, "#FF4500"); // Rojo anaranjado
-                ctx.fillStyle = gradient;
+                // Fondo blanco anaranjado
+                ctx.fillStyle = "#FFFAE5";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                 // Marco cuadrado
@@ -55,21 +51,22 @@
                 ctx.lineWidth = 6;
                 ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
 
-                // Texto principal con la tipografía original
+                // Texto principal con color naranja
                 ctx.font = "bold 120px Impact";
-                ctx.fillStyle = "white";
+                ctx.fillStyle = "#FF8C00"; // Naranja fuerte
                 ctx.textAlign = "center";
                 ctx.fillText("E", canvas.width / 2, textY);
 
-                // Mancuerna con discos centrados
+                // Mancuerna con discos centrados en color naranja
+                ctx.strokeStyle = "#FF8C00";
                 ctx.lineWidth = 8;
                 ctx.beginPath();
                 ctx.moveTo(dumbbellStartX, 200);
                 ctx.lineTo(dumbbellEndX, 200);
                 ctx.stroke();
 
-                // Discos rectangulares alineados con la barra
-                ctx.fillStyle = "white";
+                // Discos rectangulares alineados con la barra en color naranja
+                ctx.fillStyle = "#FF8C00";
                 ctx.fillRect(leftRectX, rectY, rectWidth, rectHeight); // Izquierdo
                 ctx.fillRect(rightRectX, rectY, rectWidth, rectHeight); // Derecho
             }
