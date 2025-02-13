@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 
+// Referencia al elemento <canvas> en el DOM
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 
 onMounted(() => {
@@ -8,114 +9,148 @@ onMounted(() => {
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
 
-  // Definir tamaño del canvas cuadrado
+  // Define el tamaño del canvas
   canvas.width = 150;
   canvas.height = 150;
 
-  // Variables de animación separadas
-  let scaleE = 1, scaleBar = 1;
-  let opacityE = 1, opacityBar = 1;
-  let isHovered = false;
+  // Variables de control de animación
+  let scaleE = 1, scaleDisk = 1; // Escala de la letra 'E' y del disco
+  let opacityE = 1;
+  let barRotation = -Math.PI / 10; // Inclinación inicial de la barra
+  let isAnimatingE = false;
   let isAnimating = false;
+  let rotationE = -Math.PI / 10; // Inclinación inicial de la 'E'
 
+  // Función para dibujar el logotipo
   function drawLogo() {
     if (!ctx) return;
 
-    // Limpiar canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, canvas.width, canvas.height); // Limpiar el canvas
+    
+    // Dibujar el disco de pesas
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(barRotation);
+    ctx.translate(-canvas.width / 2, -canvas.height / 2);
 
-    if (!isHovered) {
-      ctx.fillStyle = "#FFFAE5";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
+    ctx.fillStyle = "#FFFAE5";
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, canvas.height / 2, 50 * scaleDisk, 0, Math.PI * 2);
+    ctx.fill();
+    
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, canvas.height / 2, 50 * scaleDisk, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, canvas.height / 2, 40 * scaleDisk, 0, Math.PI * 2);
+    ctx.stroke();
 
-    // Marco cuadrado más grueso
-    const borderSize = 10;
-    ctx.strokeStyle = "#FFFAE5";
-    ctx.lineWidth = 8;
-    ctx.strokeRect(borderSize, borderSize, canvas.width - borderSize * 2, canvas.height - borderSize * 2);
+    // Dibujar el agujero en el centro del disco
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, canvas.height / 2, 10, 0, Math.PI * 2);
+    ctx.fill();
 
-    // Dibujar la letra "E"
+    ctx.restore();
+    
+    // Dibujar la barra horizontal con ajuste para que no se monte sobre el disco
+    ctx.save();
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate(barRotation);
+    ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
+    ctx.lineWidth = 14;
+    ctx.strokeStyle = "#000";
+
+    // Parte izquierda más larga
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2 - 75, canvas.height / 2);
+    ctx.lineTo(canvas.width / 2 - 2, canvas.height / 2);
+    ctx.stroke();
+
+    // Parte derecha ajustada para no montarse sobre el disco
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2 + 52, canvas.height / 2);
+    ctx.lineTo(canvas.width / 2 + 72, canvas.height / 2);
+    ctx.stroke();
+
+    ctx.restore();
+    
+    // Dibujar la letra 'E' centrada en el medio del disco
+    ctx.save();
+    ctx.translate(canvas.width / 1.975, canvas.height / 1.82);
+    ctx.rotate(rotationE);
+    ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
     ctx.globalAlpha = opacityE;
-    ctx.font = `bold ${80 * scaleE}px Impact`;
+    ctx.font = `bold ${90 * scaleE}px Staatliches`;
     ctx.fillStyle = "#FF8C00";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText("E", canvas.width / 2, 55 * scaleE);
-
-    // Dibujar barra de la mancuerna
-    ctx.globalAlpha = opacityBar;
-    ctx.strokeStyle = "#FF8C00";
-    ctx.lineWidth = 8;
-
-    const barWidth = 100 * scaleBar;
-    const barX = (canvas.width - barWidth) / 2;
-    const barY = 110 * scaleBar; // Posición de la barra
-
-    ctx.beginPath();
-    ctx.moveTo(barX, barY);
-    ctx.lineTo(barX + barWidth, barY);
-    ctx.stroke();
-
-    // Discos alineados correctamente (la barra está en el centro)
-    const discWidth = 14 * scaleBar;
-    const discHeight = 30 * scaleBar;
-    const discOffsetY = -discHeight / 2 + ctx.lineWidth / 2; // Ajustado para centrar la barra
-
-    ctx.fillStyle = "#FF8C00";
-    ctx.fillRect(barX - discWidth, barY - discHeight / 2, discWidth, discHeight); // Izquierdo
-    ctx.fillRect(barX + barWidth, barY - discHeight / 2, discWidth, discHeight); // Derecho
-
-    // Restaurar opacidad
+    ctx.fillText("E", canvas.width / 2, canvas.height / 2);
     ctx.globalAlpha = 1;
+
+    ctx.restore();
   }
 
-  // Función de animación mejorada
-  function animate(targetScaleE: number, targetOpacityE: number, targetScaleBar: number, targetOpacityBar: number) {
+  function animate(targetScaleDisk: number, targetRotation: number) {
     if (isAnimating) return;
     isAnimating = true;
-
     const step = 0.1;
-
+    
     function stepAnimation() {
-      let scaleDiffE = targetScaleE - scaleE;
-      let opacityDiffE = targetOpacityE - opacityE;
-      let scaleDiffBar = targetScaleBar - scaleBar;
-      let opacityDiffBar = targetOpacityBar - opacityBar;
-
-      if (Math.abs(scaleDiffE) < 0.01 && Math.abs(opacityDiffE) < 0.01 && Math.abs(scaleDiffBar) < 0.01 && Math.abs(opacityDiffBar) < 0.01) {
-        scaleE = targetScaleE;
-        opacityE = targetOpacityE;
-        scaleBar = targetScaleBar;
-        opacityBar = targetOpacityBar;
+      let scaleDiffDisk = targetScaleDisk - scaleDisk;
+      let rotationDiff = targetRotation - barRotation;
+      
+      if (Math.abs(scaleDiffDisk) < 0.01 && Math.abs(rotationDiff) < 0.01) {
+        scaleDisk = targetScaleDisk;
+        barRotation = targetRotation;
         isAnimating = false;
         return;
       }
-
-      scaleE += scaleDiffE * step;
-      opacityE += opacityDiffE * step;
-      scaleBar += scaleDiffBar * step;
-      opacityBar += opacityDiffBar * step;
-
+      
+      scaleDisk += scaleDiffDisk * step;
+      barRotation += rotationDiff * step;
+      
       drawLogo();
       requestAnimationFrame(stepAnimation);
     }
-
     stepAnimation();
   }
 
-  // Dibujar el logo inicialmente
+  function animateE(targetRotation: number) {
+    if (isAnimatingE) return;
+    isAnimatingE = true;
+    const step = 0.1;
+
+    function stepAnimation() {
+      let rotationDiff = targetRotation - rotationE;
+      if (Math.abs(rotationDiff) < 0.01) {
+        rotationE = targetRotation;
+        isAnimatingE = false;
+        return;
+      }
+      rotationE += rotationDiff * step;
+      drawLogo();
+      requestAnimationFrame(stepAnimation);
+    }
+    stepAnimation();
+  }
+
   drawLogo();
 
-  // Eventos para la animación
   canvas.addEventListener("mouseover", () => {
-    isHovered = true;
-    animate(1.2, 0.8, 1.1, 0.9);
+    animate(1.1, -Math.PI / 8);
+    animateE(0);
   });
 
   canvas.addEventListener("mouseout", () => {
-    isHovered = false;
-    animate(1, 1, 1, 1);
+    animate(1, -Math.PI / 10);
+    animateE(-Math.PI / 10);
   });
 });
 </script>
@@ -127,8 +162,8 @@ onMounted(() => {
 <style scoped>
 canvas {
   display: block;
-  width: 50px;
-  height: 50px;
+  width: 65px;
+  height: 65px;
   transition: transform 0.3s ease, opacity 0.3s ease;
 }
 </style>
