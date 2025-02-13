@@ -27,7 +27,7 @@ onMounted(async () => {
       :src="heroImage"
       class="align-center justify-center parallax-container">
       <div class="d-flex flex-column fill-height justify-center align-center text-white">
-        <v-container>
+        <v-container class="features">
           <v-row align="center" justify="center">
             <v-col cols="12" md="8" class="text-center">
               <h1 class="txt-h2">
@@ -181,6 +181,10 @@ onMounted(async () => {
 .txt-h2{
   font-size: 40px;
   font-weight: bold;
+}
+
+.py-12 {
+  padding: 0px;
 }
 
 .v-parallax {

@@ -115,6 +115,10 @@ const authMenuItems = [
   min-height: 100vh;
 }
 
+.v-container {
+  
+}
+
 .v-toolbar__content {
   display: flex;
   flex: 0 0 auto;
@@ -138,7 +142,7 @@ font-family: $font-family-text !important;
 .v-toolbar__content {
     justify-content: space-around;
     gap: 130px;
-  }
+}
 canvas {
   width: 150px;
   height: 150px;
