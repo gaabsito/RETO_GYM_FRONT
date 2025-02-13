@@ -4,7 +4,6 @@ import { useAuthStore } from '@/stores/auth'
 import { ref } from 'vue'
 import LogoCanvas from "./components/LogoCanvas.vue";
 
-
 const authStore = useAuthStore()
 const drawer = ref(false)
 
@@ -12,6 +11,7 @@ const menuItems = [
   { title: 'Inicio', icon: 'mdi-home', route: '/' },
   { title: 'Entrenamientos', icon: 'mdi-dumbbell', route: '/entrenamientos' },
   { title: 'Ejercicios', icon: 'mdi-run', route: '/ejercicios' },
+  { title: 'Sobre Nosotros', icon: 'mdi-information', route: '/sobre-nosotros' }, // Nuevo botón
 ]
 
 const authMenuItems = [
@@ -21,25 +21,25 @@ const authMenuItems = [
 </script>
 
 <template>
-<v-app>
-  <!-- App Bar (Optimizado para móviles) -->
-  <v-app-bar class="app-bar">
-    <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
-        <router-link to="/" class="app-bar__logo">
-      <div class="logo-container">
-        <LogoCanvas />
-      </div>
-    </router-link>
-
+  <v-app>
+    <!-- App Bar (Optimizado para móviles) -->
+    <v-app-bar class="app-bar">
+      <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
+      <router-link to="/" class="app-bar__logo">
+        <div class="logo-container">
+          <LogoCanvas />
+        </div>
+      </router-link>
 
       <!-- Botones de autenticación para pantallas grandes -->
+      <v-btn variant="text" to="/sobre-nosotros" class="desktop-only">
+          Sobre Nosotros
+        </v-btn>
       <template v-if="!authStore.isAuthenticated">
         <v-btn variant="text" to="/login" class="desktop-only">
           Iniciar Sesión
         </v-btn>
-        <v-btn color="secondary" to="/registro" class="desktop-only">
-          Registrarse
-        </v-btn>
+       
       </template>
       <template v-else>
         <v-btn variant="text" @click="authStore.logout" class="desktop-only">
@@ -109,30 +109,31 @@ const authMenuItems = [
   flex-direction: column;
   min-height: 100vh;
 }
+
 .v-toolbar__content {
-    display: flex;
-    flex: 0 0 auto;
-    position: relative;
-    transition: inherit;
-    width: 100%;
-    align-items: center;
-    justify-content: space-between; /* Mantiene la alineación normal en escritorio */
+  display: flex;
+  flex: 0 0 auto;
+  position: relative;
+  transition: inherit;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
 }
+.v-main{
 
-
+font-family: $font-family-text !important;
+}
 .logo-container {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100px;
-  /* Tamaño fijo para mantenerlo cuadrado */
   height: 150px;
   overflow: hidden;
-
 }
+
 canvas {
   width: 150px;
-  /* Asegura que no se estire */
   height: 150px;
   display: block;
 }
@@ -143,15 +144,6 @@ canvas {
   font-weight: bold;
   text-decoration: none;
   font-size: 1.2rem;
-}
-
-.logo-frame {
-  width: 150px;
-  height: 50px;
-  border: none;
-  overflow: hidden;
-  display: block;
-
 }
 
 /* Menú lateral */
@@ -219,24 +211,28 @@ canvas {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 150px;
-    /* Tamaño fijo para mantenerlo cuadrado */
-    height: 150px;
+    width: 100px;
+    height: 100px;
     overflow: hidden;
   }
 
   .v-toolbar__content {
-        justify-content: space-around; /* Separa el menú y el logo */
-    }
+    justify-content: space-around;
+    height: 70px;
+  }
 
-    .logo-container {
-        margin-left: auto; /* Empuja el logo-container a la derecha */
-    }
+  .v-btn {
+    font-size: 19px !important;
+    font-weight: bold;
+  }
 
+  .logo-container {
+    margin-left: auto;
+  }
 
-    .app-bar__logo {
-        margin-left: 0; /* Evita que el logo se aleje del menú */
-    }
+  .app-bar__logo {
+    margin-left: 0;
+  }
 
   .main-content {
     padding: 40px;

@@ -127,8 +127,8 @@ onMounted(() => {
 <style scoped>
 canvas {
   display: block;
-  width: 50px;
-  height: 50px;
+  width: 45px;
+  height: 45px;
   transition: transform 0.3s ease, opacity 0.3s ease;
 }
 </style>
