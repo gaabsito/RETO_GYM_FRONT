@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useWorkoutStore } from '@/stores/workouts'
 import type { Workout } from '@/types/Workout'
+import heroImage from '@/assets/images/coleman.jpg'
 
 const workoutStore = useWorkoutStore()
 const featuredWorkouts = ref<Workout[]>([])
@@ -22,8 +23,9 @@ onMounted(async () => {
 <template>
   <v-container class="pa-0" fluid>
     <!-- Hero Section -->
-    <v-parallax src="https://cdn.pixabay.com/photo/2017/08/07/14/02/man-2604149_1280.jpg"
-      class="align-center justify-center" height="600">
+    <v-parallax 
+      :src="heroImage"
+      class="align-center justify-center parallax-container">
       <div class="d-flex flex-column fill-height justify-center align-center text-white">
         <v-container>
           <v-row align="center" justify="center">
@@ -179,6 +181,14 @@ onMounted(async () => {
 .v-parallax {
   border-radius: $border-radius;
 } 
+
+.parallax-container {
+  height: 800px;
+}
+
+.parallax-container img {
+  object-fit:cover;
+}
 
 .v-card {
   border-radius: $border-radius;
