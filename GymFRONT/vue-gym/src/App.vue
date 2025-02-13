@@ -26,7 +26,7 @@ const authMenuItems = [
     <v-app-bar class="app-bar">
       <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
       <router-link to="/" class="app-bar__logo">
-        <div class="logo-container">
+        <div class="logo-container" to="/home">
           <LogoCanvas />
         </div>
       </router-link>

@@ -49,32 +49,40 @@ onMounted(() => {
     ctx.arc(canvas.width / 2, canvas.height / 2, 40 * scaleDisk, 0, Math.PI * 2);
     ctx.stroke();
 
+    // Dibujar el agujero en el centro del disco
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.arc(canvas.width / 2, canvas.height / 2, 10, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.restore();
     
-    // Dibujar la barra horizontal por encima del disco
+    // Dibujar la barra horizontal con ajuste para que no se monte sobre el disco
     ctx.save();
     ctx.translate(canvas.width / 2, canvas.height / 2);
     ctx.rotate(barRotation);
     ctx.translate(-canvas.width / 2, -canvas.height / 2);
 
-    ctx.lineWidth = 8;
+    ctx.lineWidth = 14;
     ctx.strokeStyle = "#000";
 
+    // Parte izquierda más larga
     ctx.beginPath();
-    ctx.moveTo(0, canvas.height / 2 - 5);
-    ctx.lineTo(canvas.width / 2 - 7, canvas.height / 2 - 5);
+    ctx.moveTo(canvas.width / 2 - 75, canvas.height / 2);
+    ctx.lineTo(canvas.width / 2 - 2, canvas.height / 2);
     ctx.stroke();
 
+    // Parte derecha ajustada para no montarse sobre el disco
     ctx.beginPath();
-    ctx.moveTo(canvas.width / 2 + 53, canvas.height / 2 - 5);
-    ctx.lineTo(canvas.width - 5, canvas.height / 2 - 5);
+    ctx.moveTo(canvas.width / 2 + 52, canvas.height / 2);
+    ctx.lineTo(canvas.width / 2 + 72, canvas.height / 2);
     ctx.stroke();
 
     ctx.restore();
     
-    // Dibujar la letra 'E' por encima de todo
+    // Dibujar la letra 'E' centrada en el medio del disco
     ctx.save();
-    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.translate(canvas.width / 1.975, canvas.height / 1.82);
     ctx.rotate(rotationE);
     ctx.translate(-canvas.width / 2, -canvas.height / 2);
 
@@ -89,7 +97,6 @@ onMounted(() => {
     ctx.restore();
   }
 
-  // Función de animación para el disco y la barra
   function animate(targetScaleDisk: number, targetRotation: number) {
     if (isAnimating) return;
     isAnimating = true;
@@ -115,7 +122,6 @@ onMounted(() => {
     stepAnimation();
   }
 
-  // Función de animación para la letra 'E'
   function animateE(targetRotation: number) {
     if (isAnimatingE) return;
     isAnimatingE = true;
@@ -137,13 +143,11 @@ onMounted(() => {
 
   drawLogo();
 
-  // Evento para activar animaciones al pasar el cursor sobre el canvas
   canvas.addEventListener("mouseover", () => {
     animate(1.1, -Math.PI / 8);
     animateE(0);
   });
 
-  // Evento para restaurar animaciones al salir del cursor
   canvas.addEventListener("mouseout", () => {
     animate(1, -Math.PI / 10);
     animateE(-Math.PI / 10);
