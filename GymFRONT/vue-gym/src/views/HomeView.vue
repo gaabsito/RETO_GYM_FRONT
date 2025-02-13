@@ -174,8 +174,7 @@ onMounted(async () => {
 @import '@/assets/styles/main.scss';
 .cta-section {
   border-radius: $border-radius;
-  margin: 1rem; 
-  width: calc(100% - 2rem) !important; 
+  width: 100% !important; 
 }
 
 .txt-h2{
