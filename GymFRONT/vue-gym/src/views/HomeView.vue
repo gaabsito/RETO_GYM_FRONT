@@ -218,4 +218,9 @@ onMounted(async () => {
   background-color: $primary-color;
 }
 
+.pa-0 {
+  padding-top: 4% !important;
+  padding-bottom: 4% !important;
+}
+
 </style>
