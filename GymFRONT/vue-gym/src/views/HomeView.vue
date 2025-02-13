@@ -151,7 +151,7 @@ onMounted(async () => {
 
     <!-- CTA Section -->
     <v-container class="c-destacados">
-      <v-row align="center" justify="center">
+      <v-row align="center" justify="center" class="c-row">
         <v-col cols="12" md="8" class="text-center">
           <h2 class="text-h4 text-white mb-6">
             ¿Listo para comenzar tu transformación?
@@ -239,7 +239,7 @@ color: $primary-color;
   background-color: black;
   border-radius: $border-radius;
 }
-.text-center {
+.c-row {
   padding: 2% !important;
 }
 .pa-0 {
