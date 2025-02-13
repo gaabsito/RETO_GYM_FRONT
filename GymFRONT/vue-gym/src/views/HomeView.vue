@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useWorkoutStore } from '@/stores/workouts'
 import type { Workout } from '@/types/Workout'
-import heroImage from '@/assets/images/coleman.jpg'
+import heroImage from '@/assets/images/arnold.jpg'
 
 const workoutStore = useWorkoutStore()
 const featuredWorkouts = ref<Workout[]>([])
@@ -174,8 +174,7 @@ onMounted(async () => {
 @import '@/assets/styles/main.scss';
 .cta-section {
   border-radius: $border-radius;
-  margin: 1rem; 
-  width: calc(100% - 2rem) !important; 
+  width: 100% !important; 
 }
 
 .txt-h2{
@@ -185,6 +184,13 @@ onMounted(async () => {
 
 .py-12 {
   padding: 0px;
+}
+
+.pb-4 {
+  padding-top: 0.5rem !important;
+  padding-right: 1rem !important;
+  padding-bottom: 0.5rem !important;
+  padding-left: 1rem !important;
 }
 
 .v-parallax {
@@ -217,6 +223,11 @@ onMounted(async () => {
 
 .v-card-title {
   background-color: $primary-color;
+}
+
+.pa-0 {
+  padding-top: 4% !important;
+  padding-bottom: 4% !important;
 }
 
 </style>
