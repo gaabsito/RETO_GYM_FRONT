@@ -211,4 +211,8 @@ onMounted(async () => {
   border-radius: $border-radius;
 }
 
+.v-card-title {
+  background-color: $primary-color;
+}
+
 </style>
