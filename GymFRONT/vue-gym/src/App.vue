@@ -220,7 +220,7 @@ canvas {
 
   .v-toolbar__content {
     justify-content: space-around;
-    height: 75px;
+    height: 75px !important;
   }
 
   .v-btn {

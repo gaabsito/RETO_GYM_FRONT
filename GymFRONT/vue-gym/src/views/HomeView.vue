@@ -31,7 +31,7 @@ onMounted(async () => {
           <v-row align="center" justify="center">
             <v-col cols="12" md="8" class="text-center">
               <h1 class="txt-h2">
-                TRANSFORMA CON NOSOTROS
+                TRANSFÓRMATE CON NOSOTROS
               </h1>
               <h2 class="text-h5 mb-6">
                 Descubre entrenamientos personalizados y alcanza tus objetivos fitness
@@ -185,21 +185,30 @@ onMounted(async () => {
 
 .v-parallax {
   border-radius: $border-radius;
-} 
-
+}
 .parallax-container {
+  position: relative;
   height: 800px;
+
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5); // Capa oscura con 50% de opacidad
+    z-index: 1;
+  }
+
+  .d-flex {
+    position: relative;
+    z-index: 2; // Para que el texto se vea por encima de la capa oscura
+  }
 }
 
-.parallax-container img {
-  object-fit:cover;
-}
-
-.v-card {
+.v-card{
   border-radius: $border-radius;
 }
 
-.v-card-title {
-  background-color: $primary-color;
-}
 </style>
