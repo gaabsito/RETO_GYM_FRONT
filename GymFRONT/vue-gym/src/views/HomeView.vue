@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useWorkoutStore } from '@/stores/workouts'
 import type { Workout } from '@/types/Workout'
-import heroImage from '@/assets/images/coleman.jpg'
+import heroImage from '@/assets/images/arnold.jpg'
 
 const workoutStore = useWorkoutStore()
 const featuredWorkouts = ref<Workout[]>([])
