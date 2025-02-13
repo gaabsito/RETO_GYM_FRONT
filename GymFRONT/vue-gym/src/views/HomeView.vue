@@ -28,8 +28,8 @@ onMounted(async () => {
         <v-container>
           <v-row align="center" justify="center">
             <v-col cols="12" md="8" class="text-center">
-              <h1 class="text-h2 font-weight-bold mb-4">
-                Transforma tu cuerpo
+              <h1 class="txt-h2">
+                TRANSFORMA CON NOSOTROS
               </h1>
               <h2 class="text-h5 mb-6">
                 Descubre entrenamientos personalizados y alcanza tus objetivos fitness
@@ -175,7 +175,10 @@ onMounted(async () => {
   margin: 1rem; 
   width: calc(100% - 2rem) !important; 
 }
-
+.txt-h2{
+  font-size: 40px;
+  font-weight: bold;
+}
 .v-parallax {
   border-radius: $border-radius;
 } 
