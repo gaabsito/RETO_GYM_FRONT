@@ -36,7 +36,7 @@ onMounted(async () => {
               <h2 class="text-h5 mb-6">
                 Descubre entrenamientos personalizados y alcanza tus objetivos fitness
               </h2>
-              <v-btn size="x-large" color="primary" class="me-4" to="/registro">
+              <v-btn size="x-large"  class="me-4" to="/registro">
                 Empieza Ahora
                 <v-icon end icon="mdi-arrow-right"></v-icon>
               </v-btn>
@@ -151,7 +151,7 @@ onMounted(async () => {
     </v-container>
 
     <!-- CTA Section -->
-    <v-container fluid class="bg-primary py-12 cta-section">
+    <v-container class="c-destacados">
       <v-row align="center" justify="center">
         <v-col cols="12" md="8" class="text-center">
           <h2 class="text-h4 text-white mb-6">
@@ -160,7 +160,7 @@ onMounted(async () => {
           <p class="text-h6 font-weight-regular text-white mb-6">
             Únete ahora y obtén acceso a todos nuestros entrenamientos premium
           </p>
-          <v-btn size="x-large" color="secondary" to="/registro">
+          <v-btn size="x-large" to="/registro" class="me-4">
             Empieza Gratis
             <v-icon end>mdi-arrow-right</v-icon>
           </v-btn>
@@ -216,6 +216,9 @@ onMounted(async () => {
     z-index: 2; // Para que el texto se vea por encima de la capa oscura
   }
 }
+.me-4{
+color: $primary-color;
+}
 
 .v-card{
   border-radius: $border-radius;
@@ -223,11 +226,21 @@ onMounted(async () => {
 
 .v-card-title {
   background-color: $primary-color;
+  transition: background-color 0.3s ease-in-out;
 }
 
+.v-card-title:hover {
+  background-color: darken($primary-color, 70%);
+}
+.c-destacados{
+  background-color: black;
+}
 .pa-0 {
   padding-top: 4% !important;
   padding-bottom: 4% !important;
+}
+.py-12{
+  color:$primary-color;
 }
 
 </style>
