@@ -177,10 +177,12 @@ onMounted(async () => {
   margin: 1rem; 
   width: calc(100% - 2rem) !important; 
 }
+
 .txt-h2{
   font-size: 40px;
   font-weight: bold;
 }
+
 .v-parallax {
   border-radius: $border-radius;
 } 
