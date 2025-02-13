@@ -237,6 +237,10 @@ color: $primary-color;
 }
 .c-destacados{
   background-color: black;
+  border-radius: $border-radius;
+}
+.text-center {
+  padding: 2% !important;
 }
 .pa-0 {
   padding-top: 3% !important;
