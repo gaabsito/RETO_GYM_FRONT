@@ -99,11 +99,16 @@ const authMenuItems = [
 </template>
 
 <style lang="scss">
-@import '@/assets/styles/main.scss';
+@import './assets/styles/main.scss';
 
 /* MOBILE FIRST */
 
 /* General */
+
+* {
+  font-family: $font-family-base;
+}
+
 .app-container {
   display: flex;
   flex-direction: column;
@@ -243,6 +248,23 @@ canvas {
   .footer__links {
     flex-direction: row;
     justify-content: center;
+  }
+}
+
+:root {
+  --v-theme-primary: #{$primary-color};
+  --v-theme-secondary: #{$secondary-color};
+}
+
+.v-application {
+  * {
+    font-family: $font-family-base !important;
+  }
+
+  .text-body-1,
+  .text-body-2,
+  p {
+    font-family: $font-family-text !important;
   }
 }
 </style>

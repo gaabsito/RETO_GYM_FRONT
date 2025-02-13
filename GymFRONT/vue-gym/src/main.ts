@@ -28,6 +28,20 @@ const vuetify = createVuetify({
       },
     },
   },
+  defaults: {
+    global: {
+      ripple: false,
+    },
+    VBtn: {
+      fontFamily: 'Staatliches',
+    },
+    VCard: {
+      fontFamily: 'Staatliches',
+    },
+    VTextField: {
+      fontFamily: 'Roboto Condensed',
+    },
+  },
 })
 
 const app = createApp(App)
