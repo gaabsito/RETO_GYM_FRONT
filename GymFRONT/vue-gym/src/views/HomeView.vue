@@ -107,7 +107,7 @@ onMounted(async () => {
             <v-card v-bind="props" :elevation="isHovering ? 8 : 2" class="h-100">
               <v-img :src="`https://picsum.photos/400/200?random=${workout.entrenamientoID}`" height="200" cover
                 class="align-end">
-                <v-card-title class="text-white bg-black bg-opacity-50 pb-4">
+                <v-card-title class="text-white bg-opacity-50 pb-4">
                   {{ workout.titulo }}
                 </v-card-title>
               </v-img>
@@ -174,5 +174,17 @@ onMounted(async () => {
   border-radius: $border-radius;
   margin: 1rem; 
   width: calc(100% - 2rem) !important; 
+}
+
+.v-parallax {
+  border-radius: $border-radius;
+} 
+
+.v-card {
+  border-radius: $border-radius;
+}
+
+.v-card-title {
+  background-color: $primary-color;
 }
 </style>
