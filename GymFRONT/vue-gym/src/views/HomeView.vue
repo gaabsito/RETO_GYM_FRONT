@@ -31,7 +31,7 @@ onMounted(async () => {
           <v-row align="center" justify="center">
             <v-col cols="12" md="8" class="text-center">
               <h1 class="txt-h2">
-                TRANSFORMA CON NOSOTROS
+                TRANSFÓRMATE CON NOSOTROS
               </h1>
               <h2 class="text-h5 mb-6">
                 Descubre entrenamientos personalizados y alcanza tus objetivos fitness
