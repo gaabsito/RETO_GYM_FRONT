@@ -103,17 +103,16 @@ onMounted(async () => {
     <v-container class="py-12">
       <h2 class="text-h4 mb-6 text-center">Entrenamientos Destacados</h2>
 
-      <v-row v-if="!loading">
-        <v-col v-for="workout in featuredWorkouts" :key="workout.entrenamientoID" cols="12" sm="6" md="4">
+      <v-row v-if="!loading" justify="center">
+        <v-col v-for="workout in featuredWorkouts" :key="workout.entrenamientoID" cols="12" sm="4" md="3" lg="2">
           <v-hover v-slot="{ isHovering, props }">
             <v-card v-bind="props" :elevation="isHovering ? 8 : 2" class="h-100">
-              <v-img :src="workout.imagenURL" height="200" cover
-                class="align-end">
-                <v-card-title class="text-white bg-opacity-50 pb-4">
-                  {{ workout.titulo }}
-                </v-card-title>
+              <v-img :src="workout.imagenURL" cover
+                class="align-end workout-image">
               </v-img>
-
+              <v-card-title class="text-white bg-opacity-50 pb-4">
+                  {{ workout.titulo }}
+              </v-card-title>
               <v-card-text>
                 <div class="d-flex align-center mb-2">
                   <v-icon size="small"
@@ -193,6 +192,10 @@ onMounted(async () => {
   padding-left: 1rem !important;
 }
 
+.v-card-text {
+  padding: 1rem !important;
+}
+
 .v-parallax {
   border-radius: $border-radius;
 }
@@ -226,8 +229,8 @@ onMounted(async () => {
 }
 
 .pa-0 {
-  padding-top: 4% !important;
-  padding-bottom: 4% !important;
+  padding-top: 3% !important;
+  padding-bottom: 3% !important;
 }
 
 </style>
