@@ -120,7 +120,6 @@ const authMenuItems = [
   justify-content: space-between;
 }
 .v-main{
-
 font-family: $font-family-text !important;
 }
 .logo-container {
@@ -131,7 +130,10 @@ font-family: $font-family-text !important;
   height: 150px;
   overflow: hidden;
 }
-
+.v-toolbar__content {
+    justify-content: space-around;
+    gap: 130px;
+  }
 canvas {
   width: 150px;
   height: 150px;
@@ -218,7 +220,7 @@ canvas {
 
   .v-toolbar__content {
     justify-content: space-around;
-    height: 70px;
+    height: 75px;
   }
 
   .v-btn {
