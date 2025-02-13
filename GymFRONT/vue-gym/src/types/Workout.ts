@@ -4,6 +4,7 @@ export interface Workout {
     descripcion?: string;
     duracionMinutos: number;
     dificultad: 'Fácil' | 'Media' | 'Difícil';
+    imagenURL?: string;
     fechaCreacion: Date;
     publico: boolean;
     autorID?: number;
@@ -25,6 +26,7 @@ export interface CreateWorkoutDTO {
     descripcion?: string;
     duracionMinutos: number;
     dificultad: 'Fácil' | 'Media' | 'Difícil';
+    imagenURL?: string;
     publico: boolean;
     ejercicios: Array<{
         ejercicioID: number;

@@ -105,7 +105,7 @@ onMounted(async () => {
         <v-col v-for="workout in featuredWorkouts" :key="workout.entrenamientoID" cols="12" sm="6" md="4">
           <v-hover v-slot="{ isHovering, props }">
             <v-card v-bind="props" :elevation="isHovering ? 8 : 2" class="h-100">
-              <v-img :src="`https://picsum.photos/400/200?random=${workout.entrenamientoID}`" height="200" cover
+              <v-img :src="workout.imagenURL" height="200" cover
                 class="align-end">
                 <v-card-title class="text-white bg-opacity-50 pb-4">
                   {{ workout.titulo }}
