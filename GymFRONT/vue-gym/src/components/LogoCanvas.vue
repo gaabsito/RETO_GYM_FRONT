@@ -82,7 +82,7 @@ onMounted(() => {
     
     // Dibujar la letra 'E' centrada en el medio del disco
     ctx.save();
-    ctx.translate(canvas.width / 1.975, canvas.height / 1.82);
+    ctx.translate(canvas.width / 1.975, canvas.height / 2);
     ctx.rotate(rotationE);
     ctx.translate(-canvas.width / 2, -canvas.height / 2);
 
