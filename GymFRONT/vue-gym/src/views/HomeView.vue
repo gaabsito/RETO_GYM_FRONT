@@ -232,9 +232,12 @@ color: $primary-color;
   transition: background-color 0.3s ease-in-out;
 }
 
-.v-card-title:hover {
+.v-card:hover {
+  .v-card-title {
   background-color: darken($primary-color, 70%);
+  }
 }
+
 .c-destacados{
   background-color: black;
   border-radius: $border-radius;
