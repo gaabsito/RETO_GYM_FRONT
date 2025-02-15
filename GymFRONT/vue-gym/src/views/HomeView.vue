@@ -106,7 +106,7 @@ onMounted(async () => {
       <v-row v-if="!loading" justify="center">
         <v-col v-for="workout in featuredWorkouts" :key="workout.entrenamientoID" cols="12" sm="4" md="3" lg="2">
           <v-hover v-slot="{ isHovering, props }">
-            <v-card v-bind="props" :elevation="isHovering ? 8 : 2" class="h-100">
+            <v-card v-bind="props" :elevation="isHovering ? 8 : 2" class="workout-card">
               <v-img :src="workout.imagenURL" cover
                 class="align-end workout-image">
               </v-img>
@@ -171,6 +171,7 @@ onMounted(async () => {
 
 <style lang="scss">
 @import '@/assets/styles/main.scss';
+
 .cta-section {
   border-radius: $border-radius;
   width: 100% !important; 
@@ -232,7 +233,7 @@ color: $primary-color;
   transition: background-color 0.3s ease-in-out;
 }
 
-.v-card:hover {
+.workout-card:hover {
   .v-card-title {
   background-color: darken($primary-color, 70%);
   }
