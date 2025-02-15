@@ -79,7 +79,7 @@ const handleSubmit = async () => {
 
             <v-form @submit.prevent="handleSubmit">
               <v-row>
-                <v-col cols="12" sm="6">
+                <v-col class="nombre-col" cols="12" sm="6">
                   <v-text-field
                     v-model="form.nombre"
                     :rules="rules.nombre"
@@ -90,7 +90,7 @@ const handleSubmit = async () => {
                   ></v-text-field>
                 </v-col>
 
-                <v-col cols="12" sm="6">
+                <v-col class="apellido-col" cols="12" sm="6">
                   <v-text-field
                     v-model="form.apellido"
                     :rules="rules.apellido"
@@ -181,6 +181,23 @@ const handleSubmit = async () => {
     background-color: $primary-color;
     color: white;
   }
+}
+
+.v-text-field {
+    padding-top: 2.5% !important;
+    padding-bottom: 2.5% !important;
+}
+
+.nombre-col {
+    @media (min-width: 600px) {
+        padding-right: 2.5% !important;
+    }
+}
+
+.apellido-col {
+    @media (min-width: 600px) {
+        padding-left: 2.5% !important;
+    }
 }
 
 :deep(.v-field) {
