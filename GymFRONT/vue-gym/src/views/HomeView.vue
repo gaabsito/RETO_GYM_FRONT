@@ -36,7 +36,7 @@ onMounted(async () => {
               <h2 class="text-h5 mb-6">
                 Descubre entrenamientos personalizados y alcanza tus objetivos fitness
               </h2>
-              <v-btn size="x-large"  class="me-4" to="/registro">
+              <v-btn size="x-large"  class="me-4" to="/register">
                 Empieza Ahora
                 <v-icon end icon="mdi-arrow-right"></v-icon>
               </v-btn>
@@ -159,7 +159,7 @@ onMounted(async () => {
           <p class="text-h6 font-weight-regular text-white mb-6">
             Únete ahora y obtén acceso a todos nuestros entrenamientos premium
           </p>
-          <v-btn size="x-large" to="/registro" class="me-4">
+          <v-btn size="x-large" to="/register" class="me-4">
             Empieza Gratis
             <v-icon end>mdi-arrow-right</v-icon>
           </v-btn>

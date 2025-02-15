@@ -87,7 +87,7 @@ const handleSubmit = async () => {
           <v-card-text class="text-center">
             <p class="mb-0">
               ¿No tienes una cuenta?
-              <router-link to="/registro" class="text-decoration-none">
+              <router-link to="/register" class="text-decoration-none">
                 Regístrate
               </router-link>
             </p>
