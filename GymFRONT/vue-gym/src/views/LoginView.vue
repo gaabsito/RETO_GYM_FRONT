@@ -88,7 +88,7 @@ const handleSubmit = async () => {
                 @click:append-inner="showPassword = !showPassword"></v-text-field>
 
               <div class="d-flex align-center justify-space-between mb-4">
-                <v-checkbox v-model="rememberMe" label="Recuérdame" color="primary"></v-checkbox>
+                <v-checkbox v-model="rememberMe" label="Recuérdame" color="primary" hide-details></v-checkbox>
                 <router-link to="/recuperar-password" class="text-decoration-none">
                   ¿Olvidaste tu contraseña?
                 </router-link>
