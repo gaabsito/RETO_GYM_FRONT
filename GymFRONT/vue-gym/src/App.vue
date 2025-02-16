@@ -115,10 +115,6 @@ const authMenuItems = [
   min-height: 100vh;
 }
 
-.v-container {
-  
-}
-
 .v-toolbar__content {
   display: flex;
   flex: 0 0 auto;
