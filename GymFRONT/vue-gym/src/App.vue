@@ -11,7 +11,7 @@ const menuItems = [
   { title: 'Inicio', icon: 'mdi-home', route: '/' },
   { title: 'Entrenamientos', icon: 'mdi-dumbbell', route: '/entrenamientos' },
   { title: 'Ejercicios', icon: 'mdi-run', route: '/ejercicios' },
-  { title: 'Sobre Nosotros', icon: 'mdi-information', route: '/sobre-nosotros' }, // Nuevo botón
+  { title: 'Sobre Nosotros', icon: 'mdi-information', route: '/sobre-nosotros' },
 ]
 
 const authMenuItems = [
@@ -33,13 +33,13 @@ const authMenuItems = [
 
       <!-- Botones de autenticación para pantallas grandes -->
       <v-btn variant="text" to="/sobre-nosotros" class="desktop-only">
-          Sobre Nosotros
-        </v-btn>
+        Sobre Nosotros
+      </v-btn>
       <template v-if="!authStore.isAuthenticated">
         <v-btn variant="text" to="/login" class="desktop-only">
           Iniciar Sesión
         </v-btn>
-       
+
       </template>
       <template v-else>
         <v-btn variant="text" @click="authStore.logout" class="desktop-only">
@@ -115,10 +115,6 @@ const authMenuItems = [
   min-height: 100vh;
 }
 
-.v-container {
-  
-}
-
 .v-toolbar__content {
   display: flex;
   flex: 0 0 auto;
@@ -128,9 +124,11 @@ const authMenuItems = [
   align-items: center;
   justify-content: space-between;
 }
-.v-main{
-font-family: $font-family-text !important;
+
+.v-main {
+  font-family: $font-family-text !important;
 }
+
 .logo-container {
   display: flex;
   align-items: center;
@@ -139,10 +137,7 @@ font-family: $font-family-text !important;
   height: 150px;
   overflow: hidden;
 }
-.v-toolbar__content {
-    justify-content: space-around;
-    gap: 130px;
-}
+
 canvas {
   width: 150px;
   height: 150px;
@@ -218,6 +213,27 @@ canvas {
 
 /* Escritorio (>= 1024px) */
 @media (min-width: 1024px) {
+
+  .v-btn__overlay {
+    background-color: rgba(255, 255, 255, 0) !important;
+  }
+
+  .v-btn__underlay {
+    opacity: 0 !important;
+  }
+
+  .app-bar {
+    background-color: $primary-color !important;
+
+    .v-btn {
+      &:hover {
+        color: white !important;
+        opacity: 0.8;
+        transition: all 0.3s ease;
+      }
+    }
+  }
+
   .logo-container {
     display: flex;
     align-items: center;
@@ -235,10 +251,6 @@ canvas {
   .v-btn {
     font-size: 19px !important;
     font-weight: bold;
-  }
-
-  .logo-container {
-    margin-left: auto;
   }
 
   .app-bar__logo {
