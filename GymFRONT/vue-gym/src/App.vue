@@ -92,7 +92,7 @@ const authMenuItems = [
       <v-divider></v-divider>
 
       <div class="footer__text">
-        {{ new Date().getFullYear() }} — <strong>ENTRÉNATE</strong>
+        {{ new Date().getFullYear() }} — ENTRÉNATE
       </div>
     </v-footer>
   </v-app>
@@ -248,11 +248,6 @@ canvas {
     height: 75px !important;
   }
 
-  .v-btn {
-    font-size: 19px !important;
-    font-weight: bold;
-  }
-
   .app-bar__logo {
     margin-left: 0;
   }
@@ -265,6 +260,11 @@ canvas {
     flex-direction: row;
     justify-content: center;
   }
+}
+
+.v-btn {
+  font-size: 19px !important;
+  font-weight: bold;
 }
 
 :root {
