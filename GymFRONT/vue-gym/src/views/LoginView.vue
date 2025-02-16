@@ -3,6 +3,7 @@
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+import type { VForm } from 'vuetify/components'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -11,6 +12,8 @@ const form = ref({
   email: '',
   password: ''
 })
+
+const formRef = ref<VForm | null>(null)
 
 const loading = ref(false)
 const error = ref('')
@@ -28,6 +31,12 @@ const rules = {
 }
 
 const handleSubmit = async () => {
+  if (!formRef.value) return
+  
+  const { valid } = await formRef.value.validate()
+  
+  if (!valid) return
+
   try {
     loading.value = true
     error.value = ''
@@ -38,8 +47,15 @@ const handleSubmit = async () => {
     })
 
     router.push('/')
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Error al iniciar sesión'
+  } catch (err: any) {
+    // Manejar errores específicos
+    if (err.message === "Email o contraseña incorrectos") {
+      error.value = "Email o contraseña incorrectos"
+    } else if (err.message === "La cuenta está desactivada") {
+      error.value = "Tu cuenta está desactivada"
+    } else {
+      error.value = err instanceof Error ? err.message : 'Error al iniciar sesión'
+    }
   } finally {
     loading.value = false
   }
@@ -60,7 +76,7 @@ const handleSubmit = async () => {
               {{ error }}
             </v-alert>
 
-            <v-form @submit.prevent="handleSubmit">
+            <v-form ref="formRef" @submit.prevent="handleSubmit">
               <v-text-field class="login-form" v-model="form.email" :rules="rules.email" label="Email" prepend-inner-icon="mdi-email"
                 type="email" variant="outlined" required></v-text-field>
 

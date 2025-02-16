@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+import type { VForm } from 'vuetify/components'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -13,6 +14,8 @@ const form = ref({
   password: '',
   confirmPassword: ''
 })
+
+const formRef = ref<VForm | null>(null)
 
 const loading = ref(false)
 const error = ref('')
@@ -43,6 +46,12 @@ const rules = {
 }
 
 const handleSubmit = async () => {
+  if (!formRef.value) return
+  
+  const { valid } = await formRef.value.validate()
+  
+  if (!valid) return
+
   try {
     loading.value = true
     error.value = ''
@@ -55,8 +64,13 @@ const handleSubmit = async () => {
     })
 
     router.push('/')
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Error al registrarse'
+  } catch (err: any) {
+    // Manejar el error de la API
+    if (err.message === "El email ya está registrado") {
+      error.value = "Este email ya está registrado"
+    } else {
+      error.value = err instanceof Error ? err.message : 'Error al registrarse'
+    }
   } finally {
     loading.value = false
   }
@@ -77,7 +91,7 @@ const handleSubmit = async () => {
               {{ error }}
             </v-alert>
 
-            <v-form @submit.prevent="handleSubmit">
+            <v-form ref="formRef" @submit.prevent="handleSubmit">
               <v-row>
                 <v-col class="nombre-col" cols="12" sm="6">
                   <v-text-field

@@ -24,16 +24,18 @@ export const useAuthStore = defineStore('auth', () => {
                 },
                 body: JSON.stringify(credentials),
             })
-
-            const data: ApiResponse<{ user: User; token: string }> = await response.json()
-
-            if (!response.ok) throw new Error(data.message || 'Error en la autenticación')
-
-            user.value = data.data.user
-            token.value = data.data.token
-            localStorage.setItem('token', data.data.token)
-
-            return data.data.user
+    
+            const data = await response.json()
+    
+            if (!response.ok) {
+                throw new Error(data.message || 'Error en la autenticación')
+            }
+    
+            user.value = data.user
+            token.value = data.token
+            localStorage.setItem('token', data.token)
+    
+            return data.user
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
             throw e
@@ -53,16 +55,18 @@ export const useAuthStore = defineStore('auth', () => {
                 },
                 body: JSON.stringify(userData),
             })
-
-            const data: ApiResponse<{ user: User; token: string }> = await response.json()
-
-            if (!response.ok) throw new Error(data.message || 'Error en el registro')
-
-            user.value = data.data.user
-            token.value = data.data.token
-            localStorage.setItem('token', data.data.token)
-
-            return data.data.user
+    
+            const data = await response.json()
+    
+            if (!response.ok) {
+                throw new Error(data.message || 'Error en el registro')
+            }
+    
+            user.value = data.user
+            token.value = data.token
+            localStorage.setItem('token', data.token)
+    
+            return data.user
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
             throw e

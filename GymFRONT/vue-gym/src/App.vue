@@ -63,7 +63,7 @@ const authMenuItems = [
         </template>
         <template v-else>
           <v-list-item to="/login" prepend-icon="mdi-login" title="Iniciar Sesión"></v-list-item>
-          <v-list-item to="/registro" prepend-icon="mdi-account-plus" title="Registrarse"></v-list-item>
+          <v-list-item to="/register" prepend-icon="mdi-account-plus" title="Registrarse"></v-list-item>
         </template>
       </v-list>
     </v-navigation-drawer>

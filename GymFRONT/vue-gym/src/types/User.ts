@@ -16,3 +16,8 @@ export interface RegisterData extends LoginCredentials {
     nombre: string;
     apellido: string;
 }
+
+export interface AuthResponseDTO {
+    user: User;
+    token: string;
+}
