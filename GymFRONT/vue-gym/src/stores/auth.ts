@@ -13,7 +13,7 @@ export const useAuthStore = defineStore('auth', () => {
 
     const isAuthenticated = computed(() => !!token.value)
 
-    async function login(credentials: LoginCredentials) {
+    async function login(credentials: LoginCredentials & { remember?: boolean }) {
         loading.value = true
         error.value = null
         try {
@@ -33,7 +33,15 @@ export const useAuthStore = defineStore('auth', () => {
     
             user.value = data.user
             token.value = data.token
-            localStorage.setItem('token', data.token)
+            
+            // Si remember está activo, guardar en localStorage, si no en sessionStorage
+            if (credentials.remember) {
+                localStorage.setItem('token', data.token)
+                localStorage.setItem('user', JSON.stringify(data.user))
+            } else {
+                sessionStorage.setItem('token', data.token)
+                sessionStorage.setItem('user', JSON.stringify(data.user))
+            }
     
             return data.user
         } catch (e) {
@@ -67,6 +75,60 @@ export const useAuthStore = defineStore('auth', () => {
             localStorage.setItem('token', data.token)
     
             return data.user
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function requestPasswordReset(email: string) {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await fetch(`${API_URL}/auth/request-reset`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            })
+    
+            const data = await response.json()
+    
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al solicitar recuperación de contraseña')
+            }
+    
+            return data
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function resetPassword(resetData: { token: string; password: string; confirmPassword: string }) {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await fetch(`${API_URL}/auth/reset-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(resetData),
+            })
+    
+            const data = await response.json()
+    
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al restablecer la contraseña')
+            }
+    
+            return data
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
             throw e
@@ -114,6 +176,8 @@ export const useAuthStore = defineStore('auth', () => {
         login,
         register,
         logout,
-        checkAuth
+        checkAuth,
+        requestPasswordReset,
+        resetPassword
     }
 })
