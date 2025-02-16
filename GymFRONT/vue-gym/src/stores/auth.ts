@@ -110,6 +110,33 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    async function resetPassword(resetData: { token: string; password: string; confirmPassword: string }) {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await fetch(`${API_URL}/auth/reset-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(resetData),
+            })
+    
+            const data = await response.json()
+    
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al restablecer la contraseña')
+            }
+    
+            return data
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
     function logout() {
         user.value = null
         token.value = null
@@ -150,6 +177,7 @@ export const useAuthStore = defineStore('auth', () => {
         register,
         logout,
         checkAuth,
-        requestPasswordReset
+        requestPasswordReset,
+        resetPassword
     }
 })
