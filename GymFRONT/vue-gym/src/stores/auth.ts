@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import type { User, LoginCredentials, RegisterData, AuthResponseDTO, ChangePasswordDTO } from '@/types/User'
 import type { ApiResponse } from '@/types/ApiResponse'
 
@@ -10,6 +11,7 @@ export const useAuthStore = defineStore('auth', () => {
     const token = ref<string | null>(null)
     const loading = ref(false)
     const error = ref<string | null>(null)
+    const router = useRouter()
 
     const isAuthenticated = computed(() => !!token.value)
 
@@ -19,22 +21,18 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(credentials),
             })
     
             const data = await response.json()
     
-            if (!response.ok) {
-                throw new Error(data.message || 'Error en la autenticación')
-            }
+            if (!response.ok) throw new Error(data.message || 'Error en la autenticación')
     
             user.value = data.user
             token.value = data.token
             
-            // Si remember está activo, guardar en localStorage, si no en sessionStorage
+            // Guardar token y usuario en localStorage o sessionStorage
             if (credentials.remember) {
                 localStorage.setItem('token', data.token)
                 localStorage.setItem('user', JSON.stringify(data.user))
@@ -42,7 +40,10 @@ export const useAuthStore = defineStore('auth', () => {
                 sessionStorage.setItem('token', data.token)
                 sessionStorage.setItem('user', JSON.stringify(data.user))
             }
-    
+
+            // 🔹 Redirección después del login
+            router.push('/perfil')
+
             return data.user
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
@@ -58,77 +59,19 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             const response = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(userData),
             })
     
             const data = await response.json()
     
-            if (!response.ok) {
-                throw new Error(data.message || 'Error en el registro')
-            }
+            if (!response.ok) throw new Error(data.message || 'Error en el registro')
     
             user.value = data.user
             token.value = data.token
             localStorage.setItem('token', data.token)
-    
+
             return data.user
-        } catch (e) {
-            error.value = e instanceof Error ? e.message : 'Error desconocido'
-            throw e
-        } finally {
-            loading.value = false
-        }
-    }
-
-    async function requestPasswordReset(email: string) {
-        loading.value = true
-        error.value = null
-        try {
-            const response = await fetch(`${API_URL}/auth/request-reset`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ email }),
-            })
-    
-            const data = await response.json()
-    
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al solicitar recuperación de contraseña')
-            }
-    
-            return data
-        } catch (e) {
-            error.value = e instanceof Error ? e.message : 'Error desconocido'
-            throw e
-        } finally {
-            loading.value = false
-        }
-    }
-
-    async function resetPassword(resetData: { token: string; password: string; confirmPassword: string }) {
-        loading.value = true
-        error.value = null
-        try {
-            const response = await fetch(`${API_URL}/auth/reset-password`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(resetData),
-            })
-    
-            const data = await response.json()
-    
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al restablecer la contraseña')
-            }
-    
-            return data
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
             throw e
@@ -141,17 +84,13 @@ export const useAuthStore = defineStore('auth', () => {
         loading.value = true
         error.value = null
         try {
-            const response = await fetch(`${API_URL}/user/profile`, {
-                headers: {
-                    'Authorization': `Bearer ${token.value}`
-                }
+            const response = await fetch(`${API_URL}/api/usuario/profile`, {
+                headers: { 'Authorization': `Bearer ${token.value}` }
             })
 
             const data: ApiResponse<User> = await response.json()
 
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al obtener el perfil')
-            }
+            if (!response.ok) throw new Error(data.message || 'Error al obtener el perfil')
 
             user.value = data.data
             return data.data
@@ -167,36 +106,42 @@ export const useAuthStore = defineStore('auth', () => {
         loading.value = true
         error.value = null
         try {
-            const response = await fetch(`${API_URL}/user/profile`, {
+            const response = await fetch(`${API_URL}/api/usuario/profile`, { // 🔹 Corregida la URL
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token.value}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(profileData),
-            })
-
-            const data: ApiResponse<User> = await response.json()
-
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al actualizar el perfil')
+            });
+    
+            const data: ApiResponse<User> = await response.json();
+    
+            if (!response.ok) throw new Error(data.message || 'Error al actualizar el perfil');
+    
+            // 🔹 Aplicamos la solución para evitar errores con `undefined`
+            if (user.value) {
+                if (profileData.nombre !== undefined) user.value.nombre = profileData.nombre;
+                if (profileData.apellido !== undefined) user.value.apellido = profileData.apellido;
+                if (profileData.email !== undefined) user.value.email = profileData.email;
             }
-
-            user.value = data.data
-            return data.data
+            
+            
+    
+            return data.data;
         } catch (e) {
-            error.value = e instanceof Error ? e.message : 'Error desconocido'
-            throw e
+            error.value = e instanceof Error ? e.message : 'Error desconocido';
+            throw e;
         } finally {
-            loading.value = false
+            loading.value = false;
         }
     }
-
+    
     async function changePassword(passwordData: ChangePasswordDTO) {
         loading.value = true
         error.value = null
         try {
-            const response = await fetch(`${API_URL}/user/change-password`, {
+            const response = await fetch(`${API_URL}/api/usuario/change-password`, { // 🔹 Verifica la ruta en el backend
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token.value}`,
@@ -207,9 +152,7 @@ export const useAuthStore = defineStore('auth', () => {
 
             const data: ApiResponse<void> = await response.json()
 
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al cambiar la contraseña')
-            }
+            if (!response.ok) throw new Error(data.message || 'Error al cambiar la contraseña')
 
             return true
         } catch (e) {
@@ -227,6 +170,7 @@ export const useAuthStore = defineStore('auth', () => {
         localStorage.removeItem('user')
         sessionStorage.removeItem('token')
         sessionStorage.removeItem('user')
+        router.push('/login') // 🔹 Redirige al login tras cerrar sesión
     }
 
     async function checkAuth() {
@@ -235,9 +179,7 @@ export const useAuthStore = defineStore('auth', () => {
 
         try {
             const response = await fetch(`${API_URL}/auth/verify`, {
-                headers: {
-                    'Authorization': `Bearer ${storedToken}`
-                }
+                headers: { 'Authorization': `Bearer ${storedToken}` }
             })
 
             const data: ApiResponse<{ user: User }> = await response.json()
@@ -263,8 +205,6 @@ export const useAuthStore = defineStore('auth', () => {
         register,
         logout,
         checkAuth,
-        requestPasswordReset,
-        resetPassword,
         fetchProfile,
         updateProfile,
         changePassword

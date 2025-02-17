@@ -48,7 +48,7 @@ const handleSubmit = async () => {
       remember: rememberMe.value
     })
 
-    router.push('/')
+    router.push('/perfil')
   } catch (err: any) {
     // Manejar errores específicos
     if (err.message === "Email o contraseña incorrectos") {
