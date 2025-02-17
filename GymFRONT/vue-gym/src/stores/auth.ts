@@ -180,4 +180,38 @@ export const useAuthStore = defineStore('auth', () => {
         requestPasswordReset,
         resetPassword
     }
+
+
+
+
+    async function fetchUser() {
+        loading.value = true;
+        error.value = null;
+        try {
+            const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+            if (!storedToken) throw new Error("No hay token disponible");
+    
+            const response = await fetch(`${API_URL}/usuario/profile`, {
+                method: "GET",
+                headers: {
+                    Authorization: `Bearer ${storedToken}`,
+                    "Content-Type": "application/json",
+                },
+            });
+    
+            const data: ApiResponse<{ user: User }> = await response.json();
+    
+            if (!response.ok) {
+                throw new Error(data.message || "Error al obtener el perfil del usuario");
+            }
+    
+            user.value = data.data.user;
+            return data.data.user;
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : "Error desconocido";
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
 })
