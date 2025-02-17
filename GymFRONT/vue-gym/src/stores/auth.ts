@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { User, LoginCredentials, RegisterData } from '@/types/User'
+import type { User, LoginCredentials, RegisterData, AuthResponseDTO, ChangePasswordDTO } from '@/types/User'
 import type { ApiResponse } from '@/types/ApiResponse'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087'
@@ -137,14 +137,100 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    async function fetchProfile() {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await fetch(`${API_URL}/user/profile`, {
+                headers: {
+                    'Authorization': `Bearer ${token.value}`
+                }
+            })
+
+            const data: ApiResponse<User> = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al obtener el perfil')
+            }
+
+            user.value = data.data
+            return data.data
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function updateProfile(profileData: Partial<User>) {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await fetch(`${API_URL}/user/profile`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token.value}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(profileData),
+            })
+
+            const data: ApiResponse<User> = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al actualizar el perfil')
+            }
+
+            user.value = data.data
+            return data.data
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function changePassword(passwordData: ChangePasswordDTO) {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await fetch(`${API_URL}/user/change-password`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token.value}`,
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(passwordData),
+            })
+
+            const data: ApiResponse<void> = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al cambiar la contraseña')
+            }
+
+            return true
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
     function logout() {
         user.value = null
         token.value = null
         localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        sessionStorage.removeItem('token')
+        sessionStorage.removeItem('user')
     }
 
     async function checkAuth() {
-        const storedToken = localStorage.getItem('token')
+        const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token')
         if (!storedToken) return
 
         try {
@@ -178,6 +264,9 @@ export const useAuthStore = defineStore('auth', () => {
         logout,
         checkAuth,
         requestPasswordReset,
-        resetPassword
+        resetPassword,
+        fetchProfile,
+        updateProfile,
+        changePassword
     }
 })

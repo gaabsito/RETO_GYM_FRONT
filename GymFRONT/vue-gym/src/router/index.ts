@@ -4,6 +4,7 @@ import LoginView from '@/views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
 import RecuperarPasswordView from '@/views/RecuperarPasswordView.vue'
 import ResetPasswordView from '@/views/ResetPasswordView.vue'
+import ProfileView from '@/views/ProfileView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -32,6 +33,12 @@ const router = createRouter({
       path: '/reset-password/:token',
       name: 'ResetPassword',
       component: ResetPasswordView,
+    },
+    {
+      path: '/perfil',
+      name: 'profile',
+      component: ProfileView,
+      meta: { requiresAuth: true }  // Para asegurar que solo usuarios autenticados pueden acceder
     }
   ],
 })
