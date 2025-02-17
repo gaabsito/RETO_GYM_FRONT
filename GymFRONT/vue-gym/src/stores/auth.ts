@@ -103,13 +103,18 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function updateProfile(profileData: Partial<User>) {
-        loading.value = true
-        error.value = null
+        loading.value = true;
+        error.value = null;
         try {
-            const response = await fetch(`${API_URL}/api/usuario/profile`, { // 🔹 Corregida la URL
+            const token = localStorage.getItem('token');  // Recupera el token de localStorage
+            if (!token) {
+                throw new Error('Token no disponible');
+            }
+    
+            const response = await fetch(`${API_URL}/user/profile`, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${token.value}`,
+                    'Authorization': `Bearer ${token}`,  // Agrega el token en la cabecera
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(profileData),
@@ -117,15 +122,19 @@ export const useAuthStore = defineStore('auth', () => {
     
             const data: ApiResponse<User> = await response.json();
     
-            if (!response.ok) throw new Error(data.message || 'Error al actualizar el perfil');
-    
-            // 🔹 Aplicamos la solución para evitar errores con `undefined`
-            if (user.value) {
-                if (profileData.nombre !== undefined) user.value.nombre = profileData.nombre;
-                if (profileData.apellido !== undefined) user.value.apellido = profileData.apellido;
-                if (profileData.email !== undefined) user.value.email = profileData.email;
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al actualizar el perfil');
             }
-            
+    
+            // Actualiza la información del usuario en el store
+            user.value = {
+                usuarioID: user.value?.usuarioID ?? 0,  // Si no existe, usamos un valor por defecto, como 0
+                nombre: profileData.nombre ?? user.value?.nombre,  // Si profileData.nombre es undefined, mantenemos el valor actual de user.value.nombre
+                apellido: profileData.apellido ?? user.value?.apellido,  // Similar con apellido
+                email: profileData.email ?? user.value?.email,  // Si no se proporciona email, mantenemos el anterior
+                fechaRegistro: user.value?.fechaRegistro,  // No queremos modificar esta propiedad
+                estaActivo: user.value?.estaActivo,  // Lo mismo con el estado
+            };
             
     
             return data.data;
@@ -136,6 +145,7 @@ export const useAuthStore = defineStore('auth', () => {
             loading.value = false;
         }
     }
+    
     
     async function changePassword(passwordData: ChangePasswordDTO) {
         loading.value = true
