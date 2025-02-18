@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import jaimeImg from '@/assets/images/jaime.png'
 import chaveloImg from '@/assets/images/chavelo.jpg'
 import gabsImg from '@/assets/images/gabs.jpg'
+import gymAboutImg from '@/assets/images/about.jpg'
 
 const team = ref([
   {
@@ -50,7 +51,7 @@ const values = ref([
 <template>
   <v-container fluid class="pa-0">
     <!-- Hero Section -->
-    <v-parallax src="images/gym-about.jpg" class="align-center justify-center about-hero">
+    <v-parallax :src="gymAboutImg" class="align-center justify-center about-hero">
       <div class="d-flex flex-column fill-height justify-center align-center text-white text-center">
         <h1 class="text-h2 font-weight-bold mb-4">Sobre Nosotros</h1>
         <h2 class="text-h5 mb-6">
