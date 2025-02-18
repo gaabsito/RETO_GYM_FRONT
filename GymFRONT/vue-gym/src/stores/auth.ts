@@ -84,6 +84,8 @@ export const useAuthStore = defineStore('auth', () => {
         loading.value = true
         error.value = null
         try {
+            if (!token.value) throw new Error('Token no disponible')
+
             const response = await fetch(`${API_URL}/api/usuario/profile`, {
                 headers: { 'Authorization': `Bearer ${token.value}` }
             })
@@ -106,15 +108,12 @@ export const useAuthStore = defineStore('auth', () => {
         loading.value = true;
         error.value = null;
         try {
-            const token = localStorage.getItem('token');  // Recupera el token de localStorage
-            if (!token) {
-                throw new Error('Token no disponible');
-            }
+            if (!token.value) throw new Error('Token no disponible');
     
-            const response = await fetch(`${API_URL}/user/profile`, {
+            const response = await fetch(`${API_URL}/api/usuario/profile`, {
                 method: 'PUT',
                 headers: {
-                    'Authorization': `Bearer ${token}`,  // Agrega el token en la cabecera
+                    'Authorization': `Bearer ${token.value}`,
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(profileData),
@@ -122,20 +121,17 @@ export const useAuthStore = defineStore('auth', () => {
     
             const data: ApiResponse<User> = await response.json();
     
-            if (!response.ok) {
-                throw new Error(data.message || 'Error al actualizar el perfil');
-            }
+            if (!response.ok) throw new Error(data.message || 'Error al actualizar el perfil');
     
-            // Actualiza la información del usuario en el store
-            user.value = {
-                usuarioID: user.value?.usuarioID ?? 0,  // Si no existe, usamos un valor por defecto, como 0
-                nombre: profileData.nombre ?? user.value?.nombre,  // Si profileData.nombre es undefined, mantenemos el valor actual de user.value.nombre
-                apellido: profileData.apellido ?? user.value?.apellido,  // Similar con apellido
-                email: profileData.email ?? user.value?.email,  // Si no se proporciona email, mantenemos el anterior
-                fechaRegistro: user.value?.fechaRegistro,  // No queremos modificar esta propiedad
-                estaActivo: user.value?.estaActivo,  // Lo mismo con el estado
-            };
-            
+     user.value = { 
+    usuarioID: data.data.usuarioID ?? 0, // Si es undefined, usa 0
+    nombre: profileData.nombre ?? user.value?.nombre ?? '', // Si es undefined, usa el valor previo o ''
+    apellido: profileData.apellido ?? user.value?.apellido ?? '',
+    email: data.data.email ?? user.value?.email ?? '',
+    fechaRegistro: data.data.fechaRegistro ?? new Date(), // Si no hay fecha, usa una nueva
+    estaActivo: data.data.estaActivo ?? false, // Si no hay estado, usa false
+};
+
     
             return data.data;
         } catch (e) {
@@ -146,12 +142,14 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
     
-    
+
     async function changePassword(passwordData: ChangePasswordDTO) {
         loading.value = true
         error.value = null
         try {
-            const response = await fetch(`${API_URL}/api/usuario/change-password`, { // 🔹 Verifica la ruta en el backend
+            if (!token.value) throw new Error('Token no disponible')
+
+            const response = await fetch(`${API_URL}/api/usuario/change-password`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token.value}`,
