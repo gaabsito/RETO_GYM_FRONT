@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import jaimeImg from '@/assets/images/jaime.png'
+import chaveloImg from '@/assets/images/chavelo.jpg'
+import gabsImg from '@/assets/images/gabs.jpg'
 
 const team = ref([
   {
@@ -14,14 +16,14 @@ const team = ref([
     name: 'Gabriel Galán',
     position: 'Fundador y Director',
     description: 'Especialista en entrenamiento funcional y rehabilitación física. Máster en Ciencias del Deporte.',
-    image: '/trainers/ana.jpg',
+    image: gabsImg,
     icon: 'mdi-account-heart'
   },
   {
-    name: 'Miguel Santos',
+    name: 'Adrián Abril',
     position: 'Nutricionista Deportivo',
     description: 'Experto en nutrición deportiva y planificación de dietas personalizadas para atletas.',
-    image: '/trainers/miguel.jpg',
+    image: chaveloImg,
     icon: 'mdi-food-apple'
   }
 ])
@@ -95,8 +97,8 @@ const values = ref([
           <v-hover v-slot="{ isHovering, props }">
             <v-card v-bind="props" :elevation="isHovering ? 12 : 2" class="team-card h-100">
               <div class="d-flex flex-column align-center pa-6">
-                <v-avatar size="120" color="grey-lighten-2" class="mb-4">
-                  <v-icon :icon="member.icon" size="64" color="primary"></v-icon>
+                <v-avatar size="120" class="mb-4">
+                  <v-img :src="member.image" cover></v-img>
                 </v-avatar>
                 <h3 class="text-h5 mb-2">{{ member.name }}</h3>
                 <p class="text-subtitle-1 mb-4 primary--text">{{ member.position }}</p>
