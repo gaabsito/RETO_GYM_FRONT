@@ -11,7 +11,7 @@ const menuItems = [
   { title: 'Inicio', icon: 'mdi-home', route: '/' },
   { title: 'Entrenamientos', icon: 'mdi-dumbbell', route: '/entrenamientos' },
   { title: 'Ejercicios', icon: 'mdi-run', route: '/ejercicios' },
-  { title: 'Sobre Nosotros', icon: 'mdi-information', route: '/sobre-nosotros' },
+  { title: 'Sobre Nosotros', icon: 'mdi-information', route: '/about' },
 ]
 
 const authMenuItems = [
@@ -32,7 +32,7 @@ const authMenuItems = [
       </router-link>
 
       <!-- Botones de autenticación para pantallas grandes -->
-      <v-btn variant="text" to="/sobre-nosotros" class="desktop-only">
+      <v-btn variant="text" to="/about" class="desktop-only">
         Sobre Nosotros
       </v-btn>
       <template v-if="!authStore.isAuthenticated">
