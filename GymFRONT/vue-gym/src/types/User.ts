@@ -7,6 +7,11 @@ export interface User {
     estaActivo: boolean;
 }
 
+export interface UserUpdateDTO {
+
+    message: string;
+    usuario: User;
+}
 export interface UserProfile extends User {
     edad?: number;
     peso?: number;

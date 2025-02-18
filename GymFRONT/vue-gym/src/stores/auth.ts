@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import type { User, LoginCredentials, RegisterData, AuthResponseDTO, ChangePasswordDTO } from '@/types/User'
+import type { User, LoginCredentials, RegisterData, AuthResponseDTO, ChangePasswordDTO, UserUpdateDTO } from '@/types/User'
 import type { ApiResponse } from '@/types/ApiResponse'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087'
@@ -86,7 +86,7 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             if (!token.value) throw new Error('Token no disponible')
 
-            const response = await fetch(`${API_URL}/api/usuario/profile`, {
+            const response = await fetch(`${API_URL}/usuario/profile`, {
                 headers: { 'Authorization': `Bearer ${token.value}` }
             })
 
@@ -103,37 +103,40 @@ export const useAuthStore = defineStore('auth', () => {
             loading.value = false
         }
     }
-
     async function updateProfile(profileData: Partial<User>) {
         loading.value = true;
         error.value = null;
         try {
             if (!token.value) throw new Error('Token no disponible');
     
-            const response = await fetch(`${API_URL}/api/usuario/profile`, {
+            // Crear un nuevo objeto sin la contraseña
+            const safeProfileData = { ...profileData } as any;
+            delete safeProfileData.password;
+    
+            const response = await fetch(`${API_URL}/usuario/profile`, { 
+
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${token.value}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(profileData),
+                body: JSON.stringify(safeProfileData),
             });
     
-            const data: ApiResponse<User> = await response.json();
+            const data: ApiResponse<UserUpdateDTO> = await response.json();
     
             if (!response.ok) throw new Error(data.message || 'Error al actualizar el perfil');
     
-     user.value = { 
-    usuarioID: data.data.usuarioID ?? 0, // Si es undefined, usa 0
-    nombre: profileData.nombre ?? user.value?.nombre ?? '', // Si es undefined, usa el valor previo o ''
-    apellido: profileData.apellido ?? user.value?.apellido ?? '',
-    email: data.data.email ?? user.value?.email ?? '',
-    fechaRegistro: data.data.fechaRegistro ?? new Date(), // Si no hay fecha, usa una nueva
-    estaActivo: data.data.estaActivo ?? false, // Si no hay estado, usa false
-};
-
+            user.value = { 
+                usuarioID: data.usuario.usuarioID ?? 0,
+                nombre: safeProfileData.nombre ?? user.value?.nombre ?? '',
+                apellido: safeProfileData.apellido ?? user.value?.apellido ?? '',
+                email: data.usuario.email ?? user.value?.email ?? '',
+                fechaRegistro: data.usuario.fechaRegistro ?? new Date(),
+                estaActivo: data.usuario.estaActivo ?? false,
+            };
     
-            return data.data;
+            return data;
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido';
             throw e;
