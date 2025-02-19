@@ -36,7 +36,7 @@ onMounted(async () => {
               <h2 class="text-h5 mb-6">
                 Descubre entrenamientos personalizados y alcanza tus objetivos fitness
               </h2>
-              <v-btn size="x-large"  class="me-4" to="/register">
+              <v-btn size="x-large"  class="me-4" to="/registro">
                 Empieza Ahora
                 <v-icon end icon="mdi-arrow-right"></v-icon>
               </v-btn>
