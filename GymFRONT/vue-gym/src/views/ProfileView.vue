@@ -216,6 +216,11 @@ const handleSubmit = async () => {
   border-radius: $border-radius !important;
 }
 
+.v-input {
+  padding-top: 5% !important;
+  padding-bottom: 4% !important;
+}
+
 .v-btn {
   font-family: $font-family-base;
   border-radius: $border-radius;
