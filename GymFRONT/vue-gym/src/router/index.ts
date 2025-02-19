@@ -55,13 +55,13 @@ router.beforeEach(async (to, from, next) => {
   
   // Si la ruta requiere autenticación y el usuario no está autenticado
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'login', query: { redirect: to.fullPath } })
+    next({ name: 'iniciar-sesión', query: { redirect: to.fullPath } })
     return
   }
 
   // Si el usuario está autenticado y trata de acceder a páginas de auth
   if (authStore.isAuthenticated && 
-      ['login', 'register', 'RecuperarPassword', 'ResetPassword'].includes(to.name as string)) {
+      ['iniciar-sesión', 'registro', 'recuperar-contraseña', 'cambiar-contraseña'].includes(to.name as string)) {
     next({ name: 'perfil' })
     return
   }
