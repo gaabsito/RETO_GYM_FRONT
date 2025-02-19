@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import type { User, LoginCredentials, RegisterData, AuthResponseDTO, ChangePasswordDTO, UserUpdateDTO } from '@/types/User'
+import type { User, LoginCredentials, RegisterData, UsuarioUpdateDTO } from '@/types/User'
 import type { ApiResponse } from '@/types/ApiResponse'
+import type { UsuarioDTO } from '@/types/User' 
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087'
 
@@ -11,7 +11,6 @@ export const useAuthStore = defineStore('auth', () => {
     const token = ref<string | null>(null)
     const loading = ref(false)
     const error = ref<string | null>(null)
-    const router = useRouter()
 
     const isAuthenticated = computed(() => !!token.value)
 
@@ -21,18 +20,22 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify(credentials),
             })
     
             const data = await response.json()
     
-            if (!response.ok) throw new Error(data.message || 'Error en la autenticación')
+            if (!response.ok) {
+                throw new Error(data.message || 'Error en la autenticación')
+            }
     
             user.value = data.user
             token.value = data.token
             
-            // Guardar token y usuario en localStorage o sessionStorage
+            // Si remember está activo, guardar en localStorage, si no en sessionStorage
             if (credentials.remember) {
                 localStorage.setItem('token', data.token)
                 localStorage.setItem('user', JSON.stringify(data.user))
@@ -40,10 +43,7 @@ export const useAuthStore = defineStore('auth', () => {
                 sessionStorage.setItem('token', data.token)
                 sessionStorage.setItem('user', JSON.stringify(data.user))
             }
-
-            // 🔹 Redirección después del login
-            router.push('/perfil')
-
+    
             return data.user
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
@@ -59,18 +59,22 @@ export const useAuthStore = defineStore('auth', () => {
         try {
             const response = await fetch(`${API_URL}/auth/register`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                },
                 body: JSON.stringify(userData),
             })
     
             const data = await response.json()
     
-            if (!response.ok) throw new Error(data.message || 'Error en el registro')
+            if (!response.ok) {
+                throw new Error(data.message || 'Error en el registro')
+            }
     
             user.value = data.user
             token.value = data.token
             localStorage.setItem('token', data.token)
-
+    
             return data.user
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
@@ -80,22 +84,25 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
-    async function fetchProfile() {
+    async function requestPasswordReset(email: string) {
         loading.value = true
         error.value = null
         try {
-            if (!token.value) throw new Error('Token no disponible')
-
-            const response = await fetch(`${API_URL}/usuario/profile`, {
-                headers: { 'Authorization': `Bearer ${token.value}` }
+            const response = await fetch(`${API_URL}/auth/request-reset`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
             })
-
-            const data: ApiResponse<User> = await response.json()
-
-            if (!response.ok) throw new Error(data.message || 'Error al obtener el perfil')
-
-            user.value = data.data
-            return data.data
+    
+            const data = await response.json()
+    
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al solicitar recuperación de contraseña')
+            }
+    
+            return data
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
             throw e
@@ -103,74 +110,98 @@ export const useAuthStore = defineStore('auth', () => {
             loading.value = false
         }
     }
-    async function updateProfile(profileData: Partial<User>) {
+
+    async function resetPassword(resetData: { token: string; password: string; confirmPassword: string }) {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await fetch(`${API_URL}/auth/reset-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(resetData),
+            })
+    
+            const data = await response.json()
+    
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al restablecer la contraseña')
+            }
+    
+            return data
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function updateProfile(updateData: Partial<User> & { currentPassword?: string, newPassword?: string }) {
         loading.value = true;
         error.value = null;
         try {
-            if (!token.value) throw new Error('Token no disponible');
+            const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+            if (!storedToken) throw new Error("No hay token disponible");
     
-            // Crear un nuevo objeto sin la contraseña
-            const safeProfileData = { ...profileData } as any;
-            delete safeProfileData.password;
-    
-            const response = await fetch(`${API_URL}/usuario/profile`, { 
-
-                method: 'PUT',
+            const response = await fetch(`${API_URL}/usuario/${user.value?.usuarioID}`, {
+                method: "PUT",
                 headers: {
-                    'Authorization': `Bearer ${token.value}`,
-                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${storedToken}`,
+                    "Content-Type": "application/json",
                 },
-                body: JSON.stringify(safeProfileData),
+                body: JSON.stringify(updateData),
             });
     
-            const data: ApiResponse<UserUpdateDTO> = await response.json();
+            const data = await response.json();
     
-            if (!response.ok) throw new Error(data.message || 'Error al actualizar el perfil');
+            if (!response.ok) {
+                throw new Error(data.message || "Error al actualizar el perfil");
+            }
     
-            user.value = { 
-                usuarioID: data.usuario.usuarioID ?? 0,
-                nombre: safeProfileData.nombre ?? user.value?.nombre ?? '',
-                apellido: safeProfileData.apellido ?? user.value?.apellido ?? '',
-                email: data.usuario.email ?? user.value?.email ?? '',
-                fechaRegistro: data.usuario.fechaRegistro ?? new Date(),
-                estaActivo: data.usuario.estaActivo ?? false,
-            };
+            // Actualizar el usuario en el store
+            if (updateData.nombre) user.value!.nombre = updateData.nombre;
+            if (updateData.apellido) user.value!.apellido = updateData.apellido;
+            if (updateData.email) user.value!.email = updateData.email;
     
-            return data;
+            return user.value;
         } catch (e) {
-            error.value = e instanceof Error ? e.message : 'Error desconocido';
+            error.value = e instanceof Error ? e.message : "Error desconocido";
             throw e;
         } finally {
             loading.value = false;
         }
     }
-    
 
-    async function changePassword(passwordData: ChangePasswordDTO) {
-        loading.value = true
-        error.value = null
+    async function fetchUser() {
+        loading.value = true;
+        error.value = null;
         try {
-            if (!token.value) throw new Error('Token no disponible')
-
-            const response = await fetch(`${API_URL}/api/usuario/change-password`, {
-                method: 'PUT',
+            const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+            if (!storedToken) throw new Error("No hay token disponible");
+    
+            const response = await fetch(`${API_URL}/Usuario/profile`, { 
+                method: "GET",
                 headers: {
-                    'Authorization': `Bearer ${token.value}`,
+                    'Authorization': `Bearer ${storedToken}`,
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify(passwordData),
-            })
-
-            const data: ApiResponse<void> = await response.json()
-
-            if (!response.ok) throw new Error(data.message || 'Error al cambiar la contraseña')
-
-            return true
+            });
+    
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.message || 'Error al obtener el perfil');
+            }
+    
+            const data: ApiResponse<UsuarioDTO> = await response.json();
+            user.value = data.data;
+            return data.data;
         } catch (e) {
-            error.value = e instanceof Error ? e.message : 'Error desconocido'
-            throw e
+            error.value = e instanceof Error ? e.message : "Error desconocido";
+            throw e;
         } finally {
-            loading.value = false
+            loading.value = false;
         }
     }
 
@@ -178,19 +209,17 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = null
         token.value = null
         localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        sessionStorage.removeItem('token')
-        sessionStorage.removeItem('user')
-        router.push('/login') // 🔹 Redirige al login tras cerrar sesión
     }
 
     async function checkAuth() {
-        const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token')
+        const storedToken = localStorage.getItem('token')
         if (!storedToken) return
 
         try {
             const response = await fetch(`${API_URL}/auth/verify`, {
-                headers: { 'Authorization': `Bearer ${storedToken}` }
+                headers: {
+                    'Authorization': `Bearer ${storedToken}`
+                }
             })
 
             const data: ApiResponse<{ user: User }> = await response.json()
@@ -216,8 +245,9 @@ export const useAuthStore = defineStore('auth', () => {
         register,
         logout,
         checkAuth,
-        fetchProfile,
+        requestPasswordReset,
+        resetPassword,
         updateProfile,
-        changePassword
+        fetchUser
     }
 })

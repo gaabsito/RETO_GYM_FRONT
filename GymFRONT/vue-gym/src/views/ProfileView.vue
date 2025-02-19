@@ -1,78 +1,85 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import type { UsuarioUpdateDTO } from '@/types/User'
 import type { VForm } from 'vuetify/components'
-import type { UserProfile } from '@/types/User'
+import type { User } from '@/types/User'
 
 const authStore = useAuthStore()
 const formRef = ref<VForm | null>(null)
 const loading = ref(false)
 const error = ref('')
-const success = ref(false)
-const isEditing = ref(false)
+const success = ref('')
+const showChangePassword = ref(false)
 
 const form = ref({
   nombre: '',
   apellido: '',
-  email: ''
+  email: '',
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
 })
 
-// Cargar datos del usuario al montar la vista
+// Cargar datos del usuario
 onMounted(async () => {
   try {
     loading.value = true
-    if (authStore.user) {
-      console.log("Cargando datos del usuario desde Pinia:", authStore.user)
-      form.value = {
-        nombre: authStore.user.nombre || '',
-        apellido: authStore.user.apellido || '',
-        email: authStore.user.email || ''
-      }
-    } else {
-      console.warn("El usuario no está cargado en el store, obteniendo desde la API.")
-      const profile = await authStore.fetchProfile()
-      form.value = {
-        nombre: profile.nombre,
-        apellido: profile.apellido,
-        email: profile.email
-      }
+    const userData = await authStore.fetchUser()
+    if (userData) {
+      form.value.nombre = userData.nombre
+      form.value.apellido = userData.apellido
+      form.value.email = userData.email
     }
   } catch (err) {
-    console.error("Error al obtener el perfil:", err)
-    error.value = 'Error al cargar el perfil'
+    error.value = err instanceof Error ? err.message : 'Error al cargar el perfil'
   } finally {
     loading.value = false
   }
 })
 
-// Reglas de validación
 const rules = {
-  nombre: [(v: string) => !!v || 'El nombre es requerido'],
-  apellido: [(v: string) => !!v || 'El apellido es requerido']
+  required: (v: string) => !!v || 'Este campo es requerido',
+  email: (v: string) => /.+@.+\..+/.test(v) || 'Debe ser un email válido',
+  password: (v: string) => v.length >= 6 || 'La contraseña debe tener al menos 6 caracteres',
+  passwordMatch: (v: string) => v === form.value.newPassword || 'Las contraseñas no coinciden'
 }
 
-// Guardar cambios en el perfil
 const handleSubmit = async () => {
   if (!formRef.value) return
+  
   const { valid } = await formRef.value.validate()
   if (!valid) return
 
   try {
     loading.value = true
     error.value = ''
-    success.value = false
+    success.value = ''
 
-    const profileData: Partial<UserProfile> = {
+    // Preparar datos para actualización
+    const updateData: Partial<User> & { currentPassword?: string, newPassword?: string } = {
       nombre: form.value.nombre,
-      apellido: form.value.apellido
+      apellido: form.value.apellido,
+      email: form.value.email
     }
 
-    await authStore.updateProfile(profileData)
+    if (showChangePassword.value) {
+      updateData.currentPassword = form.value.currentPassword
+      updateData.newPassword = form.value.newPassword
+    }
 
-    success.value = true
-    isEditing.value = false
+    // Llamar al API para actualizar
+    await authStore.updateProfile(updateData)
+    
+    success.value = 'Perfil actualizado correctamente'
+    if (showChangePassword.value) {
+      form.value.currentPassword = ''
+      form.value.newPassword = ''
+      form.value.confirmPassword = ''
+      showChangePassword.value = false
+    }
   } catch (err: any) {
-    error.value = err.response?.data?.message || 'Error al actualizar el perfil'
+    error.value = err.message || 'Error al actualizar el perfil'
   } finally {
     loading.value = false
   }
@@ -80,69 +87,105 @@ const handleSubmit = async () => {
 </script>
 
 <template>
-  <v-container class="profile-container">
-    <v-row justify="center">
-      <v-col cols="12" sm="10" md="8" lg="6">
+  <v-container class="profile-container" fluid>
+    <v-row align="center" justify="center">
+      <v-col cols="12" sm="8" md="6" lg="4">
         <v-card class="profile-card">
           <v-card-title class="profile-title text-center py-6">
             <h1 class="text-h4">Mi Perfil</h1>
           </v-card-title>
 
           <v-card-text>
-            <v-alert v-if="error" type="error" class="mb-4">{{ error }}</v-alert>
-            <v-alert v-if="success" type="success" class="mb-4">Perfil actualizado correctamente</v-alert>
+            <v-alert v-if="error" type="error" class="mb-4">
+              {{ error }}
+            </v-alert>
+
+            <v-alert v-if="success" type="success" class="mb-4">
+              {{ success }}
+            </v-alert>
 
             <v-form ref="formRef" @submit.prevent="handleSubmit">
-              <v-row>
-                <v-col cols="12" sm="6">
-                  <v-text-field 
-                    v-model="form.nombre" 
-                    :rules="rules.nombre" 
-                    label="Nombre" 
-                    :readonly="!isEditing" 
-                    variant="outlined" 
-                    required>
-                  </v-text-field>
-                </v-col>
+              <v-text-field
+                v-model="form.nombre"
+                :rules="[rules.required]"
+                label="Nombre"
+                prepend-inner-icon="mdi-account"
+                variant="outlined"
+                required
+              ></v-text-field>
 
-                <v-col cols="12" sm="6">
-                  <v-text-field 
-                    v-model="form.apellido" 
-                    :rules="rules.apellido" 
-                    label="Apellido" 
-                    :readonly="!isEditing" 
-                    variant="outlined" 
-                    required>
-                  </v-text-field>
-                </v-col>
-              </v-row>
+              <v-text-field
+                v-model="form.apellido"
+                :rules="[rules.required]"
+                label="Apellido"
+                prepend-inner-icon="mdi-account"
+                variant="outlined"
+                required
+              ></v-text-field>
 
-              <v-text-field 
-                v-model="form.email" 
-                label="Email" 
-                type="email" 
-                variant="outlined" 
-                prepend-inner-icon="mdi-email" 
-                readonly 
-                required>
-              </v-text-field>
+              <v-text-field
+                v-model="form.email"
+                :rules="[rules.required, rules.email]"
+                label="Email"
+                prepend-inner-icon="mdi-email"
+                type="email"
+                variant="outlined"
+                required
+              ></v-text-field>
 
-              <v-row class="mt-4">
-                <v-col cols="12" class="d-flex justify-end gap-4">
-                  <v-btn v-if="!isEditing" color="primary" @click="isEditing = true">
-                    Editar Perfil
-                  </v-btn>
+              <v-divider class="my-4"></v-divider>
 
-                  <template v-else>
-                    <v-btn color="error" variant="outlined" @click="isEditing = false">
-                      Cancelar
-                    </v-btn>
-                    <v-btn color="primary" type="submit" :loading="loading">
-                      Guardar Cambios
-                    </v-btn>
-                  </template>
-                </v-col>
-              </v-row>
+              <div class="d-flex align-center mb-4">
+                <v-checkbox
+                  v-model="showChangePassword"
+                  label="Cambiar contraseña"
+                  color="primary"
+                  hide-details
+                ></v-checkbox>
+              </div>
+
+              <template v-if="showChangePassword">
+                <v-text-field
+                  v-model="form.currentPassword"
+                  :rules="[rules.required, rules.password]"
+                  label="Contraseña actual"
+                  prepend-inner-icon="mdi-lock"
+                  type="password"
+                  variant="outlined"
+                  required
+                ></v-text-field>
+
+                <v-text-field
+                  v-model="form.newPassword"
+                  :rules="[rules.required, rules.password]"
+                  label="Nueva contraseña"
+                  prepend-inner-icon="mdi-lock"
+                  type="password"
+                  variant="outlined"
+                  required
+                ></v-text-field>
+
+                <v-text-field
+                  v-model="form.confirmPassword"
+                  :rules="[rules.required, rules.passwordMatch]"
+                  label="Confirmar nueva contraseña"
+                  prepend-inner-icon="mdi-lock"
+                  type="password"
+                  variant="outlined"
+                  required
+                ></v-text-field>
+              </template>
+
+              <v-btn
+                type="submit"
+                color="primary"
+                size="large"
+                block
+                :loading="loading"
+                class="mt-4"
+              >
+                Guardar Cambios
+              </v-btn>
             </v-form>
           </v-card-text>
         </v-card>
@@ -156,8 +199,8 @@ const handleSubmit = async () => {
 
 .profile-container {
   min-height: calc(100vh - var(--v-layout-top)) !important;
-  padding-top: 2rem;
-  padding-bottom: 2rem;
+  display: flex;
+  align-items: center;
 }
 
 .profile-card {
@@ -173,13 +216,17 @@ const handleSubmit = async () => {
   border-radius: $border-radius !important;
 }
 
+.v-input {
+  padding-top: 5% !important;
+  padding-bottom: 4% !important;
+}
+
 .v-btn {
   font-family: $font-family-base;
   border-radius: $border-radius;
 }
 
-.text-h6 {
-  color: $primary-color;
-  font-family: $font-family-base;
+.v-checkbox {
+  font-family: $font-family-text;
 }
 </style>

@@ -7,19 +7,6 @@ export interface User {
     estaActivo: boolean;
 }
 
-export interface UserUpdateDTO {
-
-    message: string;
-    usuario: User;
-}
-export interface UserProfile extends User {
-    edad?: number;
-    peso?: number;
-    altura?: number;
-    objetivo?: string;
-    nivelExperiencia?: string;
-}
-
 export interface LoginCredentials {
     email: string;
     password: string;
@@ -35,8 +22,19 @@ export interface AuthResponseDTO {
     token: string;
 }
 
-// Nueva interfaz para el cambio de contraseña
-export interface ChangePasswordDTO {
-    passwordActual: string;
-    passwordNueva: string;
+export interface UsuarioDTO {
+    usuarioID: number;
+    nombre: string;
+    apellido: string;
+    email: string;
+    fechaRegistro: Date;
+    estaActivo: boolean;
+}
+
+export interface UsuarioUpdateDTO {
+    nombre?: string;
+    apellido?: string;
+    email?: string;
+    currentPassword?: string;
+    newPassword?: string;
 }
