@@ -2,7 +2,8 @@
 import { RouterLink, RouterView } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ref } from 'vue'
-import LogoCanvas from "./components/LogoCanvas.vue";
+import Header from '@/components/Header.vue';
+import Footer from '@/components/Footer.vue';
 
 const authStore = useAuthStore()
 const drawer = ref(false)
@@ -21,80 +22,16 @@ const authMenuItems = [
 </script>
 
 <template>
-  <v-app>
-    <!-- App Bar (Optimizado para móviles) -->
-    <v-app-bar class="app-bar">
-      <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
-      <router-link to="/" class="app-bar__logo">
-        <div class="logo-container" to="/home">
-          <LogoCanvas />
-        </div>
-      </router-link>
-
-      <!-- Botones de autenticación para pantallas grandes -->
-      <v-btn variant="text" to="/about" class="desktop-only">
-        Sobre Nosotros
-      </v-btn>
-      <template v-if="!authStore.isAuthenticated">
-        <v-btn variant="text" to="/login" class="desktop-only">
-          Iniciar Sesión
-        </v-btn>
-
-      </template>
-      <template v-else>
-        <v-btn variant="text" @click="authStore.logout" class="desktop-only">
-          Cerrar Sesión
-        </v-btn>
-      </template>
-    </v-app-bar>
-
-    <!-- Navigation Drawer (Menú lateral para móviles) -->
-    <v-navigation-drawer v-model="drawer" temporary>
-      <v-list>
-        <v-list-item v-for="item in menuItems" :key="item.title" :to="item.route" :prepend-icon="item.icon"
-          :title="item.title"></v-list-item>
-
-        <v-divider class="my-2"></v-divider>
-
-        <template v-if="authStore.isAuthenticated">
-          <v-list-item v-for="item in authMenuItems" :key="item.title" :to="item.route" :prepend-icon="item.icon"
-            :title="item.title"></v-list-item>
-          <v-list-item @click="authStore.logout" prepend-icon="mdi-logout" title="Cerrar Sesión"></v-list-item>
-        </template>
-        <template v-else>
-          <v-list-item to="/login" prepend-icon="mdi-login" title="Iniciar Sesión"></v-list-item>
-          <v-list-item to="/register" prepend-icon="mdi-account-plus" title="Registrarse"></v-list-item>
-        </template>
-      </v-list>
-    </v-navigation-drawer>
-
-    <!-- Contenido principal -->
+ <v-app>
+    <Header />
+    
     <v-main>
       <v-container>
         <RouterView />
       </v-container>
     </v-main>
 
-    <!-- Footer -->
-    <v-footer class="footer">
-      <div class="footer__icons">
-        <v-btn v-for="icon in ['mdi-facebook', 'mdi-twitter', 'mdi-instagram']" :key="icon" class="footer__icon"
-          :icon="icon" variant="text"></v-btn>
-      </div>
-
-      <div class="footer__links">
-        <v-btn v-for="link in ['Sobre Nosotros', 'Contacto', 'Términos de Uso']" :key="link" variant="text"
-          class="footer__link">
-          {{ link }}
-        </v-btn>
-      </div>
-
-      <v-divider></v-divider>
-
-      <div class="footer__text">
-        {{ new Date().getFullYear() }} — ENTRÉNATE
-      </div>
-    </v-footer>
+    <Footer />
   </v-app>
 </template>
 
