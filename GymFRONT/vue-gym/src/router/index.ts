@@ -17,28 +17,28 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/login',
-      name: 'login',
+      path: '/iniciar-sesión',
+      name: 'iniciar-sesión',
       component: LoginView,
     },
     {
-      path: '/register',
-      name: 'register',
+      path: '/registro',
+      name: 'registro',
       component: RegisterView,
     },
     {
-      path: '/recuperar-password',
-      name: 'RecuperarPassword',
+      path: '/recuperar-contraseña',
+      name: 'recuperar-contraseña',
       component: RecuperarPasswordView,
     },
     {
-      path: '/reset-password/:token',
-      name: 'ResetPassword',
+      path: '/cambiar-contraseña/:token',
+      name: 'cambiar-contraseña',
       component: ResetPasswordView,
     },
     {
-      path: '/about',
-      name: 'about',
+      path: '/sobre-nosotros',
+      name: 'sobre-nosotros',
       component: SobreNosotrosView,
     },
     {

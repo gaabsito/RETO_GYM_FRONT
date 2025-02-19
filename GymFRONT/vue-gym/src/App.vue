@@ -32,11 +32,11 @@ const authMenuItems = [
       </router-link>
 
       <!-- Botones de autenticación para pantallas grandes -->
-      <v-btn variant="text" to="/about" class="desktop-only">
+      <v-btn variant="text" to="/sobre-nosotros" class="desktop-only">
         Sobre Nosotros
       </v-btn>
       <template v-if="!authStore.isAuthenticated">
-        <v-btn variant="text" to="/login" class="desktop-only">
+        <v-btn variant="text" to="/iniciar-sesión" class="desktop-only">
           Iniciar Sesión
         </v-btn>
 
@@ -62,8 +62,8 @@ const authMenuItems = [
           <v-list-item @click="authStore.logout" prepend-icon="mdi-logout" title="Cerrar Sesión"></v-list-item>
         </template>
         <template v-else>
-          <v-list-item to="/login" prepend-icon="mdi-login" title="Iniciar Sesión"></v-list-item>
-          <v-list-item to="/register" prepend-icon="mdi-account-plus" title="Registrarse"></v-list-item>
+          <v-list-item to="/iniciar-sesión" prepend-icon="mdi-login" title="Iniciar Sesión"></v-list-item>
+          <v-list-item to="/registro" prepend-icon="mdi-account-plus" title="Registrarse"></v-list-item>
         </template>
       </v-list>
     </v-navigation-drawer>
