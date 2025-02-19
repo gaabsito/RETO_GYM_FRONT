@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import HomeView from '@/views/HomeView.vue'
 import LoginView from '@/views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
@@ -44,8 +45,28 @@ const router = createRouter({
       path: '/perfil',
       name: 'perfil',
       component: ProfileView,
+      meta: { requiresAuth: true },
     }
   ],
+})
+
+router.beforeEach(async (to, from, next) => {
+  const authStore = useAuthStore()
+  
+  // Si la ruta requiere autenticación y el usuario no está autenticado
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    next({ name: 'login', query: { redirect: to.fullPath } })
+    return
+  }
+
+  // Si el usuario está autenticado y trata de acceder a páginas de auth
+  if (authStore.isAuthenticated && 
+      ['login', 'register', 'RecuperarPassword', 'ResetPassword'].includes(to.name as string)) {
+    next({ name: 'perfil' })
+    return
+  }
+
+  next()
 })
 
 export default router
