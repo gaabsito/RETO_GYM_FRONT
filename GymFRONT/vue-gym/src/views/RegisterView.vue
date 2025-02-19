@@ -168,7 +168,7 @@ const handleSubmit = async () => {
           <v-card-text class="text-center">
             <p class="mb-0">
               ¿Ya tienes una cuenta?
-              <router-link to="/iniciar-sesión" class="text-decoration-none">
+              <router-link to="/login" class="text-decoration-none">
                 Inicia Sesión
               </router-link>
             </p>

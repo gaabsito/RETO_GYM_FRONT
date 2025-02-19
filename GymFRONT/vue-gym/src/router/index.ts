@@ -17,33 +17,33 @@ const router = createRouter({
       component: HomeView,
     },
     {
-      path: '/iniciar-sesión',
-      name: 'iniciar-sesión',
+      path: '/login',
+      name: 'login',
       component: LoginView,
     },
     {
-      path: '/registro',
-      name: 'registro',
+      path: '/register',
+      name: 'register',
       component: RegisterView,
     },
     {
-      path: '/recuperar-contraseña',
-      name: 'recuperar-contraseña',
+      path: '/reset-password',
+      name: 'reset-password',
       component: RecuperarPasswordView,
     },
     {
-      path: '/cambiar-contraseña/:token',
-      name: 'cambiar-contraseña',
+      path: '/change-password/:token',
+      name: 'change-password',
       component: ResetPasswordView,
     },
     {
-      path: '/sobre-nosotros',
-      name: 'sobre-nosotros',
+      path: '/about',
+      name: 'about',
       component: SobreNosotrosView,
     },
     {
-      path: '/perfil',
-      name: 'perfil',
+      path: '/profile',
+      name: 'profile',
       component: ProfileView,
       meta: { requiresAuth: true },
     }
@@ -55,14 +55,14 @@ router.beforeEach(async (to, from, next) => {
   
   // Si la ruta requiere autenticación y el usuario no está autenticado
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'iniciar-sesión', query: { redirect: to.fullPath } })
+    next({ name: 'login', query: { redirect: to.fullPath } })
     return
   }
 
   // Si el usuario está autenticado y trata de acceder a páginas de auth
   if (authStore.isAuthenticated && 
-      ['iniciar-sesión', 'registro', 'recuperar-contraseña', 'cambiar-contraseña'].includes(to.name as string)) {
-    next({ name: 'perfil' })
+      ['login', 'register', 'reset-password', 'change-password'].includes(to.name as string)) {
+    next({ name: 'profile' })
     return
   }
 

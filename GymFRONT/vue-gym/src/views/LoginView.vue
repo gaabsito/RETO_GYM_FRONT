@@ -48,7 +48,7 @@ const handleSubmit = async () => {
       remember: rememberMe.value
     })
 
-    router.push('/perfil')
+    router.push('/profile')
   } catch (err: any) {
     // Manejar errores específicos
     if (err.message === "Email o contraseña incorrectos") {
@@ -89,7 +89,7 @@ const handleSubmit = async () => {
 
               <div class="d-flex align-center justify-space-between mb-4">
                 <v-checkbox v-model="rememberMe" label="Recuérdame" color="primary" hide-details></v-checkbox>
-                <router-link to="/recuperar-contraseña" class="text-decoration-none">
+                <router-link to="/reset-password" class="text-decoration-none">
                   ¿Olvidaste tu contraseña?
                 </router-link>
               </div>
@@ -105,7 +105,7 @@ const handleSubmit = async () => {
           <v-card-text class="text-center">
             <p class="mb-0">
               ¿No tienes una cuenta?
-              <router-link to="/registro" class="text-decoration-none">
+              <router-link to="/register" class="text-decoration-none">
                 Regístrate
               </router-link>
             </p>

@@ -85,7 +85,7 @@ const handleSubmit = async () => {
 
           <v-card-text class="text-center">
             <p class="mb-0">
-              <router-link to="/iniciar-sesión" class="text-decoration-none">
+              <router-link to="/login" class="text-decoration-none">
                 Volver al inicio de sesión
               </router-link>
             </p>

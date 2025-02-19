@@ -121,7 +121,7 @@ const values = ref([
           <p class="text-h6 font-weight-regular text-white mb-6">
             Comienza tu viaje hacia una vida más saludable hoy mismo
           </p>
-          <v-btn size="x-large" to="/registro" class="me-4">
+          <v-btn size="x-large" to="/register" class="me-4">
             Empieza Ahora
             <v-icon end>mdi-arrow-right</v-icon>
           </v-btn>
