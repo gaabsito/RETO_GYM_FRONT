@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { User, LoginCredentials, RegisterData, UsuarioUpdateDTO } from '@/types/User'
+import type { User, LoginCredentials, RegisterData} from '@/types/User'
 import type { ApiResponse } from '@/types/ApiResponse'
 import type { UsuarioDTO } from '@/types/User' 
 

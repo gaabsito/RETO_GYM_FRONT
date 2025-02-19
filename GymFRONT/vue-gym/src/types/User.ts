@@ -30,11 +30,3 @@ export interface UsuarioDTO {
     fechaRegistro: Date;
     estaActivo: boolean;
 }
-
-export interface UsuarioUpdateDTO {
-    nombre?: string;
-    apellido?: string;
-    email?: string;
-    currentPassword?: string;
-    newPassword?: string;
-}
