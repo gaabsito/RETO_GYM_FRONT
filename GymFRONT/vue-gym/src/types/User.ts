@@ -21,3 +21,20 @@ export interface AuthResponseDTO {
     user: User;
     token: string;
 }
+
+export interface UsuarioDTO {
+    usuarioID: number;
+    nombre: string;
+    apellido: string;
+    email: string;
+    fechaRegistro: Date;
+    estaActivo: boolean;
+}
+
+export interface UsuarioUpdateDTO {
+    nombre?: string;
+    apellido?: string;
+    email?: string;
+    currentPassword?: string;
+    newPassword?: string;
+}

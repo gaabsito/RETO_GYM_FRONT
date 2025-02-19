@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { User, LoginCredentials, RegisterData } from '@/types/User'
+import type { User, LoginCredentials, RegisterData, UsuarioUpdateDTO } from '@/types/User'
 import type { ApiResponse } from '@/types/ApiResponse'
+import type { UsuarioDTO } from '@/types/User' 
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087'
 
@@ -137,6 +138,73 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    async function updateProfile(updateData: Partial<User> & { currentPassword?: string, newPassword?: string }) {
+        loading.value = true;
+        error.value = null;
+        try {
+            const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+            if (!storedToken) throw new Error("No hay token disponible");
+    
+            const response = await fetch(`${API_URL}/usuario/${user.value?.usuarioID}`, {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${storedToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(updateData),
+            });
+    
+            const data = await response.json();
+    
+            if (!response.ok) {
+                throw new Error(data.message || "Error al actualizar el perfil");
+            }
+    
+            // Actualizar el usuario en el store
+            if (updateData.nombre) user.value!.nombre = updateData.nombre;
+            if (updateData.apellido) user.value!.apellido = updateData.apellido;
+            if (updateData.email) user.value!.email = updateData.email;
+    
+            return user.value;
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : "Error desconocido";
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function fetchUser() {
+        loading.value = true;
+        error.value = null;
+        try {
+            const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+            if (!storedToken) throw new Error("No hay token disponible");
+    
+            const response = await fetch(`${API_URL}/Usuario/profile`, { 
+                method: "GET",
+                headers: {
+                    'Authorization': `Bearer ${storedToken}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+    
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.message || 'Error al obtener el perfil');
+            }
+    
+            const data: ApiResponse<UsuarioDTO> = await response.json();
+            user.value = data.data;
+            return data.data;
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : "Error desconocido";
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
+
     function logout() {
         user.value = null
         token.value = null
@@ -178,40 +246,8 @@ export const useAuthStore = defineStore('auth', () => {
         logout,
         checkAuth,
         requestPasswordReset,
-        resetPassword
-    }
-
-
-
-
-    async function fetchUser() {
-        loading.value = true;
-        error.value = null;
-        try {
-            const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
-            if (!storedToken) throw new Error("No hay token disponible");
-    
-            const response = await fetch(`${API_URL}/usuario/profile`, {
-                method: "GET",
-                headers: {
-                    Authorization: `Bearer ${storedToken}`,
-                    "Content-Type": "application/json",
-                },
-            });
-    
-            const data: ApiResponse<{ user: User }> = await response.json();
-    
-            if (!response.ok) {
-                throw new Error(data.message || "Error al obtener el perfil del usuario");
-            }
-    
-            user.value = data.data.user;
-            return data.data.user;
-        } catch (e) {
-            error.value = e instanceof Error ? e.message : "Error desconocido";
-            throw e;
-        } finally {
-            loading.value = false;
-        }
+        resetPassword,
+        updateProfile,
+        fetchUser
     }
 })
