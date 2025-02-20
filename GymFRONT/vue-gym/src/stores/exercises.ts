@@ -24,15 +24,17 @@ export const useExerciseStore = defineStore('exercises', () => {
                 headers['Authorization'] = `Bearer ${authStore.token}`
             }
 
-            const response = await fetch(`${API_URL}/ejercicios`, { headers })
-            const data: ApiResponse<Exercise[]> = await response.json()
+            const response = await fetch(`${API_URL}/ejercicio`, { headers })
+            const data = await response.json()
 
             if (!response.ok) throw new Error(data.message || 'Error cargando ejercicios')
 
-            exercises.value = data.data
-            return data.data
+            // Guardamos los ejercicios en el state
+            exercises.value = data
+            return exercises.value
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
+            exercises.value = [] // Limpiamos el state en caso de error
             throw e
         } finally {
             loading.value = false
@@ -52,7 +54,7 @@ export const useExerciseStore = defineStore('exercises', () => {
                 headers['Authorization'] = `Bearer ${authStore.token}`
             }
 
-            const response = await fetch(`${API_URL}/ejercicios/${id}`, { headers })
+            const response = await fetch(`${API_URL}/Ejercicio/${id}`, { headers })
             const data: ApiResponse<Exercise> = await response.json()
 
             if (!response.ok) throw new Error(data.message || 'Error cargando ejercicio')
