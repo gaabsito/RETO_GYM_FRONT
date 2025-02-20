@@ -13,6 +13,24 @@ export const useAuthStore = defineStore('auth', () => {
 
     const isAuthenticated = computed(() => !!token.value)
 
+    async function init() {
+        const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token')
+        const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user')
+        
+        if (storedToken && storedUser) {
+            token.value = storedToken
+            user.value = JSON.parse(storedUser)
+            
+            // Verificar que el token sea válido con el backend
+            try {
+                await checkAuth()
+            } catch (error) {
+                // Si hay error, limpiar el storage
+                logout()
+            }
+        }
+    }
+
     async function login(credentials: LoginCredentials & { remember?: boolean }) {
         loading.value = true
         error.value = null
@@ -220,7 +238,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function checkAuth() {
-        // Verificar en ambos almacenamientos
         const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token')
         if (!storedToken) return
     
@@ -231,10 +248,10 @@ export const useAuthStore = defineStore('auth', () => {
                 }
             })
     
-            const data: ApiResponse<{ user: User }> = await response.json()
+            const data: ApiResponse<UsuarioDTO> = await response.json()
     
-            if (response.ok) {
-                user.value = data.data.user
+            if (response.ok && data.success) {
+                user.value = data.data
                 token.value = storedToken
             } else {
                 logout()
@@ -250,6 +267,7 @@ export const useAuthStore = defineStore('auth', () => {
         loading,
         error,
         isAuthenticated,
+        init,
         login,
         register,
         logout,
