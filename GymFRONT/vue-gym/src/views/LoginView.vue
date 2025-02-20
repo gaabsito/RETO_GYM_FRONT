@@ -1,12 +1,48 @@
-<!-- src/views/LoginView.vue -->
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import type { VForm } from 'vuetify/components'
 
 const authStore = useAuthStore()
 const router = useRouter()
+
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+let googleAuth = null
+
+onMounted(() => {
+  // Cargar la API de Google
+  const script = document.createElement('script')
+  script.src = 'https://accounts.google.com/gsi/client'
+  script.async = true
+  script.defer = true
+  document.head.appendChild(script)
+
+  script.onload = () => {
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      callback: handleGoogleLogin
+    })
+    window.google.accounts.id.renderButton(
+      document.getElementById('googleBtn'),
+      { theme: 'outline', size: 'large', width: '100%' }
+    )
+  }
+})
+
+const handleGoogleLogin = async (response) => {
+  try {
+    loading.value = true
+    error.value = ''
+
+    const result = await authStore.googleLogin(response.credential)
+    router.push('/profile')
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Error al iniciar sesión con Google'
+  } finally {
+    loading.value = false
+  }
+}
 
 const form = ref({
   email: '',
@@ -33,9 +69,9 @@ const rules = {
 
 const handleSubmit = async () => {
   if (!formRef.value) return
-  
+
   const { valid } = await formRef.value.validate()
-  
+
   if (!valid) return
 
   try {
@@ -79,8 +115,8 @@ const handleSubmit = async () => {
             </v-alert>
 
             <v-form ref="formRef" @submit.prevent="handleSubmit">
-              <v-text-field class="login-form" v-model="form.email" :rules="rules.email" label="Email" prepend-inner-icon="mdi-email"
-                type="email" variant="outlined" required></v-text-field>
+              <v-text-field class="login-form" v-model="form.email" :rules="rules.email" label="Email"
+                prepend-inner-icon="mdi-email" type="email" variant="outlined" required></v-text-field>
 
               <v-text-field v-model="form.password" :rules="rules.password" :type="showPassword ? 'text' : 'password'"
                 label="Contraseña" prepend-inner-icon="mdi-lock" variant="outlined" required
@@ -94,13 +130,20 @@ const handleSubmit = async () => {
                 </router-link>
               </div>
 
-              <v-btn type="submit" color="primary" size="large" block :loading="loading">
-                Iniciar Sesión
-              </v-btn>
+              <div class="btn-wrapper">
+                <v-btn type="submit" color="primary" size="large" block :loading="loading">
+                  Iniciar Sesión
+                </v-btn>
+              </div>
             </v-form>
-          </v-card-text>
 
-          <v-divider class="my-3"></v-divider>
+            <v-divider class="my-4">
+              <span class="px-3">o</span>
+            </v-divider>
+
+            <div id="googleBtn" class="d-flex justify-center mb-4"></div>
+
+          </v-card-text>
 
           <v-card-text class="text-center">
             <p class="mb-0">
@@ -118,6 +161,11 @@ const handleSubmit = async () => {
 
 <style lang="scss" scoped>
 @import '@/assets/styles/main.scss';
+
+.v-divider__wrapper {
+  padding-top: 4% !important;
+  padding-bottom: 4% !important;
+}
 
 .login-container {
   min-height: calc(100vh - var(--v-layout-top)) !important;
@@ -143,6 +191,14 @@ const handleSubmit = async () => {
   border-radius: $border-radius !important;
 }
 
+.mb-4 {
+  margin: 0px !important;
+}
+
+.btn-wrapper {
+  padding-top: 4% !important;
+}
+
 .v-btn {
   font-family: $font-family-base;
   border-radius: $border-radius;
@@ -150,7 +206,7 @@ const handleSubmit = async () => {
 
 a {
   color: $primary-color;
-  
+
   &:hover {
     color: darken($primary-color, 10%);
   }

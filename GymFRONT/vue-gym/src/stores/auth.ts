@@ -237,6 +237,40 @@ export const useAuthStore = defineStore('auth', () => {
         sessionStorage.removeItem('user')
     }
 
+    async function googleLogin(idToken: string) {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await fetch(`${API_URL}/auth/google`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ idToken }),
+            })
+    
+            const data = await response.json()
+    
+            if (!response.ok) {
+                throw new Error(data.message || 'Error en la autenticación con Google')
+            }
+    
+            user.value = data.user
+            token.value = data.token
+            
+            // Guardar en sessionStorage
+            sessionStorage.setItem('token', data.token)
+            sessionStorage.setItem('user', JSON.stringify(data.user))
+    
+            return data.user
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
     async function checkAuth() {
         const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token')
         if (!storedToken) return
@@ -275,6 +309,7 @@ export const useAuthStore = defineStore('auth', () => {
         requestPasswordReset,
         resetPassword,
         updateProfile,
-        fetchUser
+        fetchUser,
+        googleLogin
     }
 })
