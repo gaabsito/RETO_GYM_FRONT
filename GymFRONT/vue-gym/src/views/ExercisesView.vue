@@ -80,6 +80,7 @@ const clearFilters = () => {
           prepend-inner-icon="mdi-magnify"
           variant="outlined"
           clearable
+          hide-details
         ></v-text-field>
       </v-col>
 
@@ -91,6 +92,7 @@ const clearFilters = () => {
           prepend-inner-icon="mdi-muscle"
           variant="outlined"
           clearable
+          hide-details
         ></v-select>
       </v-col>
 
@@ -103,7 +105,7 @@ const clearFilters = () => {
         ></v-checkbox>
       </v-col>
 
-      <v-col cols="12" md="1" class="d-flex align-center">
+      <v-col cols="12" md="1" class="d-flex justify-center align-center">
         <v-btn
           variant="text"
           @click="clearFilters"
@@ -164,7 +166,6 @@ const clearFilters = () => {
             </v-card-title>
 
             <v-card-subtitle>
-              <v-icon size="small" class="me-1">mdi-muscle</v-icon>
               {{ exercise.grupoMuscular }}
             </v-card-subtitle>
 
@@ -222,12 +223,52 @@ const clearFilters = () => {
 <style lang="scss" scoped>
 @import '@/assets/styles/main.scss';
 
+.v-text-field {
+    padding: 12px !important;
+}
+
+.v-col-sm-6 {
+    padding: 12px !important;
+}
+
+.v-container {
+  padding-top: 2rem !important;
+  padding-bottom: 2rem !important;
+}
+
 .v-card {
   border-radius: $border-radius;
-  transition: transform 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
     transform: translateY(-5px);
+  }
+
+  .v-card-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    line-height: 1.5;
+    padding: 1rem;
+  }
+
+  .v-card-subtitle {
+    padding: 1rem;
+    opacity: 0.8;
+    font-size: 0.9rem;
+  }
+
+  .v-card-text {
+    padding: 1rem;
+    line-height: 1.6;
+  }
+
+  .v-card-actions {
+    padding: 1rem;
+  }
+
+  .v-img {
+    border-radius: $border-radius $border-radius 0 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   }
 }
 
@@ -238,9 +279,64 @@ const clearFilters = () => {
 .v-btn {
   font-family: $font-family-base;
   border-radius: $border-radius;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
 }
 
 .v-checkbox {
   font-family: $font-family-text;
+  transition: opacity 0.2s ease;
+
+  &:hover {
+    opacity: 0.9;
+  }
+}
+
+.text-h3 {
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  margin-bottom: 1rem;
+}
+
+.text-body-1 {
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+  opacity: 0.85;
+}
+
+.hero-section {
+  padding: 3rem 0;
+}
+
+// Mejoras en los filtros
+.mb-8 {
+  border-radius: $border-radius;
+  padding: 1.5rem;
+  margin: 1rem 0 2rem !important;
+}
+
+// Mejoras en los alerts
+:deep(.v-alert) {
+  border-radius: $border-radius;
+  font-family: $font-family-text;
+}
+
+// Responsive adjustments
+@media (max-width: 600px) {
+  .v-container {
+    padding: 1rem !important;
+  }
+
+  .text-h3 {
+    font-size: 1.8rem !important;
+  }
+
+  .v-card {
+    margin-bottom: 1rem;
+  }
 }
 </style>
