@@ -1,10 +1,17 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 import LogoCanvas from '@/components/LogoCanvas.vue'
 
 const authStore = useAuthStore()
+const router = useRouter()
 const drawer = ref(false)
+
+const handleLogout = () => {
+  authStore.logout()
+  router.push('/')
+}
 
 const menuItems = [
   { title: 'Inicio', icon: 'mdi-home', route: '/' },
@@ -37,7 +44,7 @@ const authMenuItems = [
       </v-btn>
     </template>
     <template v-else>
-      <v-btn variant="text" @click="authStore.logout" class="desktop-only">
+      <v-btn variant="text" @click="handleLogout" class="desktop-only">
         Cerrar Sesión
       </v-btn>
     </template>
@@ -53,7 +60,7 @@ const authMenuItems = [
       <template v-if="authStore.isAuthenticated">
         <v-list-item v-for="item in authMenuItems" :key="item.title" :to="item.route" :prepend-icon="item.icon"
           :title="item.title"></v-list-item>
-        <v-list-item @click="authStore.logout" prepend-icon="mdi-logout" title="Cerrar Sesión"></v-list-item>
+        <v-list-item @click="handleLogout" prepend-icon="mdi-logout" title="Cerrar Sesión"></v-list-item>
       </template>
       <template v-else>
         <v-list-item to="/login" prepend-icon="mdi-login" title="Iniciar Sesión"></v-list-item>

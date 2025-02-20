@@ -205,24 +205,32 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     function logout() {
+        // Limpiar el estado
         user.value = null
         token.value = null
+        error.value = null
+        
+        // Limpiar el almacenamiento
         localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        sessionStorage.removeItem('token')
+        sessionStorage.removeItem('user')
     }
 
     async function checkAuth() {
-        const storedToken = localStorage.getItem('token')
+        // Verificar en ambos almacenamientos
+        const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token')
         if (!storedToken) return
-
+    
         try {
             const response = await fetch(`${API_URL}/auth/verify`, {
                 headers: {
                     'Authorization': `Bearer ${storedToken}`
                 }
             })
-
+    
             const data: ApiResponse<{ user: User }> = await response.json()
-
+    
             if (response.ok) {
                 user.value = data.data.user
                 token.value = storedToken

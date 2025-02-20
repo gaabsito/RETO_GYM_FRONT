@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ref } from 'vue'
 import Header from '@/components/Header.vue';
 import Footer from '@/components/Footer.vue';
 
 const authStore = useAuthStore()
+const router = useRouter()
 const drawer = ref(false)
 
 const menuItems = [
@@ -23,7 +24,11 @@ const authMenuItems = [
 
 <template>
  <v-app>
-    <Header />
+    <Header 
+      :menuItems="menuItems"
+      :authMenuItems="authMenuItems"
+      :drawer="drawer"
+    />
     
     <v-main>
       <v-container>
