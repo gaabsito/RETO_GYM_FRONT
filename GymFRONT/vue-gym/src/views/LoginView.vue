@@ -186,6 +186,10 @@ const handleSubmit = async () => {
   border-radius: $border-radius !important;
 }
 
+.mb-4 {
+  margin: 0px !important;
+}
+
 .v-btn {
   font-family: $font-family-base;
   border-radius: $border-radius;
