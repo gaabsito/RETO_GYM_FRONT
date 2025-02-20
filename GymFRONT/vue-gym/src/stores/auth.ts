@@ -206,9 +206,16 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     function logout() {
+        // Limpiar el estado
         user.value = null
         token.value = null
+        error.value = null
+        
+        // Limpiar el almacenamiento
         localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        sessionStorage.removeItem('token')
+        sessionStorage.removeItem('user')
     }
 
     async function checkAuth() {

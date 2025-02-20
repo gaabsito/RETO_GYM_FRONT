@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { RouterLink, RouterView } from 'vue-router'
+import { RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { ref } from 'vue'
 import LogoCanvas from "./components/LogoCanvas.vue";
 
 const authStore = useAuthStore()
+const router = useRouter()
 const drawer = ref(false)
 
 const menuItems = [
@@ -15,7 +16,7 @@ const menuItems = [
 ]
 
 const authMenuItems = [
-  { title: 'Mi Perfil', icon: 'mdi-account', route: '/profile' },
+  { title: 'Mi Perfil', icon: 'mdi-account', route: '/perfil' },
   { title: 'Mis Entrenamientos', icon: 'mdi-playlist-check', route: '/mis-entrenamientos' },
 ]
 </script>
@@ -69,6 +70,13 @@ const authMenuItems = [
     </v-navigation-drawer>
 
     <!-- Contenido principal -->
+ <v-app>
+    <Header 
+      :menuItems="menuItems"
+      :authMenuItems="authMenuItems"
+      :drawer="drawer"
+    />
+    
     <v-main>
       <v-container>
         <RouterView />

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import type { UsuarioUpdateDTO } from '@/types/User'
 import type { VForm } from 'vuetify/components'
 import type { User } from '@/types/User'
 
