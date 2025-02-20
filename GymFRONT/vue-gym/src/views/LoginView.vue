@@ -69,9 +69,9 @@ const rules = {
 
 const handleSubmit = async () => {
   if (!formRef.value) return
-  
+
   const { valid } = await formRef.value.validate()
-  
+
   if (!valid) return
 
   try {
@@ -115,8 +115,8 @@ const handleSubmit = async () => {
             </v-alert>
 
             <v-form ref="formRef" @submit.prevent="handleSubmit">
-              <v-text-field class="login-form" v-model="form.email" :rules="rules.email" label="Email" prepend-inner-icon="mdi-email"
-                type="email" variant="outlined" required></v-text-field>
+              <v-text-field class="login-form" v-model="form.email" :rules="rules.email" label="Email"
+                prepend-inner-icon="mdi-email" type="email" variant="outlined" required></v-text-field>
 
               <v-text-field v-model="form.password" :rules="rules.password" :type="showPassword ? 'text' : 'password'"
                 label="Contraseña" prepend-inner-icon="mdi-lock" variant="outlined" required
@@ -130,9 +130,11 @@ const handleSubmit = async () => {
                 </router-link>
               </div>
 
-              <v-btn type="submit" color="primary" size="large" block :loading="loading">
-                Iniciar Sesión
-              </v-btn>
+              <div class="btn-wrapper">
+                <v-btn type="submit" color="primary" size="large" block :loading="loading">
+                  Iniciar Sesión
+                </v-btn>
+              </div>
             </v-form>
 
             <v-divider class="my-4">
@@ -142,8 +144,6 @@ const handleSubmit = async () => {
             <div id="googleBtn" class="d-flex justify-center mb-4"></div>
 
           </v-card-text>
-
-          <v-divider class="my-3"></v-divider>
 
           <v-card-text class="text-center">
             <p class="mb-0">
@@ -161,6 +161,11 @@ const handleSubmit = async () => {
 
 <style lang="scss" scoped>
 @import '@/assets/styles/main.scss';
+
+.v-divider__wrapper {
+  padding-top: 4% !important;
+  padding-bottom: 4% !important;
+}
 
 .login-container {
   min-height: calc(100vh - var(--v-layout-top)) !important;
@@ -190,6 +195,10 @@ const handleSubmit = async () => {
   margin: 0px !important;
 }
 
+.btn-wrapper {
+  padding-top: 4% !important;
+}
+
 .v-btn {
   font-family: $font-family-base;
   border-radius: $border-radius;
@@ -197,7 +206,7 @@ const handleSubmit = async () => {
 
 a {
   color: $primary-color;
-  
+
   &:hover {
     color: darken($primary-color, 10%);
   }
