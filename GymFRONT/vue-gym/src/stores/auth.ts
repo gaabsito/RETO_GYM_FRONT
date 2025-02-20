@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { User, LoginCredentials, RegisterData} from '@/types/User'
+import type { User, LoginCredentials, RegisterData, UsuarioDTO} from '@/types/User'
 import type { ApiResponse } from '@/types/ApiResponse'
-import type { UsuarioDTO } from '@/types/User' 
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087'
 
@@ -219,18 +218,19 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function checkAuth() {
-        const storedToken = localStorage.getItem('token')
+        // Verificar en ambos almacenamientos
+        const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token')
         if (!storedToken) return
-
+    
         try {
             const response = await fetch(`${API_URL}/auth/verify`, {
                 headers: {
                     'Authorization': `Bearer ${storedToken}`
                 }
             })
-
+    
             const data: ApiResponse<{ user: User }> = await response.json()
-
+    
             if (response.ok) {
                 user.value = data.data.user
                 token.value = storedToken
