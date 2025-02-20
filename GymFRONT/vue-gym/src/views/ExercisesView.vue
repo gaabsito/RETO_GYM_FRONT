@@ -96,7 +96,7 @@ const clearFilters = () => {
         ></v-select>
       </v-col>
 
-      <v-col cols="12" md="3" class="d-flex align-center">
+      <v-col cols="12" md="3" class="d-flex align-center justify-center">
         <v-checkbox
           v-model="showEquipmentOnly"
           label="Solo ejercicios con equipamiento"
@@ -245,9 +245,10 @@ const clearFilters = () => {
   }
 
   .v-card-title {
-    font-size: 1.1rem;
-    font-weight: 600;
-    line-height: 1.5;
+    color: white !important;
+    font-size: 1.25rem;
+    font-weight: 500;
+    line-height: 1.6;
     padding: 1rem;
   }
 
@@ -328,7 +329,7 @@ const clearFilters = () => {
 // Responsive adjustments
 @media (max-width: 600px) {
   .v-container {
-    padding: 1rem !important;
+    padding: 0.5rem !important;
   }
 
   .text-h3 {
