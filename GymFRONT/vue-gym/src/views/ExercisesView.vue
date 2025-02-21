@@ -178,7 +178,7 @@ const clearFilters = () => {
               <v-btn
                 variant="text"
                 color="primary"
-                :to="`/ejercicios/${exercise.ejercicioID}`"
+                :to="`/exercises/${exercise.ejercicioID}`"
               >
                 Ver detalles
                 <v-icon end>mdi-arrow-right</v-icon>

@@ -49,17 +49,18 @@ export const useExerciseStore = defineStore('exercises', () => {
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json'
             }
-
+    
             if (authStore.token) {
                 headers['Authorization'] = `Bearer ${authStore.token}`
             }
-
-            const response = await fetch(`${API_URL}/Ejercicio/${id}`, { headers })
-            const data: ApiResponse<Exercise> = await response.json()
-
+    
+            const response = await fetch(`${API_URL}/ejercicio/${id}`, { headers })
+            const data = await response.json()
+    
             if (!response.ok) throw new Error(data.message || 'Error cargando ejercicio')
-
-            return data.data
+    
+            // Devolvemos directamente data
+            return data
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
             throw e
