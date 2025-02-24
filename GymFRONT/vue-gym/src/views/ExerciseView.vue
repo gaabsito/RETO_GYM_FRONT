@@ -199,6 +199,10 @@ const getEmbedUrl = (url: string | undefined): string => {
   margin: 0px !important;
 }
 
+.video-frame {
+  border-radius: $border-radius !important;
+}
+
 .exercise-card {
   border-radius: $border-radius;
   background-color: white;
