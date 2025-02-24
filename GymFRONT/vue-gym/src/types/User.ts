@@ -5,6 +5,9 @@ export interface User {
     email: string;
     fechaRegistro: Date;
     estaActivo: boolean;
+    edad: number;
+    peso: number;
+    altura: number;
 }
 
 export interface LoginCredentials {
@@ -29,4 +32,7 @@ export interface UsuarioDTO {
     email: string;
     fechaRegistro: Date;
     estaActivo: boolean;
+    edad: number;
+    peso: number;
+    altura: number;
 }

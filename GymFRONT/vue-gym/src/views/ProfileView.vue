@@ -11,10 +11,14 @@ const error = ref('')
 const success = ref('')
 const showChangePassword = ref(false)
 
+// Ajustamos campos numéricos a 0 por defecto
 const form = ref({
   nombre: '',
   apellido: '',
   email: '',
+  edad: 0,
+  peso: 0,
+  altura: 0,
   currentPassword: '',
   newPassword: '',
   confirmPassword: ''
@@ -29,6 +33,11 @@ onMounted(async () => {
       form.value.nombre = userData.nombre
       form.value.apellido = userData.apellido
       form.value.email = userData.email
+      
+      // Si userData.edad (etc.) está indefinido o null, ponemos 0
+      form.value.edad = userData.edad || 0
+      form.value.peso = userData.peso || 0
+      form.value.altura = userData.altura || 0
     }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Error al cargar el perfil'
@@ -38,7 +47,7 @@ onMounted(async () => {
 })
 
 const rules = {
-  required: (v: string) => !!v || 'Este campo es requerido',
+  required: (v: string | number) => !!v || 'Este campo es requerido',
   email: (v: string) => /.+@.+\..+/.test(v) || 'Debe ser un email válido',
   password: (v: string) => v.length >= 6 || 'La contraseña debe tener al menos 6 caracteres',
   passwordMatch: (v: string) => v === form.value.newPassword || 'Las contraseñas no coinciden'
@@ -56,10 +65,13 @@ const handleSubmit = async () => {
     success.value = ''
 
     // Preparar datos para actualización
-    const updateData: Partial<User> & { currentPassword?: string, newPassword?: string } = {
+    const updateData: Partial<User> & { currentPassword?: string; newPassword?: string } = {
       nombre: form.value.nombre,
       apellido: form.value.apellido,
-      email: form.value.email
+      email: form.value.email,
+      edad: form.value.edad,
+      peso: form.value.peso,
+      altura: form.value.altura
     }
 
     if (showChangePassword.value) {
@@ -95,6 +107,7 @@ const handleSubmit = async () => {
           </v-card-title>
 
           <v-card-text>
+            <!-- Alertas de error o éxito -->
             <v-alert v-if="error" type="error" class="mb-4">
               {{ error }}
             </v-alert>
@@ -103,6 +116,7 @@ const handleSubmit = async () => {
               {{ success }}
             </v-alert>
 
+            <!-- Formulario -->
             <v-form ref="formRef" @submit.prevent="handleSubmit">
               <v-text-field
                 v-model="form.nombre"
@@ -131,6 +145,42 @@ const handleSubmit = async () => {
                 variant="outlined"
                 required
               ></v-text-field>
+
+              <!-- Agrupamos edad, peso y altura en una misma fila -->
+              <v-row>
+                <v-col cols="12" sm="4">
+                  <v-text-field
+                    v-model.number="form.edad"
+                    :rules="[rules.required]"
+                    label="Edad"
+                    type="number"
+                    variant="outlined"
+                    required
+                  ></v-text-field>
+                </v-col>
+
+                <v-col cols="12" sm="4">
+                  <v-text-field
+                    v-model.number="form.peso"
+                    :rules="[rules.required]"
+                    label="Peso (kg)"
+                    type="number"
+                    variant="outlined"
+                    required
+                  ></v-text-field>
+                </v-col>
+
+                <v-col cols="12" sm="4">
+                  <v-text-field
+                    v-model.number="form.altura"
+                    :rules="[rules.required]"
+                    label="Altura (m)"
+                    type="number"
+                    variant="outlined"
+                    required
+                  ></v-text-field>
+                </v-col>
+              </v-row>
 
               <v-divider class="my-4"></v-divider>
 
@@ -216,8 +266,8 @@ const handleSubmit = async () => {
 }
 
 .v-text-field {
-    padding-top: 2.5% !important;
-    padding-bottom: 2.5% !important;
+  padding-top: 2.5% !important;
+  padding-bottom: 2.5% !important;
 }
 
 .v-btn {
