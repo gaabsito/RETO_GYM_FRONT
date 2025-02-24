@@ -254,4 +254,19 @@ color: $primary-color;
   color:$primary-color;
 }
 
+// Responsive adjustments
+@media (max-width: 600px) {
+  .v-container {
+    padding: 0.5rem !important;
+  }
+
+  .text-h3 {
+    font-size: 1.8rem !important;
+  }
+
+  .v-card {
+    margin-bottom: 1rem;
+  }
+}
+
 </style>

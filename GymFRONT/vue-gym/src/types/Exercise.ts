@@ -4,5 +4,6 @@ export interface Exercise {
     descripcion?: string;
     grupoMuscular: string;
     imagenURL?: string;
+    videoURL?: string;
     equipamientoNecesario: boolean;
 }

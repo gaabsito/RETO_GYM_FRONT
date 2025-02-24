@@ -7,6 +7,8 @@ import RecuperarPasswordView from '@/views/RecuperarPasswordView.vue'
 import ResetPasswordView from '@/views/ResetPasswordView.vue'
 import SobreNosotrosView from '@/views/SobreNosotrosView.vue'
 import ProfileView from '@/views/ProfileView.vue'
+import ExercisesView from '@/views/ExercisesView.vue'
+import ExerciseView from '@/views/ExerciseView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -40,6 +42,16 @@ const router = createRouter({
       path: '/about',
       name: 'about',
       component: SobreNosotrosView,
+    },
+    {
+      path: '/exercises',
+      name: 'exercises',
+      component: ExercisesView,
+    },
+    {
+      path: '/exercises/:id',
+      name: 'exercise-detail',
+      component: ExerciseView,
     },
     {
       path: '/profile',
