@@ -13,14 +13,14 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 
 onMounted(async () => {
-    console.log('Component mounted')
-    console.log('Route params:', route.params)
+  console.log('Component mounted')
+  console.log('Route params:', route.params)
   try {
     const exerciseId = parseInt(route.params.id as string)
     if (isNaN(exerciseId)) {
       throw new Error('ID de ejercicio inválido')
     }
-    
+
     exercise.value = await exerciseStore.getExerciseById(exerciseId)
     console.log('Exercise data:', exercise.value) // Para debug
   } catch (err) {
@@ -32,6 +32,29 @@ onMounted(async () => {
 
 const goBack = () => {
   router.back()
+}
+
+// Función para convertir URLs de YouTube a formato embed
+const getEmbedUrl = (url: string | undefined): string => {
+  if (!url) return '';
+
+  // Manejar URLs de YouTube
+  if (url.includes('youtube.com/watch')) {
+    // Extraer el ID del video de YouTube
+    const videoId = new URL(url).searchParams.get('v');
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+  } else if (url.includes('youtu.be')) {
+    // Manejar formato corto de YouTube
+    const videoId = url.split('/').pop();
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+  }
+
+  // Si no es YouTube o no se puede procesar, devolver la URL original
+  return url;
 }
 </script>
 
@@ -57,13 +80,7 @@ const goBack = () => {
       <v-row>
         <!-- Breadcrumb -->
         <v-col cols="12">
-          <v-btn
-            variant="text"
-            color="primary"
-            class="mb-4"
-            prepend-icon="mdi-arrow-left"
-            @click="goBack"
-          >
+          <v-btn variant="text" color="primary" class="mb-4" prepend-icon="mdi-arrow-left" @click="goBack">
             Volver a ejercicios
           </v-btn>
         </v-col>
@@ -71,12 +88,7 @@ const goBack = () => {
         <!-- Image and Basic Info -->
         <v-col cols="12" md="6">
           <v-card class="mb-4 exercise-card">
-            <v-img
-              :src="exercise.imagenURL || '/api/placeholder/800/600'"
-              height="400"
-              cover
-              class="bg-grey-lighten-2"
-            >
+            <v-img :src="exercise.imagenURL || '/api/placeholder/800/600'" height="400" cover class="bg-grey-lighten-2">
               <template v-slot:placeholder>
                 <v-row class="fill-height ma-0" align="center" justify="center">
                   <v-progress-circular indeterminate color="primary"></v-progress-circular>
@@ -84,6 +96,26 @@ const goBack = () => {
               </template>
             </v-img>
           </v-card>
+
+          <!-- Video del ejercicio -->
+          <v-card v-if="exercise.videoURL" class="mt-4 exercise-card">
+            <v-card-title class="exercise-title">
+              <v-icon start color="white" class="me-2">mdi-video</v-icon>
+              Video demostrativo
+            </v-card-title>
+            <v-card-text class="pa-0">
+              <iframe 
+                :src="getEmbedUrl(exercise.videoURL)" 
+                width="100%" 
+                height="315" 
+                frameborder="0" 
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                allowfullscreen 
+                class="video-frame"
+              ></iframe>
+            </v-card-text>
+          </v-card>
+          
         </v-col>
 
         <!-- Exercise Information -->
@@ -91,12 +123,7 @@ const goBack = () => {
           <v-card class="exercise-card info-card">
             <v-card-title class="exercise-title">
               {{ exercise.nombre }}
-              <v-chip
-                v-if="exercise.equipamientoNecesario"
-                color="primary"
-                class="ml-2"
-                size="small"
-              >
+              <v-chip v-if="exercise.equipamientoNecesario" color="primary" class="ml-2" size="small">
                 <v-icon start size="small">mdi-dumbbell</v-icon>
                 Requiere equipamiento
               </v-chip>
@@ -154,22 +181,22 @@ const goBack = () => {
 @import '@/assets/styles/main.scss';
 
 .v-col {
-    padding: 12px !important;
-    margin-top: 1% !important;
-    margin-bottom: 1% !important;
+  padding: 12px !important;
+  margin-top: 1% !important;
+  margin-bottom: 1% !important;
 }
 
 .v-col-md-6 {
-    padding: 12px !important;
+  padding: 12px !important;
 }
 
 .mt-4 {
-    margin-top: 24px !important;
+  margin-top: 24px !important;
 }
 
 .mb-4 {
-    padding: 0px !important;
-    margin: 0px !important;
+  padding: 0px !important;
+  margin: 0px !important;
 }
 
 .exercise-card {
@@ -211,7 +238,7 @@ const goBack = () => {
 .v-btn {
   font-family: $font-family-base;
   border-radius: $border-radius;
-  
+
   &:hover {
     transform: translateY(-1px);
   }
