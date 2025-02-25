@@ -186,6 +186,10 @@ const values = ref([
     padding: 0px !important;
 }
 
+.pa-0 {
+  padding-bottom: 0px !important;
+}
+
 .py-12 {
   padding-top: 4rem !important;
   padding-bottom: 4rem !important;
