@@ -193,6 +193,10 @@ onMounted(async () => {
   padding-left: 1rem !important;
 }
 
+.v-container {
+  margin-bottom: 2rem !important;
+}
+
 .v-card-text {
   padding: 1rem !important;
 }
@@ -252,6 +256,11 @@ color: $primary-color;
 }
 .py-12{
   color:$primary-color;
+}
+
+.v-col-md-8 {
+  padding-top: 4rem !important;
+  padding-bottom: 4rem !important;
 }
 
 // Responsive adjustments
