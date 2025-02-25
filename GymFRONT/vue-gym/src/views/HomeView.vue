@@ -127,7 +127,7 @@ onMounted(async () => {
                   <v-icon size="small" class="me-1">mdi-clock-outline</v-icon>
                   <span>{{ workout.duracionMinutos }} min</span>
                 </div>
-                <p class="text-truncate">{{ workout.descripcion }}</p>
+                <!-- <p class="text-truncate">{{ workout.descripcion }}</p> -->
               </v-card-text>
 
               <v-card-actions>
