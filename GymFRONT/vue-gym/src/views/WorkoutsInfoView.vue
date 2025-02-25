@@ -1,156 +1,156 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useWorkoutStore } from '@/stores/workouts'
 import { storeToRefs } from 'pinia'
+import type { Workout } from '@/types/Workout'
 
+const route = useRoute()
+const router = useRouter()
 const workoutStore = useWorkoutStore()
 const { workouts, loading, error } = storeToRefs(workoutStore)
-const initialized = ref(false)
 
-// Filtros
-const searchQuery = ref('')
-const selectedDifficulty = ref<string | null>(null)
-const showPublicOnly = ref(false)
-
-const difficulties = [
-  'Fácil',
-  'Media', 
-  'Difícil'
-]
+const workout = ref<Workout | null>(null)
 
 onMounted(async () => {
+  console.log('Component mounted')
+  console.log('Route params:', route.params)
   try {
+    const workoutId = parseInt(route.params.id as string)
+    if (isNaN(workoutId)) {
+      throw new Error('ID de entrenamiento inválido')
+    }
+
     await workoutStore.fetchWorkouts()
-    initialized.value = true
+    workout.value = workouts.value.find(w => w.entrenamientoID === workoutId) || null
+
+    if (!workout.value) {
+      throw new Error('Entrenamiento no encontrado')
+    }
+    console.log('Workout data:', workout.value)
   } catch (err) {
-    // El error ya se maneja en el store
+    error.value = err instanceof Error ? err.message : 'Error al cargar el entrenamiento'
+  } finally {
+    loading.value = false
   }
 })
 
-// Filtrar entrenamientos
-const filteredWorkouts = computed(() => {
-  if (!initialized.value) return []
-  return workouts.value.filter(workout => {
-    // Filtrar por búsqueda
-    const matchesSearch = 
-      workout.titulo.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (workout.descripcion?.toLowerCase().includes(searchQuery.value.toLowerCase()) ?? false)
-
-    // Filtrar por dificultad
-    const matchesDifficulty = !selectedDifficulty.value || 
-      workout.dificultad === selectedDifficulty.value
-
-    // Filtrar por público
-    const matchesPublic = !showPublicOnly.value || workout.publico
-
-    return matchesSearch && matchesDifficulty && matchesPublic
-  })
-})
-
-// Limpiar filtros
-const clearFilters = () => {
-  searchQuery.value = ''
-  selectedDifficulty.value = null
-  showPublicOnly.value = false
+const goBack = () => {
+  router.back()
 }
 </script>
 
 <template>
-  <v-container fluid>
-    <!-- Hero Section -->
-    <v-row class="mb-8">
-      <v-col cols="12" class="text-center">
-        <h1 class="text-h3 mb-4">Entrenamientos</h1>
-        <p class="text-body-1">
-          Explora nuestra colección de entrenamientos para todos los niveles
-        </p>
-      </v-col>
-    </v-row>
-
-    <!-- Lista de Entrenamientos -->
-    <v-row v-if="!loading && !error">
-      <v-col
-        v-for="workout in filteredWorkouts"
-        :key="workout.entrenamientoID"
-        cols="12"
-        sm="6"
-        md="4"
-        lg="3"
-      >
-        <v-card class="h-100 workout-card">
-          <v-img
-            :src="workout.imagenURL || '/api/placeholder/400/300'"
-            height="200"
-            cover
-            class="bg-grey-lighten-2"
-          ></v-img>
-
-          <v-card-title>
-            {{ workout.titulo }}
-            <v-chip 
-              v-if="!workout.publico" 
-              color="warning" 
-              size="small" 
-              class="ml-2"
-            >
-              Privado
-            </v-chip>
-          </v-card-title>
-
-          <v-card-subtitle>
-            <div class="d-flex align-center">
-              <v-icon 
-                size="small"
-                :color="
-                  workout.dificultad === 'Fácil' ? 'success' : 
-                  workout.dificultad === 'Media' ? 'warning' : 'error'
-                "
-                class="me-2"
-              >
-                mdi-signal-cellular-{ {
-                  workout.dificultad === 'Fácil' ? '1' : 
-                  workout.dificultad === 'Media' ? '2' : '3'
-                }}
-              </v-icon>
-              {{ workout.dificultad }} | {{ workout.duracionMinutos }} min
-            </div>
-          </v-card-subtitle>
-
-          <v-card-text>
-            <p>{{ workout.descripcion }}</p>
-          </v-card-text>
-
-          <v-card-actions>
-            <v-spacer></v-spacer>
-            <v-btn
-              variant="text"
-              color="primary"
-              :to="`/entrenamientos/${workout.entrenamientoID}`"
-            >
-              Ver más
-              <v-icon end>mdi-arrow-right</v-icon>
-            </v-btn>
-          </v-card-actions>
-        </v-card>
-      </v-col>
-    </v-row>
-  </v-container>
+  <div v-if="loading" class="loading">Cargando entrenamiento...</div>
+  <div v-else-if="error" class="error">Error: {{ error }}</div>
+  <div v-else-if="workout" class="workout-container">
+    <button @click="goBack" class="back-button">&#8592; Volver a entrenamientos</button>
+    <div class="workout-content">
+      <div class="workout-image-container">
+        <img v-if="workout.imagenURL" :src="workout.imagenURL" alt="Imagen del entrenamiento" class="workout-image" />
+      </div>
+      <div class="workout-info">
+        <h1 class="workout-title">{{ workout.titulo }}</h1>
+        <div class="workout-details">
+          <span class="tag">Dificultad: {{ workout.dificultad }}</span>
+          <span class="tag">Duración: {{ workout.duracionMinutos }} min</span>
+        </div>
+        <p class="description">{{ workout.descripcion }}</p>
+      </div>
+    </div>
+    <div class="exercise-section">
+      <h3>Ejercicios incluidos</h3>
+      <ul class="exercise-list">
+        <li v-for="ejercicio in workout.ejercicios" :key="ejercicio.ejercicioID" class="exercise-item">
+          <div class="exercise-name">{{ ejercicio.nombre }}</div>
+          <div class="exercise-reps">Repeticiones: {{ ejercicio.repeticiones || 'N/A' }}</div>
+        </li>
+      </ul>
+    </div>
+  </div>
 </template>
 
-<style lang="scss" scoped>
-@import '@/assets/styles/main.scss';
-
-.workout-card {
-  border-radius: 12px;
-  transition: all 0.3s ease-in-out;
-
-  &:hover {
-    transform: translateY(-5px);
+<style scoped>
+.workout-container {
+  max-width: 1100px;
+  margin: auto;
+  padding: 20px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.back-button {
+  background: none;
+  border: none;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+  color: #ff6600;
+}
+.workout-content {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+.workout-image-container {
+  flex: 1;
+  text-align: center;
+}
+.workout-image {
+  width: 100%;
+  max-width: 400px;
+  border-radius: 10px;
+}
+.workout-info {
+  flex: 2;
+  text-align: left;
+}
+.workout-title {
+  color: #ff6600;
+  font-size: 24px;
+  margin-bottom: 10px;
+}
+.workout-details {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.tag {
+  background: #ff6600;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 14px;
+}
+.exercise-section {
+  margin-top: 20px;
+}
+.exercise-list {
+  list-style: none;
+  padding: 0;
+}
+.exercise-item {
+  background: #ff6600;
+  color: white;
+  padding: 10px;
+  border-radius: 5px;
+  margin-bottom: 10px;
+  text-align: center;
+}
+@media (max-width: 768px) {
+  .workout-content {
+    flex-direction: column;
   }
-
-  .v-card-title {
-    font-size: 1.2rem;
-    font-weight: 500;
+  .workout-image {
+    max-width: 300px;
+  }
+  .exercise-item {
+    font-size: 14px;
   }
 }
 </style>
