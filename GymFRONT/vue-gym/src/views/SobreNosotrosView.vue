@@ -65,7 +65,7 @@ const values = ref([
       <v-row justify="center" align="center">
         <v-col cols="12" md="6" class="text-center">
           <h2 class="text-h4 mb-6">Nuestra Misión</h2>
-          <p class="text-body-1">
+          <p class="text-parrafo">
             En ENTRÉNATE, nos dedicamos a proporcionar soluciones fitness personalizadas y efectivas que ayuden a nuestros usuarios a alcanzar sus objetivos de salud y bienestar. Creemos en el poder transformador del ejercicio y el compromiso con un estilo de vida saludable.
           </p>
         </v-col>
@@ -153,6 +153,12 @@ const values = ref([
     position: relative;
     z-index: 2;
   }
+}
+
+.text-parrafo {
+  font-size: $font-size-lg;
+  font-weight: bolder;
+  color: $secondary-color;
 }
 
 .value-card, .team-card {
