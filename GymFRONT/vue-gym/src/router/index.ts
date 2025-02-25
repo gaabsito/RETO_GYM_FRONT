@@ -9,6 +9,7 @@ import SobreNosotrosView from '@/views/SobreNosotrosView.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import ExercisesView from '@/views/ExercisesView.vue'
 import ExerciseView from '@/views/ExerciseView.vue'
+import WorkoutsView from '@/views/WorkoutsView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -58,6 +59,11 @@ const router = createRouter({
       name: 'profile',
       component: ProfileView,
       meta: { requiresAuth: true },
+    },
+    {
+      path: '/entrenamientos',
+      name: 'workouts',
+      component: WorkoutsView,
     }
   ],
 })
