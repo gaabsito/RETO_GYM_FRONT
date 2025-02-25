@@ -183,6 +183,9 @@ export const useAuthStore = defineStore('auth', () => {
             if (updateData.nombre) user.value!.nombre = updateData.nombre;
             if (updateData.apellido) user.value!.apellido = updateData.apellido;
             if (updateData.email) user.value!.email = updateData.email;
+            if (updateData.edad) user.value!.edad = updateData.edad;
+            if (updateData.peso) user.value!.peso = updateData.peso;
+            if (updateData.altura) user.value!.altura = updateData.altura;
     
             return user.value;
         } catch (e) {
