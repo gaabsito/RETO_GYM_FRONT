@@ -167,7 +167,8 @@ const clearFilters = () => {
 }
 
 .v-col-md-4 {
-  padding: 12px;
+  padding-top: 12px;
+  padding-bottom: 12px;
 }
 
 .v-container {
