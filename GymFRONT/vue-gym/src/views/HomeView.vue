@@ -100,10 +100,6 @@ onMounted(async () => {
 <style lang="scss">
 @import '@/assets/styles/main.scss';
 
-.mt-4 {
-  margin-top: 1.5rem !important;
-}
-
 // Responsive adjustments
 @media (max-width: 600px) {
   .v-container {
