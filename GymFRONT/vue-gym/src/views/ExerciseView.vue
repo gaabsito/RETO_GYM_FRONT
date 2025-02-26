@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useExerciseStore } from '@/stores/exercises'
 import type { Exercise } from '@/types/Exercise'
+import SectionContainer from '@/components/SectionContainer.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -13,8 +14,6 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 
 onMounted(async () => {
-  console.log('Component mounted')
-  console.log('Route params:', route.params)
   try {
     const exerciseId = parseInt(route.params.id as string)
     if (isNaN(exerciseId)) {
@@ -22,7 +21,6 @@ onMounted(async () => {
     }
 
     exercise.value = await exerciseStore.getExerciseById(exerciseId)
-    console.log('Exercise data:', exercise.value) // Para debug
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Error al cargar el ejercicio'
   } finally {
@@ -84,120 +82,104 @@ const getEmbedUrl = (url: string | undefined): string => {
             Volver a ejercicios
           </v-btn>
         </v-col>
-
-        <!-- Image and Basic Info -->
-        <v-col cols="12" md="6">
-          <v-card class="mb-4 exercise-card">
-            <v-img :src="exercise.imagenURL || '/api/placeholder/800/600'" height="400" cover class="bg-grey-lighten-2">
-              <template v-slot:placeholder>
-                <v-row class="fill-height ma-0" align="center" justify="center">
-                  <v-progress-circular indeterminate color="primary"></v-progress-circular>
-                </v-row>
-              </template>
-            </v-img>
-          </v-card>
-
-          <!-- Video del ejercicio -->
-          <v-card v-if="exercise.videoURL" class="mt-4 exercise-card">
-            <v-card-title class="exercise-title">
-              <v-icon start color="white" class="me-2">mdi-video</v-icon>
-              Video demostrativo
-            </v-card-title>
-            <v-card-text class="pa-0">
-              <iframe 
-                :src="getEmbedUrl(exercise.videoURL)" 
-                width="100%" 
-                height="315" 
-                frameborder="0" 
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                allowfullscreen 
-                class="video-frame"
-              ></iframe>
-            </v-card-text>
-          </v-card>
-          
-        </v-col>
-
-        <!-- Exercise Information -->
-        <v-col cols="12" md="6">
-          <v-card class="exercise-card info-card">
-            <v-card-title class="exercise-title">
-              {{ exercise.nombre }}
-              <v-chip v-if="exercise.equipamientoNecesario" color="primary" class="ml-2" size="small">
-                <v-icon start size="small">mdi-dumbbell</v-icon>
-                Requiere equipamiento
-              </v-chip>
-            </v-card-title>
-
-            <v-card-text>
-              <v-row>
-                <v-col cols="12">
-                  <div class="d-flex align-center mb-4">
-                    <span class="text-h6">Grupo Muscular:</span>
-                    <v-chip class="ml-2" color="primary" variant="outlined">
-                      {{ exercise.grupoMuscular }}
-                    </v-chip>
-                  </div>
-                </v-col>
-
-                <v-col cols="12">
-                  <div class="text-h6 mb-2">Descripción:</div>
-                  <p class="text-body-1">{{ exercise.descripcion }}</p>
-                </v-col>
-              </v-row>
-            </v-card-text>
-          </v-card>
-
-          <!-- Recomendaciones -->
-          <v-card class="mt-4 exercise-card">
-            <v-card-title class="exercise-title">
-              <v-icon start color="white" class="me-2">mdi-information</v-icon>
-              Recomendaciones
-            </v-card-title>
-            <v-card-text>
-              <v-list>
-                <v-list-item prepend-icon="mdi-check-circle" class="mb-2">
-                  <v-list-item-title>Mantén una postura correcta durante todo el ejercicio</v-list-item-title>
-                </v-list-item>
-                <v-list-item prepend-icon="mdi-check-circle" class="mb-2">
-                  <v-list-item-title>Realiza movimientos controlados y conscientes</v-list-item-title>
-                </v-list-item>
-                <v-list-item prepend-icon="mdi-check-circle" class="mb-2">
-                  <v-list-item-title>Respira de manera adecuada durante la ejecución</v-list-item-title>
-                </v-list-item>
-                <v-list-item prepend-icon="mdi-check-circle">
-                  <v-list-item-title>Ajusta el peso y las repeticiones según tu nivel</v-list-item-title>
-                </v-list-item>
-              </v-list>
-            </v-card-text>
-          </v-card>
-        </v-col>
       </v-row>
+
+      <SectionContainer>
+        <v-row>
+          <!-- Image and Video -->
+          <v-col cols="12" md="6">
+            <v-card class="mb-4 exercise-card">
+              <v-img :src="exercise.imagenURL || '/api/placeholder/800/600'" height="400" cover class="bg-grey-lighten-2">
+                <template v-slot:placeholder>
+                  <v-row class="fill-height ma-0" align="center" justify="center">
+                    <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                  </v-row>
+                </template>
+              </v-img>
+            </v-card>
+
+            <!-- Video del ejercicio -->
+            <v-card v-if="exercise.videoURL" class="mt-4 exercise-card">
+              <v-card-title class="exercise-title">
+                <v-icon start color="white" class="me-2">mdi-video</v-icon>
+                Video demostrativo
+              </v-card-title>
+              <v-card-text class="pa-0">
+                <iframe 
+                  :src="getEmbedUrl(exercise.videoURL)" 
+                  width="100%" 
+                  height="315" 
+                  frameborder="0" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowfullscreen 
+                  class="video-frame"
+                ></iframe>
+              </v-card-text>
+            </v-card>
+          </v-col>
+
+          <!-- Exercise Information -->
+          <v-col cols="12" md="6">
+            <v-card class="exercise-card info-card">
+              <v-card-title class="exercise-title">
+                {{ exercise.nombre }}
+                <v-chip v-if="exercise.equipamientoNecesario" color="primary" class="ml-2" size="small">
+                  <v-icon start size="small">mdi-dumbbell</v-icon>
+                  Requiere equipamiento
+                </v-chip>
+              </v-card-title>
+
+              <v-card-text>
+                <v-row>
+                  <v-col cols="12">
+                    <div class="d-flex align-center mb-4">
+                      <span class="text-h6">Grupo Muscular:</span>
+                      <v-chip class="ml-2" color="primary" variant="outlined">
+                        {{ exercise.grupoMuscular }}
+                      </v-chip>
+                    </div>
+                  </v-col>
+
+                  <v-col cols="12">
+                    <div class="text-h6 mb-2">Descripción:</div>
+                    <p class="text-body-1">{{ exercise.descripcion }}</p>
+                  </v-col>
+                </v-row>
+              </v-card-text>
+            </v-card>
+
+            <!-- Recomendaciones -->
+            <v-card class="mt-4 exercise-card">
+              <v-card-title class="exercise-title">
+                <v-icon start color="white" class="me-2">mdi-information</v-icon>
+                Recomendaciones
+              </v-card-title>
+              <v-card-text>
+                <v-list>
+                  <v-list-item prepend-icon="mdi-check-circle" class="mb-2">
+                    <v-list-item-title>Mantén una postura correcta durante todo el ejercicio</v-list-item-title>
+                  </v-list-item>
+                  <v-list-item prepend-icon="mdi-check-circle" class="mb-2">
+                    <v-list-item-title>Realiza movimientos controlados y conscientes</v-list-item-title>
+                  </v-list-item>
+                  <v-list-item prepend-icon="mdi-check-circle" class="mb-2">
+                    <v-list-item-title>Respira de manera adecuada durante la ejecución</v-list-item-title>
+                  </v-list-item>
+                  <v-list-item prepend-icon="mdi-check-circle">
+                    <v-list-item-title>Ajusta el peso y las repeticiones según tu nivel</v-list-item-title>
+                  </v-list-item>
+                </v-list>
+              </v-card-text>
+            </v-card>
+          </v-col>
+        </v-row>
+      </SectionContainer>
     </template>
   </v-container>
 </template>
 
 <style lang="scss" scoped>
 @import '@/assets/styles/main.scss';
-
-.v-col {
-  padding: 12px !important;
-  margin-top: 1% !important;
-  margin-bottom: 1% !important;
-}
-
-.v-col-md-6 {
-  padding: 12px !important;
-}
-
-.mt-4 {
-  margin-top: 24px !important;
-}
-
-.mb-4 {
-  padding: 0px !important;
-  margin: 0px !important;
-}
 
 .video-frame {
   border-radius: $border-radius !important;
@@ -259,6 +241,10 @@ const getEmbedUrl = (url: string | undefined): string => {
 
 .v-list-item {
   padding: 0.5rem 0;
+}
+
+.mt-4 {
+  margin-top: 1.5rem !important;
 }
 
 // Responsive
