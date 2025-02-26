@@ -75,7 +75,7 @@ onMounted(async () => {
     <!-- Featured Workouts -->
     <SectionContainer title="Entrenamientos Destacados" backgroundColor="#f8f8f8">
       <v-row v-if="!loading" justify="center">
-        <v-col v-for="workout in featuredWorkouts" :key="workout.entrenamientoID" cols="12" sm="6" md="4" lg="4">
+        <v-col v-for="workout in featuredWorkouts" :key="workout.entrenamientoID" cols="12" sm="6" md="4" lg="3">
           <WorkoutCard :workout="workout" />
         </v-col>
       </v-row>
