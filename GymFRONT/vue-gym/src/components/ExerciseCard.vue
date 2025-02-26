@@ -65,15 +65,23 @@ defineProps<{
   }
 
   .exercise-title {
+    background-color: $primary-color;
     font-family: $font-family-base;
     font-size: 1.25rem;
     font-weight: 500;
     line-height: 1.6;
-    padding: 1rem;
+    padding-top: 0.5rem !important;
+    padding-right: 1rem !important;
+    padding-bottom: 0.5rem !important;
+    padding-left: 1rem !important;
+  }
+
+  .v-card-title {
+    color: $light-gray !important;
   }
 
   .v-card-subtitle {
-    padding: 0 1rem;
+    padding: 1rem;
     opacity: 0.8;
     font-size: 0.9rem;
   }

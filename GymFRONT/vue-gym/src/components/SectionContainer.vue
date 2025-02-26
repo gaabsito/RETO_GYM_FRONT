@@ -20,8 +20,7 @@ defineProps<{
 @import '@/assets/styles/main.scss';
 
 .section-container {
-  padding-top: 4rem !important;
-  padding-bottom: 4rem !important;
+  padding: 2rem !important;
   margin-bottom: 2rem;
   border-radius: $border-radius;
 }

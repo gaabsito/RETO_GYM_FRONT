@@ -167,6 +167,19 @@ const handleSubmit = async () => {
   padding-bottom: 4% !important;
 }
 
+.text-center {
+  padding-top: 4% !important;
+  padding-bottom: 4% !important;
+}
+
+.text-decoration-none {
+  padding: 12px !important;
+}
+
+.v-input {
+  padding: 12px !important;
+}
+
 .login-container {
   min-height: calc(100vh - var(--v-layout-top)) !important;
   display: flex;
@@ -182,11 +195,6 @@ const handleSubmit = async () => {
   }
 }
 
-.login-form {
-  padding-top: 5% !important;
-  padding-bottom: 4% !important;
-}
-
 :deep(.v-field) {
   border-radius: $border-radius !important;
 }
@@ -196,7 +204,7 @@ const handleSubmit = async () => {
 }
 
 .btn-wrapper {
-  padding-top: 4% !important;
+  padding: 12px;
 }
 
 .v-btn {

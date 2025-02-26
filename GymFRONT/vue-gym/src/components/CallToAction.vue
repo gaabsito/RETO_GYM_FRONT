@@ -40,6 +40,11 @@ defineProps<{
   padding: 2rem 0 !important;
 }
 
+.v-btn {
+  padding-right: 1rem !important;
+  padding-left: 1rem !important;
+}
+
 .cta-button {
   color: $primary-color;
   font-family: $font-family-base;

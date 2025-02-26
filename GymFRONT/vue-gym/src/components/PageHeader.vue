@@ -25,6 +25,7 @@ defineProps<{
   position: relative;
   height: 400px;
   border-radius: $border-radius;
+  margin-top: 2rem;
   margin-bottom: 2rem;
 
   &::before {

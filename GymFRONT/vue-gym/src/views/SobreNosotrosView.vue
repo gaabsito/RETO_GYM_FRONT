@@ -112,6 +112,10 @@ const values = ref([
 <style lang="scss" scoped>
 @import '@/assets/styles/main.scss';
 
+.v-col-md-4 {
+  padding: 12px !important;
+}
+
 .text-parrafo {
   font-size: $font-size-lg;
   font-weight: bolder;

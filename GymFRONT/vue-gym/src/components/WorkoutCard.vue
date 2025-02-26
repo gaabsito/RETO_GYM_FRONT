@@ -69,6 +69,8 @@ const difficultyIcon = computed(() => {
 <style lang="scss" scoped>
 @import '@/assets/styles/main.scss';
 
+
+
 .workout-card {
   border-radius: $border-radius;
   transition: transform 0.3s ease;
@@ -76,6 +78,10 @@ const difficultyIcon = computed(() => {
   &:hover {
     transform: translateY(-5px);
   }
+}
+
+.v-btn {
+  padding-right: 1rem;
 }
 
 .v-card-title {

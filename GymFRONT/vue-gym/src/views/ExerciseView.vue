@@ -78,7 +78,7 @@ const getEmbedUrl = (url: string | undefined): string => {
       <v-row>
         <!-- Breadcrumb -->
         <v-col cols="12">
-          <v-btn variant="text" color="primary" class="mb-4" prepend-icon="mdi-arrow-left" @click="goBack">
+          <v-btn variant="text" color="primary" class="titulo" prepend-icon="mdi-arrow-left" @click="goBack">
             Volver a ejercicios
           </v-btn>
         </v-col>
@@ -183,6 +183,18 @@ const getEmbedUrl = (url: string | undefined): string => {
 
 .video-frame {
   border-radius: $border-radius !important;
+}
+
+.titulo {
+  margin-top: 2rem !important;
+}
+
+.pa-0 {
+  padding: 1rem !important;
+}
+
+.v-col-md-6 {
+  padding: 12px !important;
 }
 
 .exercise-card {

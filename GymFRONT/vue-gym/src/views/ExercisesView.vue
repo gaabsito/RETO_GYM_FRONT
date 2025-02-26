@@ -162,8 +162,15 @@ const clearFilters = () => {
 <style lang="scss" scoped>
 @import '@/assets/styles/main.scss';
 
+.v-input {
+  padding: 12px;
+}
+
+.v-col-md-4 {
+  padding: 12px;
+}
+
 .v-container {
-  padding-top: 2rem !important;
   padding-bottom: 2rem !important;
 }
 
