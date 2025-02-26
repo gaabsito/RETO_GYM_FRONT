@@ -197,6 +197,12 @@ const getEmbedUrl = (url: string | undefined): string => {
   padding: 12px !important;
 }
 
+.section-container {
+  padding: 0rem !important;
+  margin-bottom: 2rem;
+  border-radius: $border-radius;
+}
+
 .exercise-card {
   border-radius: $border-radius;
   background-color: white;
