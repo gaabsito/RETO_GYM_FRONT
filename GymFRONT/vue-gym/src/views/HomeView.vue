@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useWorkoutStore } from '@/stores/workouts'
 import type { Workout } from '@/types/Workout'
 import heroImage from '@/assets/images/arnold.jpg'
+import SvgInter from '@/components/SvgInter.vue';
 
 const workoutStore = useWorkoutStore()
 const featuredWorkouts = ref<Workout[]>([])
@@ -166,11 +167,23 @@ onMounted(async () => {
         </v-col>
       </v-row>
     </v-container>
+
+    <div class="feature-container">
+ <SvgInter icon="weight" title="ENTRENAMIENTOS PERSONALIZADOS" text="Rutinas adaptadas a tu nivel y objetivos, diseñadas por expertos en fitness." />
+    <SvgInter icon="users" title="COMUNIDAD ACTIVA" text="Únete a una comunidad de entusiastas del fitness y comparte tus experiencias." />
+    <SvgInter icon="chart" title="SEGUIMIENTO DE PROGRESO" text="Monitorea tu evolución y mantén un registro detallado de tus logros." />
+  </div>
   </v-container>
 </template>
 
 <style lang="scss">
 @import '@/assets/styles/main.scss';
+.feature-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+}
 
 .cta-section {
   border-radius: $border-radius;
@@ -275,6 +288,13 @@ color: $primary-color;
 
   .v-card {
     margin-bottom: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .feature-container {
+    flex-direction: column;
+    align-items: center;
   }
 }
 
