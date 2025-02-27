@@ -47,9 +47,9 @@ const rules = {
 
 const handleSubmit = async () => {
   if (!formRef.value) return
-  
+
   const { valid } = await formRef.value.validate()
-  
+
   if (!valid) return
 
   try {
@@ -94,72 +94,35 @@ const handleSubmit = async () => {
             <v-form ref="formRef" @submit.prevent="handleSubmit">
               <v-row>
                 <v-col class="nombre-col" cols="12" sm="6">
-                  <v-text-field
-                    v-model="form.nombre"
-                    :rules="rules.nombre"
-                    label="Nombre"
-                    prepend-inner-icon="mdi-account"
-                    variant="outlined"
-                    required
-                  ></v-text-field>
+                  <v-text-field v-model="form.nombre" :rules="rules.nombre" label="Nombre"
+                    prepend-inner-icon="mdi-account" variant="outlined" required></v-text-field>
                 </v-col>
 
                 <v-col class="apellido-col" cols="12" sm="6">
-                  <v-text-field
-                    v-model="form.apellido"
-                    :rules="rules.apellido"
-                    label="Apellido"
-                    prepend-inner-icon="mdi-account"
-                    variant="outlined"
-                    required
-                  ></v-text-field>
+                  <v-text-field v-model="form.apellido" :rules="rules.apellido" label="Apellido"
+                    prepend-inner-icon="mdi-account" variant="outlined" required></v-text-field>
                 </v-col>
               </v-row>
 
-              <v-text-field
-                v-model="form.email"
-                :rules="rules.email"
-                label="Email"
-                prepend-inner-icon="mdi-email"
-                type="email"
-                variant="outlined"
-                required
-              ></v-text-field>
+              <v-text-field v-model="form.email" :rules="rules.email" label="Email" prepend-inner-icon="mdi-email"
+                type="email" variant="outlined" required></v-text-field>
 
-              <v-text-field
-                v-model="form.password"
-                :rules="rules.password"
-                :type="showPassword ? 'text' : 'password'"
-                label="Contraseña"
-                prepend-inner-icon="mdi-lock"
-                variant="outlined"
-                required
+              <v-text-field v-model="form.password" :rules="rules.password" :type="showPassword ? 'text' : 'password'"
+                label="Contraseña" prepend-inner-icon="mdi-lock" variant="outlined" required
                 :append-inner-icon="showPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                @click:append-inner="showPassword = !showPassword"
-              ></v-text-field>
+                @click:append-inner="showPassword = !showPassword"></v-text-field>
 
-              <v-text-field
-                v-model="form.confirmPassword"
-                :rules="rules.confirmPassword"
-                :type="showConfirmPassword ? 'text' : 'password'"
-                label="Confirmar Contraseña"
-                prepend-inner-icon="mdi-lock-check"
-                variant="outlined"
-                required
+              <v-text-field v-model="form.confirmPassword" :rules="rules.confirmPassword"
+                :type="showConfirmPassword ? 'text' : 'password'" label="Confirmar Contraseña"
+                prepend-inner-icon="mdi-lock-check" variant="outlined" required
                 :append-inner-icon="showConfirmPassword ? 'mdi-eye-off' : 'mdi-eye'"
-                @click:append-inner="showConfirmPassword = !showConfirmPassword"
-              ></v-text-field>
+                @click:append-inner="showConfirmPassword = !showConfirmPassword"></v-text-field>
 
-              <v-btn
-                type="submit"
-                color="primary"
-                size="large"
-                block
-                :loading="loading"
-                class="mt-4"
-              >
-                Registrarse
-              </v-btn>
+              <div class="btn-wrapper">
+                <v-btn type="submit" color="primary" size="large" block :loading="loading" class="mt-4">
+                  Registrarse
+                </v-btn>
+              </div>
             </v-form>
           </v-card-text>
 
@@ -197,21 +160,28 @@ const handleSubmit = async () => {
   }
 }
 
+.btn-wrapper {
+  padding: 12px;
+}
+
+.mb-0 {
+  padding: 12px !important;
+}
+
 .v-text-field {
-    padding-top: 2.5% !important;
-    padding-bottom: 2.5% !important;
+  padding: 12px;
 }
 
 .nombre-col {
-    @media (min-width: 600px) {
-        padding-right: 2.5% !important;
-    }
+  @media (min-width: 600px) {
+    padding-right: 2.5% !important;
+  }
 }
 
 .apellido-col {
-    @media (min-width: 600px) {
-        padding-left: 2.5% !important;
-    }
+  @media (min-width: 600px) {
+    padding-left: 2.5% !important;
+  }
 }
 
 :deep(.v-field) {
@@ -225,7 +195,7 @@ const handleSubmit = async () => {
 
 a {
   color: $primary-color;
-  
+
   &:hover {
     color: darken($primary-color, 10%);
   }

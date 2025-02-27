@@ -46,7 +46,7 @@ const rules = {
 
 const handleSubmit = async () => {
   if (!formRef.value) return
-  
+
   const { valid } = await formRef.value.validate()
   if (!valid) return
 
@@ -69,7 +69,7 @@ const handleSubmit = async () => {
 
     // Llamar al API para actualizar
     await authStore.updateProfile(updateData)
-    
+
     success.value = 'Perfil actualizado correctamente'
     if (showChangePassword.value) {
       form.value.currentPassword = ''
@@ -104,87 +104,41 @@ const handleSubmit = async () => {
             </v-alert>
 
             <v-form ref="formRef" @submit.prevent="handleSubmit">
-              <v-text-field
-                v-model="form.nombre"
-                :rules="[rules.required]"
-                label="Nombre"
-                prepend-inner-icon="mdi-account"
-                variant="outlined"
-                required
-              ></v-text-field>
+              <v-text-field v-model="form.nombre" :rules="[rules.required]" label="Nombre"
+                prepend-inner-icon="mdi-account" variant="outlined" required></v-text-field>
 
-              <v-text-field
-                v-model="form.apellido"
-                :rules="[rules.required]"
-                label="Apellido"
-                prepend-inner-icon="mdi-account"
-                variant="outlined"
-                required
-              ></v-text-field>
+              <v-text-field v-model="form.apellido" :rules="[rules.required]" label="Apellido"
+                prepend-inner-icon="mdi-account" variant="outlined" required></v-text-field>
 
-              <v-text-field
-                v-model="form.email"
-                :rules="[rules.required, rules.email]"
-                label="Email"
-                prepend-inner-icon="mdi-email"
-                type="email"
-                variant="outlined"
-                required
-              ></v-text-field>
+              <v-text-field v-model="form.email" :rules="[rules.required, rules.email]" label="Email"
+                prepend-inner-icon="mdi-email" type="email" variant="outlined" required></v-text-field>
 
               <v-divider class="my-4"></v-divider>
 
-              <div class="d-flex align-center mb-4">
-                <v-checkbox
-                  v-model="showChangePassword"
-                  label="Cambiar contraseña"
-                  color="primary"
-                  hide-details
-                ></v-checkbox>
+              <div class="d-flex align-center">
+                <v-checkbox v-model="showChangePassword" label="Cambiar contraseña" color="primary"
+                  hide-details></v-checkbox>
               </div>
 
               <template v-if="showChangePassword">
-                <v-text-field
-                  v-model="form.currentPassword"
-                  :rules="[rules.required, rules.password]"
-                  label="Contraseña actual"
-                  prepend-inner-icon="mdi-lock"
-                  type="password"
-                  variant="outlined"
-                  required
-                ></v-text-field>
+                <v-text-field v-model="form.currentPassword" :rules="[rules.required, rules.password]"
+                  label="Contraseña actual" prepend-inner-icon="mdi-lock" type="password" variant="outlined"
+                  required></v-text-field>
 
-                <v-text-field
-                  v-model="form.newPassword"
-                  :rules="[rules.required, rules.password]"
-                  label="Nueva contraseña"
-                  prepend-inner-icon="mdi-lock"
-                  type="password"
-                  variant="outlined"
-                  required
-                ></v-text-field>
+                <v-text-field v-model="form.newPassword" :rules="[rules.required, rules.password]"
+                  label="Nueva contraseña" prepend-inner-icon="mdi-lock" type="password" variant="outlined"
+                  required></v-text-field>
 
-                <v-text-field
-                  v-model="form.confirmPassword"
-                  :rules="[rules.required, rules.passwordMatch]"
-                  label="Confirmar nueva contraseña"
-                  prepend-inner-icon="mdi-lock"
-                  type="password"
-                  variant="outlined"
-                  required
-                ></v-text-field>
+                <v-text-field v-model="form.confirmPassword" :rules="[rules.required, rules.passwordMatch]"
+                  label="Confirmar nueva contraseña" prepend-inner-icon="mdi-lock" type="password" variant="outlined"
+                  required></v-text-field>
               </template>
 
-              <v-btn
-                type="submit"
-                color="primary"
-                size="large"
-                block
-                :loading="loading"
-                class="mt-4"
-              >
-                Guardar Cambios
-              </v-btn>
+              <div class="btn-wrapper">
+                <v-btn type="submit" color="primary" size="large" block :loading="loading">
+                  Guardar Cambios
+                </v-btn>
+              </div>
             </v-form>
           </v-card-text>
         </v-card>
@@ -215,9 +169,17 @@ const handleSubmit = async () => {
   border-radius: $border-radius !important;
 }
 
+.btn-wrapper {
+  padding: 12px;
+}
+
+.v-input {
+  padding: 12px !important;
+}
+
 .v-text-field {
-    padding-top: 2.5% !important;
-    padding-bottom: 2.5% !important;
+  padding-top: 4% !important;
+  padding-bottom: 4% !important;
 }
 
 .v-btn {
