@@ -75,13 +75,14 @@ const rotateIcon = () => {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 20px;
+  padding: 24px; /* Igual que los v-card */
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   background-color: white;
   transition: transform 0.3s ease;
   flex: 1;
-  max-width: 300px;
+  max-width: 650px; /* Aumenta el ancho para que sea similar */
+  min-height: 200px; /* Ajusta la altura */
 }
 
 .svg-inter-card:hover {
@@ -90,10 +91,13 @@ const rotateIcon = () => {
 
 .svg-inter-icon {
   cursor: pointer;
-  margin-bottom: 10px;
+  margin-bottom: 16px; /* Aumenta el margen inferior */
+  width: 64px; /* Ajusta el tamaño del ícono */
+  height: 64px;
   display: flex;
   justify-content: center;
 }
+
 
 .svg-inter-title {
   font-size: 1.2rem;

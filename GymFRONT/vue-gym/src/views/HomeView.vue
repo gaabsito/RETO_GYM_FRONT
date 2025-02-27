@@ -167,12 +167,6 @@ onMounted(async () => {
         </v-col>
       </v-row>
     </v-container>
-
-    <div class="feature-container">
- <SvgInter icon="weight" title="ENTRENAMIENTOS PERSONALIZADOS" text="Rutinas adaptadas a tu nivel y objetivos, diseñadas por expertos en fitness." />
-    <SvgInter icon="users" title="COMUNIDAD ACTIVA" text="Únete a una comunidad de entusiastas del fitness y comparte tus experiencias." />
-    <SvgInter icon="chart" title="SEGUIMIENTO DE PROGRESO" text="Monitorea tu evolución y mantén un registro detallado de tus logros." />
-  </div>
   </v-container>
 </template>
 
