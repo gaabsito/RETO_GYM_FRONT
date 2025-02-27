@@ -343,7 +343,7 @@ const handleSubmit = async () => {
 
         <!-- Detalles de ejercicios seleccionados -->
         <v-card v-if="selectedExercises.length > 0" class="mb-6 workout-card">
-          <v-card-title class="workout-title">
+          <v-card-title class="workout-title-custom">
             Configurar ejercicios
           </v-card-title>
           <v-card-text>
@@ -476,9 +476,18 @@ const handleSubmit = async () => {
   font-weight: 500;
 }
 
+.workout-title-custom {
+  background-color: $primary-color;
+  color: white;
+  font-family: $font-family-base;
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 0px !important;
+}
+
 .v-card-title {
   padding: 12px !important;
-  margin-bottom: 1rem !important;
+  margin-bottom: 1rem;
 }
 
 .v-input {
