@@ -7,7 +7,7 @@ import SectionContainer from '@/components/SectionContainer.vue'
 import HoverCard from '@/components/HoverCard.vue'
 import WorkoutCard from '@/components/WorkoutCard.vue'
 import CallToAction from '@/components/CallToAction.vue'
-
+import SvgInter from '@/components/SvgInter.vue'
 import heroImage from '@/assets/images/arnold.jpg'
 
 
@@ -16,24 +16,6 @@ const featuredWorkouts = ref<Workout[]>([])
 const loading = ref(true)
 
 // Datos de las características
-const features = [
-  {
-    title: 'Entrenamientos Personalizados',
-    description: 'Rutinas adaptadas a tu nivel y objetivos, diseñadas por expertos en fitness.',
-    icon: 'mdi-dumbbell'
-  },
-  {
-    title: 'Comunidad Activa',
-    description: 'Únete a una comunidad de entusiastas del fitness y comparte tus experiencias.',
-    icon: 'mdi-account-group'
-  },
-  {
-    title: 'Seguimiento de Progreso',
-    description: 'Monitorea tu evolución y mantén un registro detallado de tus logros.',
-    icon: 'mdi-chart-line'
-  }
-]
-
 onMounted(async () => {
   try {
     const workouts = await workoutStore.fetchWorkouts()
@@ -61,17 +43,14 @@ onMounted(async () => {
     </PageHeader>
 
     <!-- Features Section -->
-    <SectionContainer>
-      <v-row>
-        <v-col v-for="(feature, index) in features" :key="index" cols="12" md="4">
-          <HoverCard 
-            :title="feature.title" 
-            :description="feature.description" 
-            :icon="feature.icon"
-          />
-        </v-col>
-      </v-row>
-    </SectionContainer>
+    <div class="feature-container">
+      <SvgInter icon="weight" title="ENTRENAMIENTOS PERSONALIZADOS"
+        text="Rutinas adaptadas a tu nivel y objetivos, diseñadas por expertos en fitness." />
+      <SvgInter icon="users" title="COMUNIDAD ACTIVA"
+        text="Únete a una comunidad de entusiastas del fitness y comparte tus experiencias." />
+      <SvgInter icon="chart" title="SEGUIMIENTO DE PROGRESO"
+        text="Monitorea tu evolución y mantén un registro detallado de tus logros." />
+    </div>
 
     <!-- Featured Workouts -->
     <SectionContainer title="Entrenamientos Destacados" backgroundColor="#f8f8f8">
@@ -115,6 +94,13 @@ h2 {
 @media (max-width: 600px) {
   .v-container {
     padding: 0.5rem !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .feature-container {
+    flex-direction: column;
+    align-items: center;
   }
 }
 </style>
