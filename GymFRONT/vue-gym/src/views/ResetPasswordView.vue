@@ -154,9 +154,12 @@ const handleSubmit = async () => {
   border-radius: $border-radius !important;
 }
 
-.v-text-field {
-    padding-top: 2.5% !important;
-    padding-bottom: 2.5% !important;
+.v-card-title {
+  margin-bottom: 1rem !important;
+}
+
+.v-card-text {
+  padding: 12px !important;
 }
 
 .v-btn {
