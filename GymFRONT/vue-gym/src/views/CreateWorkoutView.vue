@@ -434,9 +434,10 @@ const handleSubmit = async () => {
         </v-card>
 
         <!-- Botones de acción -->
-        <div class="d-flex justify-space-between mt-6">
+        <div class="d-flex justify-space-between align-center mt-6">
           <v-btn
-            color="secondary"
+            color="red"
+            size="large"
             variant="outlined"
             :to="'/entrenamientos'"
             :disabled="loading"
@@ -495,6 +496,8 @@ const handleSubmit = async () => {
 .v-btn {
   padding-right: 12px !important;
   padding-left: 12px !important;
+  font-family: $font-family-base;
+  border-radius: $border-radius;
 }
 
 :deep(.v-field) {
@@ -508,11 +511,6 @@ const handleSubmit = async () => {
 
 :deep(.v-expansion-panel-title) {
   padding: 16px;
-}
-
-.v-btn {
-  font-family: $font-family-base;
-  border-radius: $border-radius;
 }
 
 // Responsive adjustments
