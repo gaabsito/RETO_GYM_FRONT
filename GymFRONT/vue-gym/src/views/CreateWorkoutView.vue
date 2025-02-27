@@ -37,7 +37,7 @@ const exerciseDetails = ref<{[key: number]: {
   repeticiones: number, 
   descansoSegundos: number, 
   notas: string
-}}>({}); 
+}}>({});  // Inicializar como un objeto vacío
 
 // Reglas de validación
 const rules = {
@@ -109,12 +109,44 @@ const addExercise = (ejercicioID: number) => {
 // Eliminar ejercicio de la lista
 const removeExercise = (ejercicioID: number) => {
   selectedExercises.value = selectedExercises.value.filter(id => id !== ejercicioID)
-  delete exerciseDetails.value[ejercicioID]
+  if (exerciseDetails.value && ejercicioID in exerciseDetails.value) {
+    delete exerciseDetails.value[ejercicioID]
+  }
 }
 
 // Obtener el ejercicio por ID
 const getExerciseById = (id: number): Exercise | undefined => {
   return exercises.value.find(exercise => exercise.ejercicioID === id)
+}
+
+// Manejar cambios en la selección de ejercicios
+const handleExercisesChange = (value: number[]) => {
+  // Asegurarse de que exerciseDetails.value existe
+  if (!exerciseDetails.value) {
+    exerciseDetails.value = {}
+  }
+  
+  // Mantener solo los ejercicios que estén en la selección actual
+  if (exerciseDetails.value) {
+    Object.keys(exerciseDetails.value).forEach(key => {
+      const numericKey = parseInt(key)
+      if (!value.includes(numericKey)) {
+        delete exerciseDetails.value[numericKey]
+      }
+    })
+  }
+  
+  // Añadir nuevos ejercicios al detalle
+  value.forEach(ejercicioID => {
+    if (!exerciseDetails.value[ejercicioID]) {
+      exerciseDetails.value[ejercicioID] = {
+        series: 3,
+        repeticiones: 12,
+        descansoSegundos: 60,
+        notas: ''
+      }
+    }
+  })
 }
 
 // Enviar el formulario
@@ -268,26 +300,7 @@ const handleSubmit = async () => {
               multiple
               chips
               closable-chips
-              @update:model-value="(value) => {
-                // Mantener solo los ejercicios que estén en la selección actual
-                Object.keys(exerciseDetails.value).forEach(key => {
-                  if (!value.includes(parseInt(key))) {
-                    delete exerciseDetails.value[parseInt(key)];
-                  }
-                });
-                
-                // Añadir nuevos ejercicios al detalle
-                value.forEach(ejercicioID => {
-                  if (!exerciseDetails.value[ejercicioID]) {
-                    exerciseDetails.value[ejercicioID] = {
-                      series: 3,
-                      repeticiones: 12,
-                      descansoSegundos: 60,
-                      notas: ''
-                    };
-                  }
-                });
-              }"
+              @update:model-value="handleExercisesChange"
             >
               <template v-slot:selection="{ item }">
                 <v-chip>
