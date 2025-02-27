@@ -9,7 +9,7 @@ defineProps<{
 <template>
   <v-container class="section-container" :style="{ backgroundColor }">
     <div v-if="title || subtitle" class="text-center section-header">
-      <h2 v-if="title" class="text">{{ title }}</h2>
+      <h1 v-if="title" class="text">{{ title }}</h1>
       <p v-if="subtitle" class="text-body-1 mx-auto section-subtitle">{{ subtitle }}</p>
     </div>
     <slot></slot>
@@ -36,7 +36,7 @@ defineProps<{
   line-height: 1.6;
 }
 
-h2 {
+h1 {
   font-family: $font-family-base;
 }
 

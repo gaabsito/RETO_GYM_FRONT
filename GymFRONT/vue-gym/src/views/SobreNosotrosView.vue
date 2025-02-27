@@ -64,7 +64,7 @@ const values = ref([
     <SectionContainer>
       <v-row justify="center" align="center">
         <v-col cols="12" md="8" class="text-center">
-          <h2 class="text-h4 mb-6">Nuestra Misión</h2>
+          <h1 class="text-h4 mb-6">Nuestra Misión</h1>
           <p class="text-parrafo">
             En ENTRÉNATE, nos dedicamos a proporcionar soluciones fitness personalizadas y efectivas que ayuden a nuestros usuarios a alcanzar sus objetivos de salud y bienestar. Creemos en el poder transformador del ejercicio y el compromiso con un estilo de vida saludable.
           </p>
@@ -114,6 +114,10 @@ const values = ref([
 
 .v-col-md-4 {
   padding: 12px !important;
+}
+
+h1 {
+  font-weight: bold !important;
 }
 
 .text-parrafo {
