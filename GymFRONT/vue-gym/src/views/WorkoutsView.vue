@@ -76,6 +76,7 @@ const clearFilters = () => {
             size="large"
             to="/crear-entrenamiento"
             prepend-icon="mdi-plus"
+            class="boton-crear"
           >
             Crear Entrenamiento
           </v-btn>
@@ -338,6 +339,10 @@ const clearFilters = () => {
   margin-bottom: 1rem;
 }
 
+.boton-crear {
+  margin: 2rem !important;
+}
+
 .text-body-1 {
   max-width: 600px;
   margin: 0 auto;
@@ -349,7 +354,7 @@ const clearFilters = () => {
 .mb-8 {
   border-radius: $border-radius;
   padding: 1.5rem;
-  margin: 1rem 0 2rem !important;
+  margin: 1rem 0 1rem !important;
 }
 
 // Mejoras en los alerts
