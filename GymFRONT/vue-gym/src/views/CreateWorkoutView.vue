@@ -477,20 +477,21 @@ const handleSubmit = async () => {
 }
 
 .v-card-title {
-    padding: 12px !important;
+  padding: 12px !important;
+  margin-bottom: 1rem !important;
 }
 
 .v-input {
-    padding: 12px !important;
+  padding: 12px !important;
 }
 
 .section-container {
-    padding: 0px !important;
-    margin-top: 2.5rem !important;
+  padding: 0px !important;
+  margin-top: 2.5rem !important;
 }
 
 .v-expansion-panel {
-    margin-bottom: 0px !important;
+  margin-bottom: 0px !important;
 }
 
 .v-btn {
