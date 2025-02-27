@@ -10,6 +10,7 @@ import CallToAction from '@/components/CallToAction.vue'
 
 import heroImage from '@/assets/images/arnold.jpg'
 
+
 const workoutStore = useWorkoutStore()
 const featuredWorkouts = ref<Workout[]>([])
 const loading = ref(true)
@@ -99,6 +100,12 @@ onMounted(async () => {
 
 <style lang="scss">
 @import '@/assets/styles/main.scss';
+.feature-container {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px;
+}
 
 h2 {
   padding: 1rem !important;
