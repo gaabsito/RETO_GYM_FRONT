@@ -113,7 +113,7 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="fitness-carousel-container">
-    <h2 class="carousel-title">DESTACADOS</h2>
+    <h2 class="carousel-title"></h2>
     
     <div v-if="workouts.length" class="fitness-carousel">
       <!-- Main carousel display with true infinite loop -->
