@@ -4,6 +4,7 @@ import { useExerciseStore } from '@/stores/exercises'
 import { storeToRefs } from 'pinia'
 import ExerciseCard from '@/components/ExerciseCard.vue'
 import PageHeader from '@/components/PageHeader.vue'
+import heroImage from '@/assets/images/ejercicios.jpg'
 
 const exerciseStore = useExerciseStore()
 const { exercises, loading, error } = storeToRefs(exerciseStore)
@@ -67,6 +68,7 @@ const clearFilters = () => {
     <PageHeader 
       title="Catálogo de Ejercicios"
       subtitle="Explora nuestra colección completa de ejercicios para todos los niveles"
+      :backgroundImage="heroImage"
     />
 
     <!-- Filtros -->

@@ -23,7 +23,7 @@ defineProps<{
 
 .page-header {
   position: relative;
-  height: 400px;
+  height: 600px;
   border-radius: $border-radius;
   margin-top: 2rem;
   margin-bottom: 2rem;

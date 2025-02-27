@@ -100,6 +100,10 @@ onMounted(async () => {
 <style lang="scss">
 @import '@/assets/styles/main.scss';
 
+h2 {
+  padding: 1rem !important;
+}
+
 // Responsive adjustments
 @media (max-width: 600px) {
   .v-container {
