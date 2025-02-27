@@ -8,6 +8,7 @@ import HoverCard from '@/components/HoverCard.vue'
 import WorkoutCard from '@/components/WorkoutCard.vue'
 import CallToAction from '@/components/CallToAction.vue'
 import SvgInter from '@/components/SvgInter.vue'
+import Carrusel from '@/components/Carrusel.vue'
 import heroImage from '@/assets/images/arnold.jpg'
 
 
@@ -52,20 +53,24 @@ onMounted(async () => {
         text="Monitorea tu evolución y mantén un registro detallado de tus logros." />
     </div>
 
-    <!-- Featured Workouts -->
-    <SectionContainer title="Entrenamientos Destacados" backgroundColor="#f8f8f8">
-      <v-row v-if="!loading" justify="center">
-        <v-col v-for="workout in featuredWorkouts" :key="workout.entrenamientoID" cols="12" sm="6" md="4" lg="3">
-          <WorkoutCard :workout="workout" />
-        </v-col>
-      </v-row>
+   <!-- Featured Workouts -->
+<SectionContainer title="Entrenamientos Destacados" backgroundColor="#f8f8f8">
+  <template v-if="!loading">
+    <Carrusel v-if="$vuetify.display.xs" :workouts="featuredWorkouts" />
+    <v-row v-else justify="center">
+      <v-col v-for="workout in featuredWorkouts" :key="workout.entrenamientoID" cols="12" sm="6" md="4" lg="3">
+        <WorkoutCard :workout="workout" />
+      </v-col>
+    </v-row>
+  </template>
 
-      <v-row v-else>
-        <v-col cols="12" class="text-center">
-          <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
-        </v-col>
-      </v-row>
-    </SectionContainer>
+  <v-row v-else>
+    <v-col cols="12" class="text-center">
+      <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+    </v-col>
+  </v-row>
+</SectionContainer>
+
 
     <!-- CTA Section -->
     <CallToAction
