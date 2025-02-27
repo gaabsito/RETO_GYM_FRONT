@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useWorkoutStore } from '@/stores/workouts'
+import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
 
 const workoutStore = useWorkoutStore()
+const authStore = useAuthStore()
 const { workouts, loading, error } = storeToRefs(workoutStore)
 const initialized = ref(false)
 
@@ -59,11 +61,25 @@ const clearFilters = () => {
   <v-container fluid>
     <!-- Hero Section -->
     <v-row class="mb-8">
-      <v-col cols="12" class="text-center">
-        <h1 class="text-h3 mb-4">Entrenamientos</h1>
-        <p class="text-body-1">
-          Explora nuestra colección de entrenamientos para todos los niveles
-        </p>
+      <v-col cols="12" class="d-flex flex-column flex-md-row justify-space-between align-center">
+        <div class="text-center text-md-left">
+          <h1 class="text-h3 mb-4">Entrenamientos</h1>
+          <p class="text-body-1">
+            Explora nuestra colección de entrenamientos para todos los niveles
+          </p>
+        </div>
+        
+        <!-- Botón para crear nuevo entrenamiento (solo para usuarios autenticados) -->
+        <div v-if="authStore.isAuthenticated" class="mt-4 mt-md-0">
+          <v-btn
+            color="primary"
+            size="large"
+            to="/crear-entrenamiento"
+            prepend-icon="mdi-plus"
+          >
+            Crear Entrenamiento
+          </v-btn>
+        </div>
       </v-col>
     </v-row>
 
