@@ -483,6 +483,11 @@ const handleSubmit = async () => {
     padding: 12px !important;
 }
 
+.section-container {
+    padding: 0px !important;
+    margin-top: 2.5rem !important;
+}
+
 .v-expansion-panel {
     margin-bottom: 0px !important;
 }
