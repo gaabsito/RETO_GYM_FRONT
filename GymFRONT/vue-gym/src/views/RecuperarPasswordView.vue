@@ -105,6 +105,14 @@ const handleSubmit = async () => {
   align-items: center;
 }
 
+.v-card-title {
+  margin-bottom: 1rem !important;
+}
+
+.v-card-text {
+  padding: 12px !important;
+}
+
 .recuperar-password-card {
   border-radius: $border-radius;
 

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useWorkoutStore } from '@/stores/workouts'
+import { useAuthStore } from '@/stores/auth'
 import { storeToRefs } from 'pinia'
 
 const workoutStore = useWorkoutStore()
+const authStore = useAuthStore()
 const { workouts, loading, error } = storeToRefs(workoutStore)
 const initialized = ref(false)
 
@@ -59,11 +61,26 @@ const clearFilters = () => {
   <v-container fluid>
     <!-- Hero Section -->
     <v-row class="mb-8">
-      <v-col cols="12" class="text-center">
-        <h1 class="text-h3 mb-4">Entrenamientos</h1>
-        <p class="text-body-1">
-          Explora nuestra colección de entrenamientos para todos los niveles
-        </p>
+      <v-col cols="12" class="d-flex flex-column flex-md-row justify-space-between align-center">
+        <div class="text-center text-md-left">
+          <h1 class="text-h3 mb-4">Entrenamientos</h1>
+          <p class="text-body-1">
+            Explora nuestra colección de entrenamientos para todos los niveles
+          </p>
+        </div>
+        
+        <!-- Botón para crear nuevo entrenamiento (solo para usuarios autenticados) -->
+        <div v-if="authStore.isAuthenticated" class="mt-4 mt-md-0">
+          <v-btn
+            color="primary"
+            size="large"
+            to="/crear-entrenamiento"
+            prepend-icon="mdi-plus"
+            class="boton-crear"
+          >
+            Crear Entrenamiento
+          </v-btn>
+        </div>
       </v-col>
     </v-row>
 
@@ -241,9 +258,19 @@ const clearFilters = () => {
     padding: 12px !important;
 }
 
+.v-btn {
+  padding-right: 12px !important;
+  padding-left: 12px !important;
+}
+
 .v-container {
   padding-top: 2rem !important;
   padding-bottom: 2rem !important;
+}
+
+.v-card-title {
+  background-color: $primary-color;
+  padding: 12px !important;
 }
 
 .workout-card {
@@ -312,6 +339,10 @@ const clearFilters = () => {
   margin-bottom: 1rem;
 }
 
+.boton-crear {
+  margin: 2rem !important;
+}
+
 .text-body-1 {
   max-width: 600px;
   margin: 0 auto;
@@ -323,7 +354,7 @@ const clearFilters = () => {
 .mb-8 {
   border-radius: $border-radius;
   padding: 1.5rem;
-  margin: 1rem 0 2rem !important;
+  margin: 1rem 0 1rem !important;
 }
 
 // Mejoras en los alerts

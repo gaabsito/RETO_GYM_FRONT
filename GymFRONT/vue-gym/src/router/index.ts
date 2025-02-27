@@ -11,6 +11,7 @@ import ExercisesView from '@/views/ExercisesView.vue'
 import ExerciseView from '@/views/ExerciseView.vue'
 import WorkoutsView from '@/views/WorkoutsView.vue'
 import WorkoutsInfoView from '@/views/WorkoutsInfoView.vue'
+import CreateWorkoutView from '@/views/CreateWorkoutView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -70,6 +71,12 @@ const router = createRouter({
       path: '/entrenamientos/:id',
       name: 'workouts-info',
       component: WorkoutsInfoView,
+    },
+    {
+      path: '/crear-entrenamiento',
+      name: 'create-workout',
+      component: CreateWorkoutView,
+      meta: { requiresAuth: true },
     }
   ],
 })

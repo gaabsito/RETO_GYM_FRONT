@@ -176,6 +176,10 @@ const handleSubmit = async () => {
   padding: 12px !important;
 }
 
+.v-card-title {
+  margin-bottom: 1rem !important;
+}
+
 .v-input {
   padding: 12px !important;
 }
