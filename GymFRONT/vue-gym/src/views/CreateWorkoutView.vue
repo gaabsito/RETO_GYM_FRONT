@@ -462,6 +462,19 @@ const handleSubmit = async () => {
   font-weight: 500;
 }
 
+.v-card-title {
+    padding: 12px !important;
+}
+
+.v-input {
+    padding: 12px !important;
+}
+
+.v-btn {
+  padding-right: 12px !important;
+  padding-left: 12px !important;
+}
+
 :deep(.v-field) {
   border-radius: $border-radius !important;
 }

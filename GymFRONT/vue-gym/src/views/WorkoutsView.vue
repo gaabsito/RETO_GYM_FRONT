@@ -257,9 +257,19 @@ const clearFilters = () => {
     padding: 12px !important;
 }
 
+.v-btn {
+  padding-right: 12px !important;
+  padding-left: 12px !important;
+}
+
 .v-container {
   padding-top: 2rem !important;
   padding-bottom: 2rem !important;
+}
+
+.v-card-title {
+  background-color: $primary-color;
+  padding: 12px !important;
 }
 
 .workout-card {
