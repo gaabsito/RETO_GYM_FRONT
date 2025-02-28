@@ -21,6 +21,15 @@ export interface WorkoutExercise {
     notas?: string;
 }
 
+export interface EntrenamientoEjercicio {
+    entrenamientoID: number;
+    ejercicioID: number;
+    series: number;
+    repeticiones: number;
+    descansoSegundos: number;
+    notas?: string;
+}
+
 export interface CreateWorkoutDTO {
     titulo: string;
     descripcion?: string;
