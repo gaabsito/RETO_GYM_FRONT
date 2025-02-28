@@ -186,9 +186,9 @@ const handleSubmit = async () => {
     await workoutStore.createWorkout(workoutDTO)
     success.value = true
     
-    // Redirigir después de unos segundos
+    // Redirigir a "Mis Entrenamientos" después de unos segundos
     setTimeout(() => {
-      router.push('/entrenamientos')
+      router.push('/mis-entrenamientos')
     }, 2000)
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Error al crear el entrenamiento'

@@ -251,7 +251,12 @@ const clearFilters = () => {
 }
 
 .section-container {
-    padding: 0px !important;
+    padding-right: 0px !important;
+    padding-left: 0px !important;
+}
+
+.section-header {
+    margin: 2.5rem !important;
 }
 
 .v-btn {
@@ -277,10 +282,6 @@ const clearFilters = () => {
 
 // Responsive adjustments
 @media (max-width: 600px) {
-  .v-container {
-    padding: 0.5rem !important;
-  }
-  
   .filters-container {
     padding: 1rem !important;
   }

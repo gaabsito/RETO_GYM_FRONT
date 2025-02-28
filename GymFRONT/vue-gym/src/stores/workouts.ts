@@ -79,6 +79,12 @@ export const useWorkoutStore = defineStore('workouts', () => {
         try {
             const authStore = useAuthStore()
             if (!authStore.token) throw new Error('No autorizado')
+            
+            // Asegurarnos de incluir el autorID si existe un usuario autenticado
+            const workoutWithAutor = {
+                ...workout,
+                autorID: authStore.user?.usuarioID
+            } as CreateWorkoutDTO;
 
             const response = await fetch(`${API_URL}/entrenamiento`, {
                 method: 'POST',
@@ -86,7 +92,7 @@ export const useWorkoutStore = defineStore('workouts', () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${authStore.token}`
                 },
-                body: JSON.stringify(workout)
+                body: JSON.stringify(workoutWithAutor)
             })
 
             const data: ApiResponse<Workout> = await response.json()

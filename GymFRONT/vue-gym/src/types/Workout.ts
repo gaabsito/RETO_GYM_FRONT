@@ -28,6 +28,7 @@ export interface CreateWorkoutDTO {
     dificultad: 'Fácil' | 'Media' | 'Difícil';
     imagenURL?: string;
     publico: boolean;
+    autorID?: number;
     ejercicios: Array<{
         ejercicioID: number;
         series: number;
