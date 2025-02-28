@@ -126,24 +126,44 @@ export const useWorkoutStore = defineStore('workouts', () => {
                 headers['Authorization'] = `Bearer ${authStore.token}`;
             }
     
+            console.log(`🟡 Solicitando ejercicios para el entrenamiento ID: ${workoutId}`);
+    
             const response = await fetch(`${API_URL}/EntrenamientoEjercicio/${workoutId}`, { headers });
     
             if (!response.ok) {
-                throw new Error(`Error al cargar ejercicios. Código: ${response.status}`);
+                throw new Error(`❌ Error al cargar ejercicios. Código: ${response.status}`);
             }
     
-            const data: ApiResponse<EntrenamientoEjercicio[]> = await response.json();
-            console.log("Respuesta de la API:", data);
+            const text = await response.text();
+            if (!text) {
+                console.warn("⚠️ La API devolvió una respuesta vacía.");
+                return [];
+            }
     
-            return data.data || [];
+            const data: ApiResponse<EntrenamientoEjercicio[]> = JSON.parse(text);
+            console.log("🟢 Respuesta de la API:", data);
+    
+            const exercises = data.data ?? data; // Si data.data no existe, usa data directamente
+console.log("🟢 Ejercicios procesados:", exercises);
+
+if (!exercises || exercises.length === 0) {
+    console.warn("⚠️ No se encontraron ejercicios para este entrenamiento.");
+    return [];
+}
+
+return exercises;
+
+    
+            return data.data;
         } catch (e) {
-            console.error("Error en getWorkoutExercises:", e);
+            console.error("🔴 Error en getWorkoutExercises:", e);
             error.value = e instanceof Error ? e.message : 'Error desconocido';
             throw e;
         } finally {
             loading.value = false;
         }
     }
+    
     
 
     return {
