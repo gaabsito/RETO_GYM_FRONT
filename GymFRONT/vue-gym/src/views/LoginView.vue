@@ -211,6 +211,10 @@ const handleSubmit = async () => {
   padding: 12px;
 }
 
+.v-alert {
+  margin: 12px !important;
+}
+
 .v-btn {
   font-family: $font-family-base;
   border-radius: $border-radius;

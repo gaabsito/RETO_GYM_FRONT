@@ -168,6 +168,10 @@ const handleSubmit = async () => {
   margin-bottom: 1rem !important;
 }
 
+.v-alert {
+  margin: 12px !important;
+}
+
 .mb-0 {
   padding: 12px !important;
 }

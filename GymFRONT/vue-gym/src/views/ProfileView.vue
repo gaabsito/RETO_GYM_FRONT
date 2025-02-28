@@ -169,6 +169,10 @@ const handleSubmit = async () => {
   border-radius: $border-radius !important;
 }
 
+.v-alert {
+  margin: 12px !important;
+}
+
 .btn-wrapper {
   padding: 12px;
 }

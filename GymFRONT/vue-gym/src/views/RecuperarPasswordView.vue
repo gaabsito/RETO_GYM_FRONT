@@ -109,6 +109,10 @@ const handleSubmit = async () => {
   margin-bottom: 1rem !important;
 }
 
+.v-alert {
+  margin: 12px !important;
+}
+
 .v-card-text {
   padding: 12px !important;
 }
