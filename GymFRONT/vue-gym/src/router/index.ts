@@ -12,6 +12,7 @@ import ExerciseView from '@/views/ExerciseView.vue'
 import WorkoutsView from '@/views/WorkoutsView.vue'
 import WorkoutsInfoView from '@/views/WorkoutsInfoView.vue'
 import CreateWorkoutView from '@/views/CreateWorkoutView.vue'
+import MisEntrenamientosView from '@/views/MisEntrenamientosView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -76,6 +77,12 @@ const router = createRouter({
       path: '/crear-entrenamiento',
       name: 'create-workout',
       component: CreateWorkoutView,
+      meta: { requiresAuth: true },
+    },
+    {
+      path: '/mis-entrenamientos',
+      name: 'my-workouts',
+      component: MisEntrenamientosView,
       meta: { requiresAuth: true },
     }
   ],
