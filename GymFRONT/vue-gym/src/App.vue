@@ -187,7 +187,7 @@ canvas {
 
   .v-toolbar__content {
     justify-content: space-around;
-    height: 75px !important;
+    height: 64px !important;
   }
 
   .app-bar__logo {
