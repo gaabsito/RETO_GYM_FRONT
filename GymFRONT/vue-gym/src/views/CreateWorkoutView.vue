@@ -439,7 +439,7 @@ const handleSubmit = async () => {
             color="red"
             size="large"
             variant="outlined"
-            :to="'/entrenamientos'"
+            :to="'/workouts'"
             :disabled="loading"
           >
             Cancelar

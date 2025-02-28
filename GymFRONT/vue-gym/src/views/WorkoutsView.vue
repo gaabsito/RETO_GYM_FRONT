@@ -205,7 +205,7 @@ const clearFilters = () => {
               <v-btn
                 variant="text"
                 color="primary"
-                :to="`/entrenamientos/${workout.entrenamientoID}`"
+                :to="`/workouts/${workout.entrenamientoID}`"
               >
                 Ver más
                 <v-icon end>mdi-arrow-right</v-icon>

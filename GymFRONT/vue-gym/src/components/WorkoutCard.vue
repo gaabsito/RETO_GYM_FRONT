@@ -57,7 +57,7 @@ const difficultyIcon = computed(() => {
 
       <v-card-actions>
         <v-spacer></v-spacer>
-        <v-btn color="primary" variant="text" :to="`/entrenamientos/${workout.entrenamientoID}`">
+        <v-btn color="primary" variant="text" :to="`/workouts/${workout.entrenamientoID}`">
           Ver más
           <v-icon end>mdi-arrow-right</v-icon>
         </v-btn>

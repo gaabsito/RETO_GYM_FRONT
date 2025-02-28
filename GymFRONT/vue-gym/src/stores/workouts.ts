@@ -59,7 +59,7 @@ export const useWorkoutStore = defineStore('workouts', () => {
                 headers['Authorization'] = `Bearer ${authStore.token}`
             }
 
-            const response = await fetch(`${API_URL}/entrenamiento/${id}`, { headers })
+            const response = await fetch(`${API_URL}/workout/${id}`, { headers })
             const data: ApiResponse<Workout> = await response.json()
 
             if (!response.ok) throw new Error(data.message || 'Error cargando entrenamiento')
@@ -86,7 +86,7 @@ export const useWorkoutStore = defineStore('workouts', () => {
                 autorID: authStore.user?.usuarioID
             } as CreateWorkoutDTO;
 
-            const response = await fetch(`${API_URL}/entrenamiento`, {
+            const response = await fetch(`${API_URL}/workout`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

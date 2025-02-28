@@ -11,7 +11,7 @@ const drawer = ref(false)
 
 const menuItems = [
   { title: 'Inicio', icon: 'mdi-home', route: '/' },
-  { title: 'Entrenamientos', icon: 'mdi-dumbbell', route: '/entrenamientos' },
+  { title: 'Entrenamientos', icon: 'mdi-dumbbell', route: '/workouts' },
   { title: 'Ejercicios', icon: 'mdi-run', route: '/exercises' },
   { title: 'Sobre Nosotros', icon: 'mdi-information', route: '/about' },
 ]

@@ -213,7 +213,7 @@ const clearFilters = () => {
         <v-btn 
           color="primary" 
           size="large" 
-          to="/entrenamientos" 
+          to="/workouts" 
           prepend-icon="mdi-view-dashboard"
           class="mx-2 mb-4"
         >

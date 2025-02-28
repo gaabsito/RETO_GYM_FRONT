@@ -64,12 +64,12 @@ const router = createRouter({
       meta: { requiresAuth: true },
     },
     {
-      path: '/entrenamientos',
+      path: '/workouts',
       name: 'workouts',
       component: WorkoutsView,
     },
     {
-      path: '/entrenamientos/:id',
+      path: '/workouts/:id',
       name: 'workouts-info',
       component: WorkoutsInfoView,
     },
