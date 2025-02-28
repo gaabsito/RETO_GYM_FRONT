@@ -85,7 +85,7 @@ const clearFilters = () => {
     </v-row>
 
     <!-- Filtros -->
-    <v-row class="mb-8">
+    <v-row class="filters-container">
       <v-col cols="12" md="4">
         <v-text-field
           v-model="searchQuery"
@@ -312,6 +312,14 @@ const clearFilters = () => {
 
 :deep(.v-field) {
   border-radius: $border-radius !important;
+}
+
+.filters-container {
+  background-color: $light-gray;
+  border-radius: $border-radius;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  margin-bottom: 1rem !important;
 }
 
 .v-btn {
