@@ -15,7 +15,7 @@ const exerciseStore = useExerciseStore()
 const { workouts, loading, error } = storeToRefs(workoutStore)
 
 const workout = ref<Workout | null>(null)
-const workoutExercises = ref<{exercise: Exercise, details: any}[]>([])
+const workoutExercises = ref<{ exercise: Exercise, details: any }[]>([])
 const loadingExercises = ref(false)
 
 onMounted(async () => {
@@ -32,45 +32,45 @@ onMounted(async () => {
     if (!workout.value) {
       throw new Error('Entrenamiento no encontrado')
     }
-    
+
     // Cargar los ejercicios asociados al entrenamiento
     loadingExercises.value = true
-    
+
     try {
       // Primero cargamos todos los ejercicios
       await exerciseStore.fetchExercises()
-      
+
       // Obtenemos los detalles de los ejercicios del entrenamiento
       // @ts-ignore
       const workoutExerciseData = await workoutStore.getWorkoutExercises(workoutId)
-      
-      if (workoutExerciseData && workoutExerciseData.length > 0) {
-    workoutExercises.value = workoutExerciseData.map(relation => {
-        const exercise = exerciseStore.exercises.find(e => e.ejercicioID === relation.ejercicioID)
 
-        return {
+      if (workoutExerciseData && workoutExerciseData.length > 0) {
+        workoutExercises.value = workoutExerciseData.map(relation => {
+          const exercise = exerciseStore.exercises.find(e => e.ejercicioID === relation.ejercicioID)
+
+          return {
             exercise: {
-                ejercicioID: relation.ejercicioID,
-                nombre: exercise?.nombre || 'Ejercicio no encontrado',
-                descripcion: exercise?.descripcion || '',
-                grupoMuscular: exercise?.grupoMuscular || '',
-                imagenURL: exercise?.imagenURL,
-                videoURL: exercise?.videoURL,
-                equipamientoNecesario: exercise?.equipamientoNecesario || false,
-                series: relation.series,  // ✅ Se agregan propiedades faltantes
-                repeticiones: relation.repeticiones,
-                descansoSegundos: relation.descansoSegundos,
-                notas: relation.notas
+              ejercicioID: relation.ejercicioID,
+              nombre: exercise?.nombre || 'Ejercicio no encontrado',
+              descripcion: exercise?.descripcion || '',
+              grupoMuscular: exercise?.grupoMuscular || '',
+              imagenURL: exercise?.imagenURL,
+              videoURL: exercise?.videoURL,
+              equipamientoNecesario: exercise?.equipamientoNecesario || false,
+              series: relation.series,  // ✅ Se agregan propiedades faltantes
+              repeticiones: relation.repeticiones,
+              descansoSegundos: relation.descansoSegundos,
+              notas: relation.notas
             },
             details: {
-                series: relation.series,
-                repeticiones: relation.repeticiones,
-                descansoSegundos: relation.descansoSegundos,
-                notas: relation.notas
+              series: relation.series,
+              repeticiones: relation.repeticiones,
+              descansoSegundos: relation.descansoSegundos,
+              notas: relation.notas
             }
-        }
-    })
-}
+          }
+        })
+      }
 
     } catch (exerciseErr) {
       console.error('Error cargando ejercicios:', exerciseErr)
@@ -121,20 +121,8 @@ const goBack = () => {
         <v-row>
           <!-- Workout Image -->
           <v-col cols="12" md="4">
-            <v-img 
-              v-if="workout.imagenURL" 
-              :src="workout.imagenURL" 
-              height="250" 
-              cover 
-              class="workout-image"
-            ></v-img>
-            <v-img 
-              v-else 
-              src="/api/placeholder/800/600" 
-              height="250" 
-              cover 
-              class="workout-image" 
-            ></v-img>
+            <v-img v-if="workout.imagenURL" :src="workout.imagenURL" height="250" cover class="workout-image"></v-img>
+            <v-img v-else src="/api/placeholder/800/600" height="250" cover class="workout-image"></v-img>
           </v-col>
 
           <!-- Workout Information -->
@@ -145,17 +133,17 @@ const goBack = () => {
 
             <v-card-text>
               <div class="workout-details mb-4">
-                <v-chip 
-                  :color="workout.dificultad === 'Fácil' ? 'success' : workout.dificultad === 'Media' ? 'warning' : 'error'" 
+                <v-chip
+                  :color="workout.dificultad === 'Fácil' ? 'success' : workout.dificultad === 'Media' ? 'warning' : 'error'"
                   class="mr-2">
                   Dificultad: {{ workout.dificultad }}
                 </v-chip>
-                
+
                 <v-chip color="primary">
                   Duración: {{ workout.duracionMinutos }} min
                 </v-chip>
               </div>
-              
+
               <div class="text-h6 mb-2">Descripción:</div>
               <p class="text-body-1">{{ workout.descripcion }}</p>
             </v-card-text>
@@ -169,61 +157,53 @@ const goBack = () => {
           <v-icon start color="white" class="me-2">mdi-dumbbell</v-icon>
           Ejercicios incluidos
         </v-card-title>
-        
+
         <v-card-text>
           <div v-if="loadingExercises" class="d-flex justify-center my-4">
             <v-progress-circular indeterminate color="primary"></v-progress-circular>
           </div>
-          
+
           <div v-else-if="workoutExercises.length === 0" class="text-center my-4">
             <p>No hay ejercicios asociados a este entrenamiento</p>
           </div>
-          
+
           <v-row v-else>
             <v-col v-for="item in workoutExercises" :key="item.exercise.ejercicioID" cols="12" sm="6" md="4">
               <v-card class="exercise-card mb-4">
-                <v-img
-                  v-if="item.exercise.imagenURL"
-                  :src="item.exercise.imagenURL"
-                  height="120"
-                  cover
-                  class="exercise-image"
-                ></v-img>
+                <v-img v-if="item.exercise.imagenURL" :src="item.exercise.imagenURL" height="120" cover
+                  class="exercise-image"></v-img>
                 <v-card-title class="exercise-title d-flex justify-space-between align-center">
                   {{ item.exercise.nombre }}
-                  <v-icon v-if="item.exercise.equipamientoNecesario" color="white" size="small" title="Requiere equipamiento">
+                  <v-icon v-if="item.exercise.equipamientoNecesario" color="white" size="small"
+                    title="Requiere equipamiento">
                     mdi-dumbbell
                   </v-icon>
                 </v-card-title>
-                
+
                 <v-card-text>
                   <v-list>
                     <v-list-item prepend-icon="mdi-sync" class="exercise-detail">
                       <v-list-item-title>Series: {{ item.details.series }}</v-list-item-title>
                     </v-list-item>
-                    
+
                     <v-list-item prepend-icon="mdi-repeat" class="exercise-detail">
                       <v-list-item-title>Repeticiones: {{ item.details.repeticiones }}</v-list-item-title>
                     </v-list-item>
-                    
+
                     <v-list-item prepend-icon="mdi-timer" class="exercise-detail">
                       <v-list-item-title>Descanso: {{ item.details.descansoSegundos }}s</v-list-item-title>
                     </v-list-item>
-                    
+
                     <v-list-item v-if="item.details.notas" prepend-icon="mdi-note-text" class="exercise-detail">
                       <v-list-item-title>{{ item.details.notas }}</v-list-item-title>
                     </v-list-item>
                   </v-list>
                 </v-card-text>
-                
+
                 <v-card-actions>
                   <v-spacer></v-spacer>
-                  <v-btn 
-                    color="primary"
-                    variant="text"
-                    :to="`/exercises/${item.exercise.ejercicioID}`"
-                    density="comfortable"
-                  >
+                  <v-btn color="primary" variant="text" :to="`/exercises/${item.exercise.ejercicioID}`"
+                    density="comfortable">
                     Ver ejercicio
                     <v-icon end>mdi-arrow-right</v-icon>
                   </v-btn>
@@ -250,7 +230,8 @@ const goBack = () => {
   border-radius: $border-radius;
 }
 
-.workout-card, .exercise-card {
+.workout-card,
+.exercise-card {
   border-radius: $border-radius;
   background-color: white;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -261,7 +242,8 @@ const goBack = () => {
   }
 }
 
-.workout-title, .exercise-title {
+.workout-title,
+.exercise-title {
   background-color: $primary-color;
   color: white;
   padding: 1rem;
@@ -298,9 +280,15 @@ const goBack = () => {
   opacity: 0.85;
 }
 
+.v-col-sm-6 {
+  padding: 12px !important;
+}
+
 .v-btn {
   font-family: $font-family-base;
   border-radius: $border-radius;
+  padding-right: 12px !important;
+  padding-left: 12px !important;
 
   &:hover {
     transform: translateY(-1px);
@@ -321,7 +309,8 @@ const goBack = () => {
     padding: 1rem;
   }
 
-  .workout-title, .exercise-title {
+  .workout-title,
+  .exercise-title {
     font-size: 1.25rem;
   }
 
