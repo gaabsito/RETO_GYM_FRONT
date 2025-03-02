@@ -48,6 +48,51 @@ export const useWorkoutStore = defineStore('workouts', () => {
         loading.value = false;
     }
 }
+async function addExerciseToWorkout(workoutId: number, ejercicioId: number, series: number, repeticiones: number, descansoSegundos: number, notas: string | null) {
+    loading.value = true;
+    error.value = null;
+
+    try {
+        const authStore = useAuthStore();
+        if (!authStore.token) throw new Error('No autorizado');
+
+        const payload = {
+            entrenamientoID: workoutId,
+            ejercicioID: ejercicioId,
+            series,
+            repeticiones,
+            descansoSegundos,
+            notas
+        };
+
+        console.log("📤 Enviando ejercicio al backend:", payload);
+
+        const response = await fetch(`${API_URL}/EntrenamientoEjercicio`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authStore.token}`
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Error al asignar ejercicio');
+        }
+
+        console.log("✅ Ejercicio asignado correctamente:", data);
+        return data;
+    } catch (e) {
+        console.error("❌ Error en addExerciseToWorkout:", e);
+        error.value = e instanceof Error ? e.message : 'Error desconocido';
+        throw e;
+    } finally {
+        loading.value = false;
+    }
+}
+
 
 
     async function getWorkoutById(id: number) {
@@ -135,26 +180,20 @@ export const useWorkoutStore = defineStore('workouts', () => {
             }
     
             const text = await response.text();
-            if (!text) {
+            if (!text || text.trim() === "") {
                 console.warn("⚠️ La API devolvió una respuesta vacía.");
                 return [];
             }
     
-            const data: ApiResponse<EntrenamientoEjercicio[]> = JSON.parse(text);
+            const data = JSON.parse(text);
             console.log("🟢 Respuesta de la API:", data);
     
-            const exercises = data.data ?? data; // Si data.data no existe, usa data directamente
-console.log("🟢 Ejercicios procesados:", exercises);
-
-if (!exercises || exercises.length === 0) {
-    console.warn("⚠️ No se encontraron ejercicios para este entrenamiento.");
-    return [];
-}
-
-return exercises;
-
+            if (!Array.isArray(data) || data.length === 0) {
+                console.warn("⚠️ No se encontraron ejercicios para este entrenamiento.");
+                return [];
+            }
     
-            return data.data;
+            return data;
         } catch (e) {
             console.error("🔴 Error en getWorkoutExercises:", e);
             error.value = e instanceof Error ? e.message : 'Error desconocido';
@@ -165,6 +204,7 @@ return exercises;
     }
     
     
+    
 
     return {
         workouts,
@@ -173,6 +213,8 @@ return exercises;
         fetchWorkouts,
         getWorkoutById,
         createWorkout,
-        getWorkoutExercises
+        getWorkoutExercises,
+        addExerciseToWorkout  // <-- Agregamos la nueva función aquí
     }
+    
 })
