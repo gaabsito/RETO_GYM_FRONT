@@ -8,6 +8,8 @@ import { storeToRefs } from 'pinia'
 import type { Workout } from '@/types/Workout'
 import type { Exercise } from '@/types/Exercise'
 import SectionContainer from '@/components/SectionContainer.vue'
+import CommentForm from '@/components/CommentForm.vue'
+import CommentList from '@/components/CommentList.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -23,7 +25,8 @@ const selectedTabIndex = ref(0)
 
 const tabs = [
   { title: 'Información', icon: 'mdi-information-outline' },
-  { title: 'Ejercicios', icon: 'mdi-dumbbell' }
+  { title: 'Ejercicios', icon: 'mdi-dumbbell' },
+  { title: 'Comentarios', icon: 'mdi-comment-multiple-outline' }
 ]
 
 // Formatear duración para mostrar de manera más legible
@@ -335,6 +338,17 @@ const getTotalWorkoutTime = computed(() => {
                   </div>
                 </v-card-text>
               </v-window-item>
+
+                              <!-- Tab de Comentarios -->
+              <v-window-item :value="2">
+                <v-card-text class="comments-tab">
+                  <!-- Formulario para añadir comentarios -->
+                  <CommentForm :workoutId="Number(route.params.id)" />
+                  
+                  <!-- Lista de comentarios -->
+                  <CommentList :workoutId="Number(route.params.id)" />
+                </v-card-text>
+              </v-window-item>
             </v-window>
           </v-card>
         </v-col>
@@ -629,6 +643,10 @@ const getTotalWorkoutTime = computed(() => {
   &:hover {
     background-color: rgba(0, 0, 0, 0.05);
   }
+}
+
+.comments-tab {
+  padding: 1.5rem;
 }
 
 // Animaciones

@@ -26,24 +26,33 @@ const canManageComment = (comment: Comment) => {
 }
 
 // Formatear fecha
-
-// Formatear fecha
-const formatDate = (dateString: string | Date) => {
-  // Asegurarnos de que siempre trabajamos con un objeto Date
-  const date = dateString instanceof Date ? dateString : new Date(dateString)
-  
-  // Verificar si la fecha es válida
-  if (isNaN(date.getTime())) {
+const formatDate = (dateInput: string | Date | undefined | null) => {
+  // Si la fecha es undefined o null, retornar un mensaje
+  if (dateInput === undefined || dateInput === null) {
     return 'Fecha no disponible'
   }
   
-  return date.toLocaleDateString('es-ES', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  try {
+    // Intentar convertir a Date si es un string
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
+    
+    // Verificar si la fecha es válida
+    if (isNaN(date.getTime())) {
+      return 'Fecha no válida'
+    }
+    
+    // Formatear la fecha utilizando toLocaleDateString
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch (error) {
+    console.error('Error al formatear fecha:', error)
+    return 'Error de formato'
+  }
 }
 
 // Cargar comentarios
@@ -100,81 +109,125 @@ const sortedComments = computed(() => {
     new Date(b.fechaComentario).getTime() - new Date(a.fechaComentario).getTime()
   )
 })
+
+// Calcular la calificación promedio
+const averageRating = computed(() => {
+  if (!comments.value || comments.value.length === 0) return 0
+  
+  const total = comments.value.reduce((sum, comment) => sum + comment.calificacion, 0)
+  return (total / comments.value.length).toFixed(1)
+})
 </script>
 
 <template>
   <div class="comments-container">
-    <h3 class="text-h5 mb-4">Comentarios y Valoraciones</h3>
+    <h3 class="info-section-title mb-4">Valoraciones y opiniones</h3>
+    
+    <!-- Estadísticas de valoraciones -->
+    <div v-if="!loading && comments.length > 0" class="ratings-stats mb-5">
+      <div class="ratings-overview">
+        <div class="average-rating">
+          <span class="rating-number">{{ averageRating }}</span>
+          <v-rating
+            :model-value="Number(averageRating)"
+            color="yellow-darken-3"
+            readonly
+            half-increments
+            size="small"
+          ></v-rating>
+          <span class="total-reviews">{{ comments.length }} valoraciones</span>
+        </div>
+      </div>
+    </div>
     
     <!-- Loading State -->
-    <div v-if="loading" class="d-flex justify-center my-4">
+    <div v-if="loading" class="d-flex justify-center align-center py-5">
       <v-progress-circular indeterminate color="primary"></v-progress-circular>
     </div>
     
     <!-- No Comments -->
-    <v-alert v-else-if="sortedComments.length === 0" type="info" class="mb-4">
-      Aún no hay comentarios para este entrenamiento.
-    </v-alert>
+    <div v-else-if="sortedComments.length === 0" class="no-comments">
+      <v-icon size="48" color="grey-lighten-2">mdi-comment-text-outline</v-icon>
+      <p class="mt-3">Aún no hay comentarios para este entrenamiento. ¡Sé el primero en opinar!</p>
+    </div>
     
     <!-- Comments List -->
     <div v-else class="comments-list">
       <v-card v-for="comment in sortedComments" :key="comment.comentarioID" class="comment-card mb-4">
         <!-- Comment Header -->
-        <v-card-title class="comment-header d-flex justify-space-between align-center">
-          <div class="user-info">
-            <!-- Avatar placeholder (puede ser reemplazado por avatar del usuario) -->
-            <v-avatar color="primary" class="mr-2">
+        <v-card-item class="comment-header">
+          <template v-slot:prepend>
+            <v-avatar color="primary" class="mr-3" size="40">
               <span class="text-caption white--text">
                 {{ comment.usuario?.nombre?.[0] || 'U' }}{{ comment.usuario?.apellido?.[0] || '' }}
               </span>
             </v-avatar>
-            <span class="font-weight-bold">
-              {{ comment.usuario?.nombre || 'Usuario' }} {{ comment.usuario?.apellido || '' }}
-            </span>
-          </div>
+          </template>
           
-          <!-- Rating -->
-          <v-rating
-            v-if="editingCommentId !== comment.comentarioID"
-            :model-value="comment.calificacion"
-            color="yellow-darken-3"
-            density="compact"
-            half-increments
-            readonly
-            size="small"
-          ></v-rating>
-        </v-card-title>
+          <v-card-title class="user-name">
+            {{ comment.usuario?.nombre || 'Usuario' }} {{ comment.usuario?.apellido || '' }}
+            
+            <span class="text-caption ml-2 text-grey">
+              {{ formatDate(comment.fechaComentario) }}
+            </span>
+          </v-card-title>
+          
+          <v-card-subtitle>
+            <v-rating
+              v-if="editingCommentId !== comment.comentarioID"
+              :model-value="comment.calificacion"
+              color="yellow-darken-3"
+              density="compact"
+              half-increments
+              readonly
+              size="small"
+            ></v-rating>
+          </v-card-subtitle>
+        </v-card-item>
         
         <!-- Comment Content -->
-        <v-card-text>
+        <v-card-text class="comment-content-wrapper">
           <!-- View Mode -->
-          <div v-if="editingCommentId !== comment.comentarioID">
+          <template v-if="editingCommentId !== comment.comentarioID">
             <p class="comment-content">{{ comment.contenido }}</p>
-            <div class="d-flex justify-space-between align-center mt-2">
-              <span class="text-caption">{{ formatDate(comment.fechaComentario) }}</span>
-              
-              <!-- Action buttons for comment owner -->
-              <div v-if="canManageComment(comment)">
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="primary"
-                  icon="mdi-pencil"
-                  @click="startEditing(comment)"
-                ></v-btn>
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="error"
-                  icon="mdi-delete"
-                  @click="deleteComment(comment.comentarioID)"
-                ></v-btn>
-              </div>
+            
+            <!-- Action buttons for comment owner -->
+            <div v-if="canManageComment(comment)" class="comment-actions">
+              <v-btn
+                size="small"
+                variant="text"
+                color="primary"
+                prepend-icon="mdi-pencil"
+                @click="startEditing(comment)"
+                class="action-btn"
+              >
+                Editar
+              </v-btn>
+              <v-btn
+                size="small"
+                variant="text"
+                color="error"
+                prepend-icon="mdi-delete"
+                @click="deleteComment(comment.comentarioID)"
+                class="action-btn"
+              >
+                Eliminar
+              </v-btn>
             </div>
-          </div>
+          </template>
           
           <!-- Edit Mode -->
-          <div v-else>
+          <div v-else class="edit-mode">
+            <div class="mb-3">
+              <label class="rating-edit-label mb-2 d-block">Calificación:</label>
+              <v-rating
+                v-model="editForm.calificacion"
+                color="yellow-darken-3"
+                hover
+                half-increments
+              ></v-rating>
+            </div>
+          
             <v-textarea
               v-model="editForm.contenido"
               label="Editar comentario"
@@ -182,41 +235,28 @@ const sortedComments = computed(() => {
               rows="3"
               auto-grow
               hide-details
-              class="mb-2"
+              bg-color="grey-lighten-4"
+              class="mb-3"
             ></v-textarea>
             
-            <div class="d-flex flex-column flex-sm-row align-start align-sm-center mt-2">
-              <div class="mb-2 mb-sm-0">
-                <span class="mr-2">Calificación:</span>
-                <v-rating
-                  v-model="editForm.calificacion"
-                  color="yellow-darken-3"
-                  density="compact"
-                  half-increments
-                ></v-rating>
-              </div>
-              
-              <v-spacer></v-spacer>
-              
-              <div>
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="grey"
-                  @click="cancelEditing"
-                  class="mr-2"
-                >
-                  Cancelar
-                </v-btn>
-                <v-btn
-                  size="small"
-                  variant="text"
-                  color="primary"
-                  @click="saveEdit(comment.comentarioID)"
-                >
-                  Guardar
-                </v-btn>
-              </div>
+            <div class="d-flex justify-end">
+              <v-btn
+                variant="text"
+                color="grey"
+                @click="cancelEditing"
+                class="mr-2"
+                size="small"
+              >
+                Cancelar
+              </v-btn>
+              <v-btn
+                variant="text"
+                color="primary"
+                @click="saveEdit(comment.comentarioID)"
+                size="small"
+              >
+                Guardar cambios
+              </v-btn>
             </div>
           </div>
         </v-card-text>
@@ -229,43 +269,166 @@ const sortedComments = computed(() => {
 @import '@/assets/styles/main.scss';
 
 .comments-container {
-  margin-top: 2rem;
+  margin-top: 1rem;
+}
+
+.info-section-title {
+  font-family: $font-family-base;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  position: relative;
+  padding-left: 1rem;
+  font-size: 1.25rem;
+
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.25rem;
+    bottom: 0.25rem;
+    width: 4px;
+    background-color: $primary-color;
+    border-radius: 4px;
+  }
+}
+
+.no-comments {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: rgba(0, 0, 0, 0.5);
+  font-family: $font-family-text;
+  background-color: $light-gray;
+  border-radius: $border-radius;
+}
+
+.ratings-stats {
+  background-color: $light-gray;
+  border-radius: $border-radius;
+  padding: 1.25rem;
+  
+  .ratings-overview {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .average-rating {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    
+    .rating-number {
+      font-size: 2.5rem;
+      font-weight: 700;
+      line-height: 1;
+      color: $secondary-color;
+      font-family: $font-family-base;
+    }
+    
+    .total-reviews {
+      margin-top: 0.5rem;
+      font-size: 0.9rem;
+      color: rgba(0, 0, 0, 0.6);
+    }
+  }
 }
 
 .comment-card {
   border-radius: $border-radius;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05) !important;
   transition: all 0.3s ease;
   
   &:hover {
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+    transform: translateY(-2px);
   }
 }
 
 .comment-header {
-  padding: 1rem;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  background-color: $light-gray;
+}
+
+.user-name {
+  font-family: $font-family-base;
+  font-weight: 600;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.comment-content-wrapper {
+  padding: 1.25rem;
+  position: relative;
 }
 
 .comment-content {
   white-space: pre-line;
   line-height: 1.6;
   font-family: $font-family-text;
+  color: rgba(0, 0, 0, 0.8);
+  margin-bottom: 0;
 }
 
-.user-info {
+.comment-actions {
+  margin-top: 1rem;
   display: flex;
-  align-items: center;
+  justify-content: flex-end;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  
+  .action-btn {
+    font-family: $font-family-base;
+    font-size: 0.85rem;
+    text-transform: none;
+    letter-spacing: 0;
+  }
 }
 
-.v-card-text {
+.comment-card:hover .comment-actions {
+  opacity: 1;
+}
+
+.edit-mode {
+  background-color: rgba(0, 0, 0, 0.02);
   padding: 1rem;
-}
-
-.v-btn {
-  font-family: $font-family-base;
+  border-radius: $border-radius;
+  
+  .rating-edit-label {
+    font-family: $font-family-text;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: rgba(0, 0, 0, 0.7);
+  }
 }
 
 :deep(.v-field) {
   border-radius: $border-radius !important;
+}
+
+:deep(.v-btn) {
+  border-radius: $border-radius;
+  font-family: $font-family-base;
+}
+
+// Responsive
+@media (max-width: 599px) {
+  .ratings-stats {
+    padding: 1rem;
+  }
+  
+  .average-rating .rating-number {
+    font-size: 2rem;
+  }
+  
+  .comment-header {
+    padding: 0.75rem;
+  }
+  
+  .comment-content-wrapper {
+    padding: 1rem;
+  }
 }
 </style>
