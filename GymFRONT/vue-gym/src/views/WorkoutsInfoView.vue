@@ -253,7 +253,7 @@ const goBack = () => {
 }
 
 .workout-image {
-  border-radius: $border-radius $border-radius 0 0;
+  border-radius: 0px;
 }
 
 .v-card-text {
