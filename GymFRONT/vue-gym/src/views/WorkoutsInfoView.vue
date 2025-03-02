@@ -222,10 +222,11 @@ const goBack = () => {
 
 .titulo {
   margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
 }
 
 .section-container {
-  padding: 0rem !important;
+  padding: 12px !important;
   margin-bottom: 2rem;
   border-radius: $border-radius;
 }
