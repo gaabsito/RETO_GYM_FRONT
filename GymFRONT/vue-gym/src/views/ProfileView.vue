@@ -21,6 +21,10 @@ const error = ref({
   profile: '',
   workouts: ''
 })
+const success = ref({
+  profile: '',
+  workouts: ''
+})
 
 // Personal Information Form
 const personalForm = ref({
@@ -45,6 +49,11 @@ const workoutsFilter = ref({
 })
 
 const difficulties = ['Fácil', 'Media', 'Difícil']
+const selectedTabIndex = ref(0)
+const tabs = [
+  { title: 'INFORMACIÓN PERSONAL', icon: 'mdi-account' },
+  { title: 'MIS ENTRENAMIENTOS', icon: 'mdi-dumbbell' }
+]
 
 // Validation Rules
 const rules = {
@@ -109,6 +118,7 @@ const updateProfile = async () => {
   try {
     loading.value.profile = true
     error.value.profile = ''
+    success.value.profile = 'Perfil actualizado correctamente'
 
     const updateData: Partial<User> & { 
       currentPassword?: string, 
@@ -136,6 +146,7 @@ const updateProfile = async () => {
     }
   } catch (err: any) {
     error.value.profile = err.message || 'Error al actualizar el perfil'
+    success.value.profile = ''
   } finally {
     loading.value.profile = false
   }
@@ -144,29 +155,19 @@ const updateProfile = async () => {
 // Method: Delete Workout
 const deleteWorkout = async (workoutId: number) => {
   try {
-    // Extensive logging for debugging
-    console.log('Workout Store:', workoutStore)
-    console.log('Attempting to delete workout:', workoutId)
-    console.log('Workout Store Methods:', Object.keys(workoutStore))
-    
-    // Explicit checks for deleteWorkout method
-    if (!workoutStore.deleteWorkout) {
-      console.error('deleteWorkout method is missing')
-      throw new Error('deleteWorkout method is not available')
-    }
-
     // Confirmation dialog
     const confirmDelete = confirm('¿Estás seguro de que deseas eliminar este entrenamiento?')
     
     if (confirmDelete) {
       // Attempt to delete the workout
-      const result = await workoutStore.deleteWorkout(workoutId)
-      console.log('Delete result:', result)
+      await workoutStore.deleteWorkout(workoutId)
       
       // Update local workouts list
       workoutsFilter.value.userWorkouts = workoutsFilter.value.userWorkouts.filter(
         w => w.entrenamientoID !== workoutId
       )
+      
+      success.value.workouts = 'Entrenamiento eliminado correctamente'
     }
   } catch (err) {
     // Comprehensive error handling
@@ -188,159 +189,253 @@ const clearWorkoutFilters = () => {
 </script>
 
 <template>
-  <v-container fluid>
-    <v-row>
-      <!-- Personal Information Section -->
-      <v-col cols="12" md="5">
-        <v-card>
-          <v-card-title class="bg-primary text-white">
-            Información Personal
-          </v-card-title>
-          
-          <v-card-text>
-            <!-- Error Alert -->
-            <v-alert 
-              v-if="error.profile" 
-              type="error" 
-              class="mb-4"
-            >
+  <v-container fluid class="profile-container px-0">
+    <!-- Header -->
+    <v-card class="profile-header-card mb-4" flat>
+      <v-card-title class="profile-title text-white text-center py-6">
+        MI PERFIL
+      </v-card-title>
+    </v-card>
+
+    <!-- Content Section -->
+    <v-card class="content-card mx-auto" elevation="0" max-width="1400">
+      <!-- Tabs -->
+      <v-tabs 
+        v-model="selectedTabIndex" 
+        bg-color="#e25401" 
+        align-tabs="center" 
+        show-arrows 
+        slider-color="white" 
+        class="profile-tabs"
+      >
+        <v-tab 
+          v-for="(tab, index) in tabs" 
+          :key="index" 
+          :value="index" 
+          class="white--text tab-spacing"
+        >
+          <v-icon start color="white" class="mr-2">{{ tab.icon }}</v-icon>
+          {{ tab.title }}
+        </v-tab>
+      </v-tabs>
+
+      <!-- Loading State -->
+      <div v-if="loading.profile" class="d-flex justify-center align-center loading-container">
+        <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+      </div>
+
+      <v-window v-else v-model="selectedTabIndex">
+        <!-- Tab de Información Personal -->
+        <v-window-item :value="0">
+          <v-card flat class="pa-4">
+            <!-- Error & Success Alerts -->
+            <v-alert v-if="error.profile" type="error" class="mb-4" variant="tonal">
               {{ error.profile }}
             </v-alert>
 
-            <v-form 
-              ref="formRef" 
-              @submit.prevent="updateProfile"
-              :disabled="loading.profile"
-            >
-              <v-text-field
-                v-model="personalForm.nombre"
-                label="Nombre"
-                prepend-inner-icon="mdi-account"
-                :rules="[rules.required]"
-                variant="outlined"
-                required
-              />
+            <v-alert v-if="success.profile" type="success" class="mb-4" variant="tonal">
+              {{ success.profile }}
+            </v-alert>
 
-              <v-text-field
-                v-model="personalForm.apellido"
-                label="Apellido"
-                prepend-inner-icon="mdi-account"
-                :rules="[rules.required]"
-                variant="outlined"
-                required
-              />
-
-              <v-text-field
-                v-model="personalForm.email"
-                label="Email"
-                prepend-inner-icon="mdi-email"
-                :rules="[rules.required, rules.email]"
-                type="email"
-                variant="outlined"
-                required
-              />
-
-              <!-- Password Change Section -->
-              <v-expansion-panels v-model="passwordState.isChanging">
-                <v-expansion-panel>
-                  <v-expansion-panel-title>Cambiar Contraseña</v-expansion-panel-title>
-                  <v-expansion-panel-text>
+            <v-form ref="formRef" @submit.prevent="updateProfile" :disabled="loading.profile">
+              <div class="profile-section">
+                <h2 class="section-title">INFORMACIÓN PERSONAL</h2>
+                
+                <v-row>
+                  <v-col cols="12" md="6">
+                    <label class="input-label">NOMBRE</label>
                     <v-text-field
-                      v-model="passwordState.currentPassword"
-                      label="Contraseña Actual"
-                      :rules="[rules.required, rules.password]"
-                      type="password"
+                      v-model="personalForm.nombre"
+                      prepend-inner-icon="mdi-account"
+                      :rules="[rules.required]"
                       variant="outlined"
+                      required
+                      density="comfortable"
+                      bg-color="white"
+                      class="input-field"
                     />
-                    <v-text-field
-                      v-model="passwordState.newPassword"
-                      label="Nueva Contraseña"
-                      :rules="[rules.required, rules.password]"
-                      type="password"
-                      variant="outlined"
-                    />
-                    <v-text-field
-                      v-model="passwordState.confirmPassword"
-                      label="Confirmar Contraseña"
-                      :rules="[rules.required, rules.passwordMatch]"
-                      type="password"
-                      variant="outlined"
-                    />
-                  </v-expansion-panel-text>
-                </v-expansion-panel>
-              </v-expansion-panels>
+                  </v-col>
 
-              <v-btn
-                type="submit"
-                color="primary"
-                block
-                class="mt-4"
-                :loading="loading.profile"
-              >
-                Guardar Cambios
-              </v-btn>
+                  <v-col cols="12" md="6">
+                    <label class="input-label">APELLIDO</label>
+                    <v-text-field
+                      v-model="personalForm.apellido"
+                      prepend-inner-icon="mdi-account"
+                      :rules="[rules.required]"
+                      variant="outlined"
+                      required
+                      density="comfortable"
+                      bg-color="white"
+                      class="input-field"
+                    />
+                  </v-col>
+
+                  <v-col cols="12">
+                    <label class="input-label">EMAIL</label>
+                    <v-text-field
+                      v-model="personalForm.email"
+                      prepend-inner-icon="mdi-email"
+                      :rules="[rules.required, rules.email]"
+                      type="email"
+                      variant="outlined"
+                      required
+                      density="comfortable"
+                      bg-color="white"
+                      class="input-field"
+                    />
+                  </v-col>
+                </v-row>
+              </div>
+
+              <div class="profile-section mt-6">
+                <h2 class="section-title">SEGURIDAD</h2>
+
+                <div class="password-section px-4 py-3">
+                  <div class="d-flex align-center justify-space-between">
+                    <div>
+                      <div class="password-label">CONTRASEÑA</div>
+                      <div class="password-hint">Cambia tu contraseña para mantener tu cuenta segura</div>
+                    </div>
+                    <v-btn 
+                      color="primary" 
+                      variant="outlined" 
+                      @click="passwordState.isChanging = !passwordState.isChanging"
+                      class="change-btn"
+                    >
+                      {{ passwordState.isChanging ? 'CANCELAR' : 'CAMBIAR' }}
+                    </v-btn>
+                  </div>
+
+                  <v-expand-transition>
+                    <div v-if="passwordState.isChanging" class="mt-4">
+                      <v-row>
+                        <v-col cols="12">
+                          <v-text-field
+                            v-model="passwordState.currentPassword"
+                            label="Contraseña Actual"
+                            :rules="[rules.required, rules.password]"
+                            type="password"
+                            variant="outlined"
+                            prepend-inner-icon="mdi-lock"
+                            bg-color="white"
+                            density="comfortable"
+                          />
+                        </v-col>
+
+                        <v-col cols="12" md="6">
+                          <v-text-field
+                            v-model="passwordState.newPassword"
+                            label="Nueva Contraseña"
+                            :rules="[rules.required, rules.password]"
+                            type="password"
+                            variant="outlined"
+                            prepend-inner-icon="mdi-lock-plus"
+                            bg-color="white"
+                            density="comfortable"
+                          />
+                        </v-col>
+
+                        <v-col cols="12" md="6">
+                          <v-text-field
+                            v-model="passwordState.confirmPassword"
+                            label="Confirmar Contraseña"
+                            :rules="[rules.required, rules.passwordMatch]"
+                            type="password"
+                            variant="outlined"
+                            prepend-inner-icon="mdi-lock-check"
+                            bg-color="white"
+                            density="comfortable"
+                          />
+                        </v-col>
+                      </v-row>
+                    </div>
+                  </v-expand-transition>
+                </div>
+
+                <div class="d-flex justify-center mt-6">
+                  <v-btn
+                    type="submit"
+                    color="primary"
+                    size="large"
+                    min-width="220"
+                    :loading="loading.profile"
+                    class="save-button"
+                  >
+                    <v-icon start class="mr-1">mdi-content-save</v-icon>
+                    GUARDAR CAMBIOS
+                  </v-btn>
+                </div>
+              </div>
             </v-form>
-          </v-card-text>
-        </v-card>
-      </v-col>
+          </v-card>
+        </v-window-item>
 
-      <!-- Workouts Section -->
-      <v-col cols="12" md="7">
-        <v-card>
-          <v-card-title class="bg-primary text-white">
-            Mis Entrenamientos
-            <v-spacer />
-            <v-btn 
-              color="white" 
-              variant="text"
-              to="/crear-entrenamiento"
-              prepend-icon="mdi-plus"
-            >
-              Crear Nuevo
-            </v-btn>
-          </v-card-title>
-          
-          <v-card-text>
-            <!-- Workouts Filters -->
-            <v-row class="mb-4">
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="workoutsFilter.searchQuery"
-                  label="Buscar entrenamientos"
-                  prepend-inner-icon="mdi-magnify"
-                  variant="outlined"
-                  clearable
-                />
-              </v-col>
-              <v-col cols="12" md="4">
-                <v-select
-                  v-model="workoutsFilter.selectedDifficulty"
-                  :items="difficulties"
-                  label="Dificultad"
-                  prepend-inner-icon="mdi-signal-cellular-outline"
-                  variant="outlined"
-                  clearable
-                />
-              </v-col>
-              <v-col cols="12" md="2" class="d-flex align-center">
-                <v-btn 
-                  variant="text" 
-                  @click="clearWorkoutFilters"
-                  :disabled="!workoutsFilter.searchQuery && !workoutsFilter.selectedDifficulty"
-                >
-                  Limpiar
-                </v-btn>
-              </v-col>
-            </v-row>
-
-            <!-- Error Alert for Workouts -->
-            <v-alert 
-              v-if="error.workouts" 
-              type="error" 
-              class="mb-4"
-            >
+        <!-- Tab de Mis Entrenamientos -->
+        <v-window-item :value="1">
+          <v-card flat class="pa-4">
+            <!-- Alerts -->
+            <v-alert v-if="error.workouts" type="error" class="mb-4" variant="tonal">
               {{ error.workouts }}
             </v-alert>
+
+            <v-alert v-if="success.workouts" type="success" class="mb-4" variant="tonal">
+              {{ success.workouts }}
+            </v-alert>
+
+            <!-- Workouts Filters -->
+            <div class="d-flex justify-end mb-4">
+              <v-btn 
+                color="primary" 
+                variant="elevated"
+                to="/crear-entrenamiento"
+                prepend-icon="mdi-plus"
+                class="create-btn"
+              >
+                CREAR NUEVO
+              </v-btn>
+            </div>
+
+            <div class="filters-container mb-6">
+              <v-row>
+                <v-col cols="12" md="6">
+                  <v-text-field
+                    v-model="workoutsFilter.searchQuery"
+                    label="Buscar entrenamientos"
+                    prepend-inner-icon="mdi-magnify"
+                    variant="outlined"
+                    clearable
+                    hide-details
+                    bg-color="white"
+                    density="comfortable"
+                  ></v-text-field>
+                </v-col>
+
+                <v-col cols="12" md="4">
+                  <v-select
+                    v-model="workoutsFilter.selectedDifficulty"
+                    :items="difficulties"
+                    label="Dificultad"
+                    prepend-inner-icon="mdi-signal-cellular-outline"
+                    variant="outlined"
+                    clearable
+                    hide-details
+                    bg-color="white"
+                    density="comfortable"
+                  ></v-select>
+                </v-col>
+
+                <v-col cols="12" md="2" class="d-flex align-center">
+                  <v-btn 
+                    variant="text" 
+                    @click="clearWorkoutFilters"
+                    :disabled="!workoutsFilter.searchQuery && !workoutsFilter.selectedDifficulty"
+                    class="clear-btn"
+                  >
+                    LIMPIAR
+                  </v-btn>
+                </v-col>
+              </v-row>
+            </div>
 
             <!-- Loading State -->
             <v-row v-if="loading.workouts" justify="center">
@@ -358,55 +453,323 @@ const clearWorkoutFilters = () => {
               v-else-if="filteredWorkouts.length === 0" 
               justify="center"
             >
-              <v-col cols="12" class="text-center">
-                <v-icon color="grey" size="x-large" class="mb-4">
-                  mdi-dumbbell-off
-                </v-icon>
-                <p class="text-h6 grey--text">
-                  Aún no has creado ningún entrenamiento
+              <v-col cols="12" class="text-center py-6">
+                <v-icon size="64" color="grey-lighten-1" class="mb-4">mdi-dumbbell-off</v-icon>
+                <h3 class="text-h5 mb-2">No tienes entrenamientos creados</h3>
+                <p class="text-subtitle-1 text-medium-emphasis mb-4">
+                  Comienza a crear tus propios entrenamientos personalizados
                 </p>
                 <v-btn 
                   color="primary" 
                   to="/crear-entrenamiento"
-                  class="mt-4"
+                  size="large"
+                  prepend-icon="mdi-plus"
+                  class="create-btn"
                 >
-                  Crear Primer Entrenamiento
+                  CREAR PRIMER ENTRENAMIENTO
                 </v-btn>
               </v-col>
             </v-row>
 
             <!-- Workouts List -->
-            <v-row v-else>
-              <v-col 
-                v-for="workout in filteredWorkouts" 
-                :key="workout.entrenamientoID"
-                cols="12" 
-                sm="6"
-              >
-                <v-card class="mb-4">
-                  <WorkoutCard :workout="workout" />
-                  <v-card-actions>
-                    <v-spacer />
-                    <v-btn 
-                      color="error" 
-                      variant="text"
-                      @click="deleteWorkout(workout.entrenamientoID)"
+            <div v-else class="workouts-container">
+              <v-row>
+                <v-col 
+                  v-for="workout in filteredWorkouts" 
+                  :key="workout.entrenamientoID"
+                  cols="12" 
+                  sm="6"
+                  md="4"
+                  lg="3"
+                  class="workout-col"
+                >
+                  <v-hover v-slot="{ isHovering, props }">
+                    <v-card 
+                      v-bind="props" 
+                      :elevation="isHovering ? 8 : 2" 
+                      class="workout-card h-100"
                     >
-                      Eliminar
-                    </v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
-      </v-col>
-    </v-row>
+                      <v-img 
+                        :src="workout.imagenURL || '/api/placeholder/400/300'" 
+                        height="200" 
+                        cover 
+                        class="bg-grey-lighten-2"
+                      >
+                        <template v-slot:placeholder>
+                          <v-row class="fill-height ma-0" align="center" justify="center">
+                            <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                          </v-row>
+                        </template>
+                      </v-img>
+
+                      <v-card-title class="workout-title">
+                        {{ workout.titulo }}
+                      </v-card-title>
+
+                      <v-card-subtitle class="workout-subtitle">
+                        <div class="d-flex align-center">
+                          <v-icon 
+                            size="small"
+                            :color="
+                              workout.dificultad === 'Fácil' ? 'success' : 
+                              workout.dificultad === 'Media' ? 'warning' : 'error'
+                            "
+                            class="me-2"
+                          >
+                            mdi-signal-cellular-{{
+                              workout.dificultad === 'Fácil' ? '1' : 
+                              workout.dificultad === 'Media' ? '2' : '3'
+                            }}
+                          </v-icon>
+                          {{ workout.dificultad }} | {{ workout.duracionMinutos }} min
+                        </div>
+                      </v-card-subtitle>
+
+                      <v-card-text class="workout-text">
+                        <p class="text-truncate">{{ workout.descripcion }}</p>
+                      </v-card-text>
+
+                      <v-divider></v-divider>
+
+                      <v-card-actions class="workout-actions">
+                        <v-btn
+                          variant="text"
+                          color="error"
+                          @click="deleteWorkout(workout.entrenamientoID)"
+                          class="delete-btn"
+                        >
+                          <v-icon start>mdi-delete</v-icon>
+                          ELIMINAR
+                        </v-btn>
+                        <v-spacer></v-spacer>
+                        <v-btn
+                          variant="text"
+                          color="primary"
+                          :to="`/workouts/${workout.entrenamientoID}`"
+                          class="view-btn"
+                        >
+                          VER MÁS
+                          <v-icon end>mdi-arrow-right</v-icon>
+                        </v-btn>
+                      </v-card-actions>
+                    </v-card>
+                  </v-hover>
+                </v-col>
+              </v-row>
+            </div>
+          </v-card>
+        </v-window-item>
+      </v-window>
+    </v-card>
   </v-container>
 </template>
 
-<style scoped>
-.v-card-title.bg-primary {
-  background-color: #e25401 !important;
+<style lang="scss" scoped>
+@import '@/assets/styles/main.scss';
+
+.profile-container {
+  padding: 0;
+}
+
+.profile-header-card {
+  border-radius: 0;
+}
+
+.profile-title {
+  background-color: $primary-color;
+  padding: 1.5rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  font-family: $font-family-base;
+}
+
+.content-card {
+  border-radius: 0;
+  padding: 0;
+}
+
+.profile-tabs {
+  background-color: $primary-color;
+}
+
+.tab-spacing {
+  margin: 0 50px; /* Mayor espacio entre pestañas */
+  padding: 0 20px;
+  font-size: 1.1rem;
+}
+
+:deep(.profile-tabs .v-tab) {
+  color: white;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  font-family: $font-family-base;
+  text-transform: uppercase;
+}
+
+:deep(.profile-tabs .v-tab--selected) {
+  font-weight: 700;
+}
+
+.loading-container {
+  min-height: 300px;
+}
+
+.profile-section {
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  color: $secondary-color;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  padding-left: 1rem;
+  border-left: 5px solid $primary-color;
+  font-family: $font-family-base;
+}
+
+.input-label {
+  display: block;
+  color: $secondary-color;
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  font-family: $font-family-base;
+  font-size: 0.9rem;
+}
+
+.input-field {
+  margin-bottom: 0.5rem;
+}
+
+.password-section {
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: $border-radius;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.password-label {
+  font-weight: 600;
+  color: $secondary-color;
+  font-family: $font-family-base;
+  font-size: 0.9rem;
+}
+
+.password-hint {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.85rem;
+  font-family: $font-family-text;
+}
+
+.change-btn {
+  font-weight: 600;
+  font-family: $font-family-base;
+  letter-spacing: 0.5px;
+}
+
+.save-button {
+  font-weight: 600;
+  font-family: $font-family-base;
+  letter-spacing: 0.5px;
+  border-radius: $border-radius;
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+}
+
+.filters-container {
+  background-color: $light-gray;
+  border-radius: $border-radius;
+  padding: 1.5rem;
+  margin: 1rem 0 2rem;
+}
+
+.workout-card {
+  border-radius: $border-radius;
+  height: 100%;
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+  }
+}
+
+.workout-col {
+  padding: 0.5rem;
+}
+
+.workout-title {
+  background-color: $primary-color;
+  color: white;
+  padding: 0.75rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 500;
+  font-family: $font-family-base;
+  line-height: 1.4;
+}
+
+.workout-subtitle {
+  padding: 0.75rem 1rem;
+  background-color: rgba(0, 0, 0, 0.02);
+  font-weight: 500;
+}
+
+.workout-text {
+  padding: 1rem;
+}
+
+.workout-actions {
+  padding: 0.5rem;
+}
+
+.create-btn, .clear-btn, .view-btn, .delete-btn {
+  font-family: $font-family-base;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+:deep(.v-field) {
+  border-radius: $border-radius !important;
+}
+
+.v-btn {
+  border-radius: $border-radius;
+  transition: all 0.2s ease;
+
+  &:hover {
+    transform: translateY(-1px);
+  }
+}
+
+.workouts-container {
+  padding: 0.25rem;
+}
+
+/* Ajustes responsive para mantener espaciado en diferentes tamaños de pantalla */
+@media (max-width: 959px) {
+  .tab-spacing {
+    margin: 0 20px;
+    padding: 0 10px;
+  }
+  
+  .section-title {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 599px) {
+  .profile-title {
+    padding: 1rem;
+    font-size: 1.5rem;
+  }
+
+  .section-title {
+    font-size: 1.1rem;
+  }
+  
+  .tab-spacing {
+    margin: 0 10px;
+    padding: 0 5px;
+    font-size: 0.9rem;
+  }
 }
 </style>
