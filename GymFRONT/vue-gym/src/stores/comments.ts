@@ -83,10 +83,21 @@ export const useCommentStore = defineStore('comments', () => {
 
             const newComment = await response.json()
             
-            // Añadir el nuevo comentario a la lista local
-            comments.value.push(newComment)
+            // Añadimos la información del usuario actual al comentario
+            // para mostrarlo inmediatamente en la interfaz
+            const commentWithUser: Comment = {
+                ...newComment,
+                usuario: {
+                    nombre: authStore.user.nombre,
+                    apellido: authStore.user.apellido,
+                    email: authStore.user.email
+                }
+            }
             
-            return newComment
+            // Añadir el nuevo comentario a la lista local
+            comments.value.push(commentWithUser)
+            
+            return commentWithUser
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
             throw e

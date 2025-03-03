@@ -100,6 +100,7 @@ const deleteComment = async (commentId: number) => {
     }
   } catch (error) {
     console.error('Error al eliminar comentario:', error)
+    alert('No se pudo eliminar el comentario. Inténtalo de nuevo más tarde.')
   }
 }
 
@@ -172,7 +173,19 @@ const averageRating = computed(() => {
             </span>
           </v-card-title>
           
-          <v-card-subtitle>
+          <template v-slot:append>
+            <v-btn
+              icon="mdi-delete"
+              size="small"
+              variant="text"
+              color="error"
+              @click="deleteComment(comment.comentarioID)"
+              class="delete-btn"
+              title="Eliminar comentario"
+            ></v-btn>
+          </template>
+          
+          <v-card-subtitle class="d-flex justify-center">
             <v-rating
               v-if="editingCommentId !== comment.comentarioID"
               :model-value="comment.calificacion"
@@ -199,7 +212,7 @@ const averageRating = computed(() => {
                 color="primary"
                 prepend-icon="mdi-pencil"
                 @click="startEditing(comment)"
-                class="action-btn"
+                class="action-btn mr-3"
               >
                 Editar
               </v-btn>
@@ -348,6 +361,15 @@ const averageRating = computed(() => {
 .comment-header {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   background-color: $light-gray;
+  
+  .delete-btn {
+    margin-right: 8px;
+    transition: transform 0.2s ease;
+    
+    &:hover {
+      transform: scale(1.2);
+    }
+  }
 }
 
 .user-name {
@@ -376,8 +398,6 @@ const averageRating = computed(() => {
   margin-top: 1rem;
   display: flex;
   justify-content: flex-end;
-  opacity: 0;
-  transition: opacity 0.2s ease;
   
   .action-btn {
     font-family: $font-family-base;
@@ -385,10 +405,6 @@ const averageRating = computed(() => {
     text-transform: none;
     letter-spacing: 0;
   }
-}
-
-.comment-card:hover .comment-actions {
-  opacity: 1;
 }
 
 .edit-mode {

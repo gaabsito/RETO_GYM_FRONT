@@ -80,7 +80,7 @@ const handleSubmit = async () => {
       <v-card-text>
         <v-form @submit.prevent="handleSubmit">
           <div class="rating-container mb-4">
-            <div class="d-flex align-center">
+            <div class="d-flex justify-center align-center">
               <span class="rating-label me-3">Tu valoración:</span>
               <v-rating
                 v-model="form.calificacion"
