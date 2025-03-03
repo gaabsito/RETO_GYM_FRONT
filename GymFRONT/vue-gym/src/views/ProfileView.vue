@@ -1,326 +1,374 @@
-<!-- src/views/ProfileView.vue -->
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useWorkoutStore } from '@/stores/workouts'
 import type { VForm } from 'vuetify/components'
 import type { User } from '@/types/User'
+import type { Workout } from '@/types/Workout'
 import WorkoutCard from '@/components/WorkoutCard.vue'
 
+// Store Initialization
 const authStore = useAuthStore()
 const workoutStore = useWorkoutStore()
+
+// Form References and State
 const formRef = ref<VForm | null>(null)
-const loading = ref(false)
-const error = ref('')
-const success = ref('')
-const showChangePassword = ref(false)
+const loading = ref({
+  profile: false,
+  workouts: false
+})
+const error = ref({
+  profile: '',
+  workouts: ''
+})
 
-// Workouts filtering
-const searchQuery = ref('')
-const selectedDifficulty = ref<string | null>(null)
-const difficulties = ['Fácil', 'Media', 'Difícil']
-const userWorkouts = ref<any[]>([])
-
-const form = ref({
+// Personal Information Form
+const personalForm = ref({
   nombre: '',
   apellido: '',
-  email: '',
+  email: ''
+})
+
+// Password Change State
+const passwordState = ref({
+  isChanging: false,
   currentPassword: '',
   newPassword: '',
   confirmPassword: ''
 })
 
-// Cargar datos del usuario y entrenamientos
-onMounted(async () => {
-  try {
-    loading.value = true
-    const userData = await authStore.fetchUser()
-    
-    // Cargar entrenamientos
-    await workoutStore.fetchWorkouts()
-    
-    if (userData) {
-      form.value.nombre = userData.nombre
-      form.value.apellido = userData.apellido
-      form.value.email = userData.email
-
-      // Filtrar entrenamientos del usuario actual
-      userWorkouts.value = workoutStore.workouts.filter(workout => 
-        workout.autorID === userData.usuarioID
-      )
-    }
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Error al cargar el perfil'
-  } finally {
-    loading.value = false
-  }
+// Workouts Filtering
+const workoutsFilter = ref({
+  searchQuery: '',
+  selectedDifficulty: null as string | null,
+  userWorkouts: [] as Workout[]
 })
 
+const difficulties = ['Fácil', 'Media', 'Difícil']
+
+// Validation Rules
 const rules = {
   required: (v: string) => !!v || 'Este campo es requerido',
   email: (v: string) => /.+@.+\..+/.test(v) || 'Debe ser un email válido',
   password: (v: string) => v.length >= 6 || 'La contraseña debe tener al menos 6 caracteres',
-  passwordMatch: (v: string) => v === form.value.newPassword || 'Las contraseñas no coinciden'
+  passwordMatch: (v: string) => v === passwordState.value.newPassword || 'Las contraseñas no coinciden'
 }
 
-// Filtrar entrenamientos
-const filteredWorkouts = computed(() => {
-  return userWorkouts.value.filter(workout => {
-    // Filtrar por búsqueda
-    const matchesSearch = 
-      workout.titulo.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (workout.descripcion?.toLowerCase().includes(searchQuery.value.toLowerCase()) ?? false)
+// Lifecycle Hook: Load User Data and Workouts
+onMounted(async () => {
+  try {
+    loading.value.profile = true
+    loading.value.workouts = true
 
-    // Filtrar por dificultad
-    const matchesDifficulty = !selectedDifficulty.value || 
-      workout.dificultad === selectedDifficulty.value
+    // Fetch User Profile
+    const userData = await authStore.fetchUser()
+    if (userData) {
+      personalForm.value = {
+        nombre: userData.nombre,
+        apellido: userData.apellido,
+        email: userData.email
+      }
+    }
+
+    // Fetch Workouts
+    await workoutStore.fetchWorkouts()
+    workoutsFilter.value.userWorkouts = workoutStore.workouts.filter(
+      workout => workout.autorID === userData?.usuarioID
+    )
+  } catch (err) {
+    error.value.profile = err instanceof Error 
+      ? err.message 
+      : 'Error al cargar el perfil'
+  } finally {
+    loading.value.profile = false
+    loading.value.workouts = false
+  }
+})
+
+// Computed: Filtered Workouts
+const filteredWorkouts = computed(() => 
+  workoutsFilter.value.userWorkouts.filter(workout => {
+    const matchesSearch = 
+      workout.titulo.toLowerCase().includes(workoutsFilter.value.searchQuery.toLowerCase()) ||
+      (workout.descripcion?.toLowerCase().includes(workoutsFilter.value.searchQuery.toLowerCase()) ?? false)
+
+    const matchesDifficulty = !workoutsFilter.value.selectedDifficulty || 
+      workout.dificultad === workoutsFilter.value.selectedDifficulty
 
     return matchesSearch && matchesDifficulty
   })
-})
+)
 
-// Eliminar entrenamiento
-const deleteWorkout = async (workoutId: number) => {
-  try {
-    if (confirm('¿Estás seguro de que deseas eliminar este entrenamiento?')) {
-      await workoutStore.deleteWorkout(workoutId)
-      
-      // Actualizar la lista de entrenamientos local
-      userWorkouts.value = userWorkouts.value.filter(w => w.entrenamientoID !== workoutId)
-    }
-  } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Error al eliminar entrenamiento'
-  }
-}
-
-// Limpiar filtros
-const clearFilters = () => {
-  searchQuery.value = ''
-  selectedDifficulty.value = null
-}
-
-const handleSubmit = async () => {
+// Method: Update Profile
+const updateProfile = async () => {
   if (!formRef.value) return
 
   const { valid } = await formRef.value.validate()
   if (!valid) return
 
   try {
-    loading.value = true
-    error.value = ''
-    success.value = ''
+    loading.value.profile = true
+    error.value.profile = ''
 
-    // Preparar datos para actualización
-    const updateData: Partial<User> & { currentPassword?: string, newPassword?: string } = {
-      nombre: form.value.nombre,
-      apellido: form.value.apellido,
-      email: form.value.email
+    const updateData: Partial<User> & { 
+      currentPassword?: string, 
+      newPassword?: string 
+    } = {
+      nombre: personalForm.value.nombre,
+      apellido: personalForm.value.apellido,
+      email: personalForm.value.email
     }
 
-    if (showChangePassword.value) {
-      updateData.currentPassword = form.value.currentPassword
-      updateData.newPassword = form.value.newPassword
+    // Handle Password Change
+    if (passwordState.value.isChanging) {
+      updateData.currentPassword = passwordState.value.currentPassword
+      updateData.newPassword = passwordState.value.newPassword
     }
 
-    // Llamar al API para actualizar
     await authStore.updateProfile(updateData)
 
-    success.value = 'Perfil actualizado correctamente'
-    if (showChangePassword.value) {
-      form.value.currentPassword = ''
-      form.value.newPassword = ''
-      form.value.confirmPassword = ''
-      showChangePassword.value = false
+    // Reset Password Change State
+    passwordState.value = {
+      isChanging: false,
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
     }
   } catch (err: any) {
-    error.value = err.message || 'Error al actualizar el perfil'
+    error.value.profile = err.message || 'Error al actualizar el perfil'
   } finally {
-    loading.value = false
+    loading.value.profile = false
   }
+}
+
+// Method: Delete Workout
+const deleteWorkout = async (workoutId: number) => {
+  try {
+    // Extensive logging for debugging
+    console.log('Workout Store:', workoutStore)
+    console.log('Attempting to delete workout:', workoutId)
+    console.log('Workout Store Methods:', Object.keys(workoutStore))
+    
+    // Explicit checks for deleteWorkout method
+    if (!workoutStore.deleteWorkout) {
+      console.error('deleteWorkout method is missing')
+      throw new Error('deleteWorkout method is not available')
+    }
+
+    // Confirmation dialog
+    const confirmDelete = confirm('¿Estás seguro de que deseas eliminar este entrenamiento?')
+    
+    if (confirmDelete) {
+      // Attempt to delete the workout
+      const result = await workoutStore.deleteWorkout(workoutId)
+      console.log('Delete result:', result)
+      
+      // Update local workouts list
+      workoutsFilter.value.userWorkouts = workoutsFilter.value.userWorkouts.filter(
+        w => w.entrenamientoID !== workoutId
+      )
+    }
+  } catch (err) {
+    // Comprehensive error handling
+    console.error('Detailed Delete Workout Error:', err)
+    error.value.workouts = err instanceof Error 
+      ? err.message 
+      : 'Error al eliminar entrenamiento'
+    
+    // Optional: Show error to user
+    alert(error.value.workouts)
+  }
+}
+
+// Method: Clear Workout Filters
+const clearWorkoutFilters = () => {
+  workoutsFilter.value.searchQuery = ''
+  workoutsFilter.value.selectedDifficulty = null
 }
 </script>
 
 <template>
   <v-container fluid>
     <v-row>
-      <!-- Información Personal -->
+      <!-- Personal Information Section -->
       <v-col cols="12" md="5">
-        <v-card class="profile-card">
-          <v-card-title class="profile-title">
+        <v-card>
+          <v-card-title class="bg-primary text-white">
             Información Personal
           </v-card-title>
-
+          
           <v-card-text>
-            <v-alert v-if="error" type="error" class="mb-4">
-              {{ error }}
+            <!-- Error Alert -->
+            <v-alert 
+              v-if="error.profile" 
+              type="error" 
+              class="mb-4"
+            >
+              {{ error.profile }}
             </v-alert>
 
-            <v-alert v-if="success" type="success" class="mb-4">
-              {{ success }}
-            </v-alert>
-
-            <v-form ref="formRef" @submit.prevent="handleSubmit">
-              <v-text-field 
-                v-model="form.nombre" 
-                :rules="[rules.required]" 
+            <v-form 
+              ref="formRef" 
+              @submit.prevent="updateProfile"
+              :disabled="loading.profile"
+            >
+              <v-text-field
+                v-model="personalForm.nombre"
                 label="Nombre"
-                prepend-inner-icon="mdi-account" 
-                variant="outlined" 
+                prepend-inner-icon="mdi-account"
+                :rules="[rules.required]"
+                variant="outlined"
                 required
-              ></v-text-field>
+              />
 
-              <v-text-field 
-                v-model="form.apellido" 
-                :rules="[rules.required]" 
+              <v-text-field
+                v-model="personalForm.apellido"
                 label="Apellido"
-                prepend-inner-icon="mdi-account" 
-                variant="outlined" 
+                prepend-inner-icon="mdi-account"
+                :rules="[rules.required]"
+                variant="outlined"
                 required
-              ></v-text-field>
+              />
 
-              <v-text-field 
-                v-model="form.email" 
-                :rules="[rules.required, rules.email]" 
+              <v-text-field
+                v-model="personalForm.email"
                 label="Email"
-                prepend-inner-icon="mdi-email" 
-                type="email" 
-                variant="outlined" 
+                prepend-inner-icon="mdi-email"
+                :rules="[rules.required, rules.email]"
+                type="email"
+                variant="outlined"
                 required
-              ></v-text-field>
+              />
 
-              <v-divider class="my-4"></v-divider>
+              <!-- Password Change Section -->
+              <v-expansion-panels v-model="passwordState.isChanging">
+                <v-expansion-panel>
+                  <v-expansion-panel-title>Cambiar Contraseña</v-expansion-panel-title>
+                  <v-expansion-panel-text>
+                    <v-text-field
+                      v-model="passwordState.currentPassword"
+                      label="Contraseña Actual"
+                      :rules="[rules.required, rules.password]"
+                      type="password"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-model="passwordState.newPassword"
+                      label="Nueva Contraseña"
+                      :rules="[rules.required, rules.password]"
+                      type="password"
+                      variant="outlined"
+                    />
+                    <v-text-field
+                      v-model="passwordState.confirmPassword"
+                      label="Confirmar Contraseña"
+                      :rules="[rules.required, rules.passwordMatch]"
+                      type="password"
+                      variant="outlined"
+                    />
+                  </v-expansion-panel-text>
+                </v-expansion-panel>
+              </v-expansion-panels>
 
-              <div class="d-flex align-center">
-                <v-checkbox 
-                  v-model="showChangePassword" 
-                  label="Cambiar contraseña" 
-                  color="primary"
-                  hide-details
-                ></v-checkbox>
-              </div>
-
-              <template v-if="showChangePassword">
-                <v-text-field 
-                  v-model="form.currentPassword" 
-                  :rules="[rules.required, rules.password]"
-                  label="Contraseña actual" 
-                  prepend-inner-icon="mdi-lock" 
-                  type="password" 
-                  variant="outlined"
-                  required
-                ></v-text-field>
-
-                <v-text-field 
-                  v-model="form.newPassword" 
-                  :rules="[rules.required, rules.password]"
-                  label="Nueva contraseña" 
-                  prepend-inner-icon="mdi-lock" 
-                  type="password" 
-                  variant="outlined"
-                  required
-                ></v-text-field>
-
-                <v-text-field 
-                  v-model="form.confirmPassword" 
-                  :rules="[rules.required, rules.passwordMatch]"
-                  label="Confirmar nueva contraseña" 
-                  prepend-inner-icon="mdi-lock" 
-                  type="password" 
-                  variant="outlined"
-                  required
-                ></v-text-field>
-              </template>
-
-              <div class="btn-wrapper">
-                <v-btn 
-                  type="submit" 
-                  color="primary" 
-                  size="large" 
-                  block 
-                  :loading="loading"
-                >
-                  Guardar Cambios
-                </v-btn>
-              </div>
+              <v-btn
+                type="submit"
+                color="primary"
+                block
+                class="mt-4"
+                :loading="loading.profile"
+              >
+                Guardar Cambios
+              </v-btn>
             </v-form>
           </v-card-text>
         </v-card>
       </v-col>
 
-      <!-- Mis Entrenamientos -->
+      <!-- Workouts Section -->
       <v-col cols="12" md="7">
-        <v-card class="profile-card">
-          <v-card-title class="profile-title">
+        <v-card>
+          <v-card-title class="bg-primary text-white">
             Mis Entrenamientos
+            <v-spacer />
             <v-btn 
-              color="primary" 
-              size="small" 
-              to="/crear-entrenamiento" 
+              color="white" 
+              variant="text"
+              to="/crear-entrenamiento"
               prepend-icon="mdi-plus"
-              class="ml-2"
             >
               Crear Nuevo
             </v-btn>
           </v-card-title>
-
+          
           <v-card-text>
-            <!-- Filtros -->
-            <v-row class="filters-container mb-4">
-              <v-col cols="12" md="5">
+            <!-- Workouts Filters -->
+            <v-row class="mb-4">
+              <v-col cols="12" md="6">
                 <v-text-field
-                  v-model="searchQuery"
+                  v-model="workoutsFilter.searchQuery"
                   label="Buscar entrenamientos"
                   prepend-inner-icon="mdi-magnify"
                   variant="outlined"
                   clearable
-                  hide-details
-                ></v-text-field>
+                />
               </v-col>
-
-              <v-col cols="12" md="5">
+              <v-col cols="12" md="4">
                 <v-select
-                  v-model="selectedDifficulty"
+                  v-model="workoutsFilter.selectedDifficulty"
                   :items="difficulties"
                   label="Dificultad"
                   prepend-inner-icon="mdi-signal-cellular-outline"
                   variant="outlined"
                   clearable
-                  hide-details
-                ></v-select>
+                />
               </v-col>
-
-              <v-col cols="12" md="2" class="d-flex justify-center align-center">
-                <v-btn
-                  variant="text"
-                  @click="clearFilters"
-                  :disabled="!searchQuery && !selectedDifficulty"
+              <v-col cols="12" md="2" class="d-flex align-center">
+                <v-btn 
+                  variant="text" 
+                  @click="clearWorkoutFilters"
+                  :disabled="!workoutsFilter.searchQuery && !workoutsFilter.selectedDifficulty"
                 >
                   Limpiar
                 </v-btn>
               </v-col>
             </v-row>
 
+            <!-- Error Alert for Workouts -->
+            <v-alert 
+              v-if="error.workouts" 
+              type="error" 
+              class="mb-4"
+            >
+              {{ error.workouts }}
+            </v-alert>
+
             <!-- Loading State -->
-            <v-row v-if="loading" class="mt-4">
+            <v-row v-if="loading.workouts" justify="center">
               <v-col cols="12" class="text-center">
-                <v-progress-circular
-                  indeterminate
-                  color="primary"
-                  size="64"
-                ></v-progress-circular>
+                <v-progress-circular 
+                  indeterminate 
+                  color="primary" 
+                  size="64" 
+                />
               </v-col>
             </v-row>
 
             <!-- No Workouts State -->
-            <v-row v-else-if="filteredWorkouts.length === 0" class="mt-4">
+            <v-row 
+              v-else-if="filteredWorkouts.length === 0" 
+              justify="center"
+            >
               <v-col cols="12" class="text-center">
-                <v-alert type="info" class="mb-4">
+                <v-icon color="grey" size="x-large" class="mb-4">
+                  mdi-dumbbell-off
+                </v-icon>
+                <p class="text-h6 grey--text">
                   Aún no has creado ningún entrenamiento
-                </v-alert>
+                </p>
                 <v-btn 
                   color="primary" 
                   to="/crear-entrenamiento"
-                  prepend-icon="mdi-plus"
+                  class="mt-4"
                 >
                   Crear Primer Entrenamiento
                 </v-btn>
@@ -328,21 +376,20 @@ const handleSubmit = async () => {
             </v-row>
 
             <!-- Workouts List -->
-            <v-row v-else class="mt-4">
-              <v-col
-                v-for="workout in filteredWorkouts"
+            <v-row v-else>
+              <v-col 
+                v-for="workout in filteredWorkouts" 
                 :key="workout.entrenamientoID"
-                cols="12"
+                cols="12" 
                 sm="6"
               >
-                <v-card class="workout-card">
+                <v-card class="mb-4">
                   <WorkoutCard :workout="workout" />
-                  
                   <v-card-actions>
-                    <v-spacer></v-spacer>
+                    <v-spacer />
                     <v-btn 
                       color="error" 
-                      variant="text" 
+                      variant="text"
                       @click="deleteWorkout(workout.entrenamientoID)"
                     >
                       Eliminar
@@ -358,51 +405,8 @@ const handleSubmit = async () => {
   </v-container>
 </template>
 
-<style lang="scss" scoped>
-@import '@/assets/styles/main.scss';
-
-.profile-card {
-  border-radius: $border-radius;
-}
-
-.profile-title {
-  background-color: $primary-color;
-  color: white;
-  font-family: $font-family-base;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.filters-container {
-  background-color: $light-gray;
-  border-radius: $border-radius;
-  padding: 1rem;
-}
-
-.v-input {
-  padding: 12px !important;
-}
-
-.btn-wrapper {
-  padding: 12px;
-}
-
-.workout-card {
-  margin-bottom: 1rem;
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: translateY(-3px);
-  }
-}
-
-:deep(.v-field) {
-  border-radius: $border-radius !important;
-}
-
-.v-btn {
-  font-family: $font-family-base;
-  border-radius: $border-radius;
+<style scoped>
+.v-card-title.bg-primary {
+  background-color: #e25401 !important;
 }
 </style>
