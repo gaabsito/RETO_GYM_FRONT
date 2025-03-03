@@ -43,40 +43,40 @@ export const useWorkoutStore = defineStore('workouts', () => {
         }
     }
 
-    // New method for deleting a workout
-    async function deleteWorkout(workoutId: number) {
-        loading.value = true
-        error.value = null
-        try {
-            const authStore = useAuthStore()
-            if (!authStore.token) {
-                throw new Error('No autorizado')
+    // Add this function to your useWorkoutStore store
+async function deleteWorkout(id: number) {
+    loading.value = true;
+    error.value = null;
+    try {
+        const authStore = useAuthStore();
+        if (!authStore.token) throw new Error('No autorizado');
+        
+        const response = await fetch(`${API_URL}/Entrenamiento/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authStore.token}`
             }
-
-            const response = await fetch(`${API_URL}/Entrenamiento/${workoutId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${authStore.token}`,
-                    'Content-Type': 'application/json'
-                }
-            })
-
-            if (!response.ok) {
-                const errorData = await response.json()
-                throw new Error(errorData.message || 'Error al eliminar el entrenamiento')
-            }
-
-            // Remove the workout from the local store
-            workouts.value = workouts.value.filter(w => w.entrenamientoID !== workoutId)
-
-            return true
-        } catch (e) {
-            error.value = e instanceof Error ? e.message : 'Error desconocido'
-            throw e
-        } finally {
-            loading.value = false
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(errorData || 'Error eliminando entrenamiento');
         }
+        
+        // Remove the workout from the local state
+        workouts.value = workouts.value.filter(w => w.entrenamientoID !== id);
+        
+        return true;
+    } catch (e) {
+        console.error('Error en deleteWorkout:', e);
+        error.value = e instanceof Error ? e.message : 'Error desconocido';
+        throw e;
+    } finally {
+        loading.value = false;
     }
+}
+
 
     // Existing methods for creating and fetching workouts
     async function createWorkout(workout: CreateWorkoutDTO) {
