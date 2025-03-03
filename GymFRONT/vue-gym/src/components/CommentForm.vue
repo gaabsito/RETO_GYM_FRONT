@@ -61,6 +61,11 @@ const handleSubmit = async () => {
     loading.value = false
   }
 }
+
+// Función directa para redirigir al login
+const redirectToLogin = () => {
+  router.push(`/login?redirect=/workouts/${props.workoutId}`)
+}
 </script>
 
 <template>
@@ -107,15 +112,27 @@ const handleSubmit = async () => {
           ></v-textarea>
           
           <div class="d-flex justify-center mt-4 mb-6">
+            <!-- Botón de autenticación (muestra el botón normal de enviar o el de iniciar sesión) -->
             <v-btn
+              v-if="authStore.isAuthenticated"
               type="submit"
               color="primary"
               :loading="loading"
-              :disabled="!authStore.isAuthenticated || loading"
+              :disabled="loading"
               class="submit-button"
               prepend-icon="mdi-send"
             >
-              {{ authStore.isAuthenticated ? 'Publicar comentario' : 'Inicia sesión para comentar' }}
+              Publicar comentario
+            </v-btn>
+            <v-btn
+              v-else
+              type="button"
+              color="primary"
+              class="submit-button"
+              prepend-icon="mdi-login"
+              @click="redirectToLogin"
+            >
+              Iniciar sesión para comentar
             </v-btn>
           </div>
         </v-form>

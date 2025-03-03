@@ -19,6 +19,8 @@ const editForm = ref({
   contenido: '',
   calificacion: 0
 })
+const confirmDeleteDialog = ref(false)
+const commentToDelete = ref<number | null>(null)
 
 // Verificar si un comentario puede ser editado/eliminado por el usuario actual
 const canManageComment = (comment: Comment) => {
@@ -92,16 +94,68 @@ const saveEdit = async (commentId: number) => {
   }
 }
 
+// Confirmar eliminación
+const confirmDelete = (commentId: number) => {
+  // Validar que el ID sea válido
+  if (!commentId || commentId <= 0) {
+    console.error('ID de comentario inválido:', commentId)
+    return
+  }
+  
+  // Validar que el usuario pueda eliminar este comentario
+  const comment = comments.value.find(c => c.comentarioID === commentId)
+  if (!comment || !canManageComment(comment)) {
+    console.error('No tienes permiso para eliminar este comentario')
+    return
+  }
+  
+  commentToDelete.value = commentId
+  confirmDeleteDialog.value = true
+}
+
 // Eliminar comentario
-const deleteComment = async (commentId: number) => {
+const deleteComment = async () => {
+  if (!commentToDelete.value) return
+  
   try {
-    if (confirm('¿Estás seguro de que deseas eliminar este comentario?')) {
-      await commentStore.deleteComment(commentId)
-    }
+    await commentStore.deleteComment(commentToDelete.value)
+    confirmDeleteDialog.value = false
+    commentToDelete.value = null
   } catch (error) {
     console.error('Error al eliminar comentario:', error)
-    alert('No se pudo eliminar el comentario. Inténtalo de nuevo más tarde.')
   }
+}
+
+// Obtener nombre de usuario para un comentario
+const getUserName = (comment: Comment) => {
+  // Si tenemos la propiedad usuario en el comentario, usarla
+  if (comment.usuario?.nombre) {
+    return `${comment.usuario.nombre} ${comment.usuario.apellido || ''}`;
+  }
+  
+  // Si el comentario es del usuario actual, usar sus datos
+  if (authStore.user && comment.usuarioID === authStore.user.usuarioID) {
+    return `${authStore.user.nombre} ${authStore.user.apellido || ''}`;
+  }
+  
+  // Caso de fallback
+  return 'Usuario';
+}
+
+// Obtener iniciales para el avatar
+const getUserInitials = (comment: Comment) => {
+  // Si tenemos la propiedad usuario en el comentario, usarla
+  if (comment.usuario?.nombre) {
+    return `${comment.usuario.nombre[0] || ''}${comment.usuario.apellido?.[0] || ''}`;
+  }
+  
+  // Si el comentario es del usuario actual, usar sus datos
+  if (authStore.user && comment.usuarioID === authStore.user.usuarioID) {
+    return `${authStore.user.nombre[0] || ''}${authStore.user.apellido?.[0] || ''}`;
+  }
+  
+  // Caso de fallback
+  return 'U';
 }
 
 // Ordenar comentarios del más reciente al más antiguo
@@ -160,30 +214,18 @@ const averageRating = computed(() => {
           <template v-slot:prepend>
             <v-avatar color="primary" class="mr-3" size="40">
               <span class="text-caption white--text">
-                {{ comment.usuario?.nombre?.[0] || 'U' }}{{ comment.usuario?.apellido?.[0] || '' }}
+                {{ getUserInitials(comment) }}
               </span>
             </v-avatar>
           </template>
           
           <v-card-title class="user-name">
-            {{ comment.usuario?.nombre || 'Usuario' }} {{ comment.usuario?.apellido || '' }}
+            {{ getUserName(comment) }}
             
             <span class="text-caption ml-2 text-grey">
               {{ formatDate(comment.fechaComentario) }}
             </span>
           </v-card-title>
-          
-          <template v-slot:append>
-            <v-btn
-              icon="mdi-delete"
-              size="small"
-              variant="text"
-              color="error"
-              @click="deleteComment(comment.comentarioID)"
-              class="delete-btn"
-              title="Eliminar comentario"
-            ></v-btn>
-          </template>
           
           <v-card-subtitle class="d-flex justify-center">
             <v-rating
@@ -221,7 +263,7 @@ const averageRating = computed(() => {
                 variant="text"
                 color="error"
                 prepend-icon="mdi-delete"
-                @click="deleteComment(comment.comentarioID)"
+                @click="confirmDelete(comment.comentarioID)"
                 class="action-btn"
               >
                 Eliminar
@@ -275,6 +317,21 @@ const averageRating = computed(() => {
         </v-card-text>
       </v-card>
     </div>
+    
+    <!-- Confirmation Dialog -->
+    <v-dialog v-model="confirmDeleteDialog" max-width="400">
+      <v-card>
+        <v-card-title>Confirmar eliminación</v-card-title>
+        <v-card-text>
+          ¿Estás seguro de que deseas eliminar este comentario? Esta acción no se puede deshacer.
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="confirmDeleteDialog = false">Cancelar</v-btn>
+          <v-btn color="error" @click="deleteComment">Eliminar</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -361,15 +418,6 @@ const averageRating = computed(() => {
 .comment-header {
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   background-color: $light-gray;
-  
-  .delete-btn {
-    margin-right: 8px;
-    transition: transform 0.2s ease;
-    
-    &:hover {
-      transform: scale(1.2);
-    }
-  }
 }
 
 .user-name {
