@@ -1,3 +1,4 @@
+// src/types/Workout.ts
 export interface Workout {
     entrenamientoID: number;
     titulo: string;
