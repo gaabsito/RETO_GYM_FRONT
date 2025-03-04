@@ -9,6 +9,7 @@ import WorkoutCard from '@/components/WorkoutCard.vue'
 import CallToAction from '@/components/CallToAction.vue'
 import SvgInter from '@/components/SvgInter.vue'
 import Carrusel from '@/components/Carrusel.vue'
+import CookieConsent from '@/components/CookieConsent.vue'
 import heroImage from '@/assets/images/arnold.jpg'
 
 
@@ -79,6 +80,9 @@ onMounted(async () => {
       buttonText="Empieza Gratis"
       buttonLink="/register"
     />
+    
+    <!-- Cookie Consent Banner -->
+    <CookieConsent :cookie-options="true" position="bottom" theme="dark" />
   </v-container>
 </template>
 
