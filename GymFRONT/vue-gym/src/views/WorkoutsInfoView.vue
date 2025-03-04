@@ -22,6 +22,7 @@ const workout = ref<Workout | null>(null)
 const workoutExercises = ref<{ exercise: Exercise, details: any }[]>([])
 const loadingExercises = ref(false)
 const selectedTabIndex = ref(0)
+const accessDenied = ref(false)
 
 const tabs = [
   { title: 'Información', icon: 'mdi-information-outline' },
@@ -68,56 +69,87 @@ onMounted(async () => {
       throw new Error('ID de entrenamiento inválido')
     }
 
-    // Cargar el entrenamiento
-    await workoutStore.fetchWorkouts()
-    workout.value = workouts.value.find(w => w.entrenamientoID === workoutId) || null
-
-    if (!workout.value) {
-      throw new Error('Entrenamiento no encontrado')
-    }
-
-    // Cargar los ejercicios asociados al entrenamiento
-    loadingExercises.value = true
-
     try {
-      // Primero cargamos todos los ejercicios
-      await exerciseStore.fetchExercises()
+      // Primero intentamos cargar el entrenamiento
+      await workoutStore.fetchWorkouts()
+      workout.value = workouts.value.find(w => w.entrenamientoID === workoutId) || null
 
-      // Obtenemos los detalles de los ejercicios del entrenamiento
-      const workoutExerciseData = await workoutStore.getWorkoutExercises(workoutId)
-
-      if (workoutExerciseData && workoutExerciseData.length > 0) {
-        workoutExercises.value = workoutExerciseData.map(relation => {
-          const exercise = exerciseStore.exercises.find(e => e.ejercicioID === relation.ejercicioID)
-
-          return {
-            exercise: {
-              ejercicioID: relation.ejercicioID,
-              nombre: exercise?.nombre || 'Ejercicio no encontrado',
-              descripcion: exercise?.descripcion || '',
-              grupoMuscular: exercise?.grupoMuscular || '',
-              imagenURL: exercise?.imagenURL,
-              videoURL: exercise?.videoURL,
-              equipamientoNecesario: exercise?.equipamientoNecesario || false,
-              series: relation.series,
-              repeticiones: relation.repeticiones,
-              descansoSegundos: relation.descansoSegundos,
-              notas: relation.notas
-            },
-            details: {
-              series: relation.series,
-              repeticiones: relation.repeticiones,
-              descansoSegundos: relation.descansoSegundos,
-              notas: relation.notas
-            }
+      // Si no lo encontramos en el store, intentamos cargarlo directamente
+      if (!workout.value) {
+        try {
+          workout.value = await workoutStore.getWorkoutById(workoutId)
+        } catch (e) {
+          // Verificar si es un error de permisos
+          if (e instanceof Error && e.message.includes('permiso')) {
+            accessDenied.value = true
+            throw new Error('No tienes permiso para ver este entrenamiento privado')
+          } else {
+            throw e
           }
-        })
+        }
       }
 
-    } catch (exerciseErr) {
-      console.error('Error cargando ejercicios:', exerciseErr)
-    } finally {
-      loadingExercises.value = false
+      if (!workout.value) {
+        throw new Error('Entrenamiento no encontrado')
+      }
+
+      // Verificación extra de privacidad
+      if (!workout.value.publico && 
+          (!authStore.isAuthenticated || 
+           workout.value.autorID !== authStore.user?.usuarioID)) {
+        accessDenied.value = true
+        throw new Error('No tienes permiso para ver este entrenamiento privado')
+      }
+
+      // Cargar los ejercicios asociados al entrenamiento
+      loadingExercises.value = true
+
+      try {
+        // Primero cargamos todos los ejercicios
+        await exerciseStore.fetchExercises()
+
+        // Obtenemos los detalles de los ejercicios del entrenamiento
+        const workoutExerciseData = await workoutStore.getWorkoutExercises(workoutId)
+
+        if (workoutExerciseData && workoutExerciseData.length > 0) {
+          workoutExercises.value = workoutExerciseData.map(relation => {
+            const exercise = exerciseStore.exercises.find(e => e.ejercicioID === relation.ejercicioID)
+
+            return {
+              exercise: {
+                ejercicioID: relation.ejercicioID,
+                nombre: exercise?.nombre || 'Ejercicio no encontrado',
+                descripcion: exercise?.descripcion || '',
+                grupoMuscular: exercise?.grupoMuscular || '',
+                imagenURL: exercise?.imagenURL,
+                videoURL: exercise?.videoURL,
+                equipamientoNecesario: exercise?.equipamientoNecesario || false,
+                series: relation.series,
+                repeticiones: relation.repeticiones,
+                descansoSegundos: relation.descansoSegundos,
+                notas: relation.notas
+              },
+              details: {
+                series: relation.series,
+                repeticiones: relation.repeticiones,
+                descansoSegundos: relation.descansoSegundos,
+                notas: relation.notas
+              }
+            }
+          })
+        }
+      } catch (exerciseErr) {
+        console.error('Error cargando ejercicios:', exerciseErr)
+      } finally {
+        loadingExercises.value = false
+      }
+    } catch (err) {
+      if (err instanceof Error && err.message.includes('permiso')) {
+        accessDenied.value = true
+        error.value = 'No tienes permiso para ver este entrenamiento privado'
+      } else {
+        error.value = err instanceof Error ? err.message : 'Error al cargar el entrenamiento'
+      }
     }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Error al cargar el entrenamiento'
@@ -155,6 +187,16 @@ const getTotalWorkoutTime = computed(() => {
       <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
     </div>
 
+    <!-- Access Denied State -->
+    <v-alert v-else-if="accessDenied" type="error" class="error-alert">
+      No tienes permiso para ver este entrenamiento privado.
+      <template v-slot:append>
+        <v-btn color="error" variant="text" @click="goBack">
+          Volver
+        </v-btn>
+      </template>
+    </v-alert>
+
     <!-- Error State -->
     <v-alert v-else-if="error" type="error" class="error-alert">
       {{ error }}
@@ -172,12 +214,6 @@ const getTotalWorkoutTime = computed(() => {
         <v-btn variant="text" color="primary" class="back-button" prepend-icon="mdi-arrow-left" @click="goBack">
           Volver a entrenamientos
         </v-btn>
-
-        <div v-if="isAuthor" class="action-buttons">
-          <v-btn color="primary" variant="outlined" class="action-button" prepend-icon="mdi-pencil">
-            Editar
-          </v-btn>
-        </div>
       </div>
 
       <v-row class="workout-header-row">
@@ -195,7 +231,15 @@ const getTotalWorkoutTime = computed(() => {
               gradient="to bottom, rgba(0,0,0,0) 60%, rgba(0,0,0,0.8)"></v-img>
 
             <div class="workout-title-overlay">
-              <h1 class="text-h4 text-white workout-title">{{ workout.titulo }}</h1>
+              <h1 class="text-h4 text-white workout-title">
+                {{ workout.titulo }}
+                <v-chip v-if="!workout.publico" color="warning" size="small" class="ml-2">
+                  Privado
+                </v-chip>
+                <v-chip v-if="isAuthor" color="primary" size="small" class="ml-2">
+                  Tu entrenamiento
+                </v-chip>
+              </h1>
             </div>
           </v-card>
         </v-col>
@@ -339,7 +383,7 @@ const getTotalWorkoutTime = computed(() => {
                 </v-card-text>
               </v-window-item>
 
-                              <!-- Tab de Comentarios -->
+              <!-- Tab de Comentarios -->
               <v-window-item :value="2">
                 <v-card-text class="comments-tab">
                   <!-- Formulario para añadir comentarios -->
