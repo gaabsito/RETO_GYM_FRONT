@@ -20,6 +20,8 @@ export const useWorkoutStore = defineStore('workouts', () => {
                 'Content-Type': 'application/json'
             };
 
+            // Siempre incluir el token de autenticación si está disponible
+            // para que el backend pueda identificar al usuario y filtrar correctamente
             if (authStore.token) {
                 headers['Authorization'] = `Bearer ${authStore.token}`;
             }
@@ -58,16 +60,30 @@ export const useWorkoutStore = defineStore('workouts', () => {
                 'Content-Type': 'application/json'
             }
 
+            // Importante incluir el token para acceder a entrenamientos privados
             if (authStore.token) {
                 headers['Authorization'] = `Bearer ${authStore.token}`
             }
 
-            const response = await fetch(`${API_URL}/api/Entrenamiento/${id}`, { headers })
-            const data: ApiResponse<Workout> = await response.json()
+            // Corregimos la URL para que apunte al endpoint correcto
+            const response = await fetch(`${API_URL}/Entrenamiento/${id}`, { headers })
+            
+            // Manejar errores de permisos (403 Forbidden)
+            if (response.status === 403) {
+                throw new Error('No tienes permiso para ver este entrenamiento')
+            }
+            
+            if (!response.ok) {
+                throw new Error('Error al cargar el entrenamiento')
+            }
 
-            if (!response.ok) throw new Error(data.message || 'Error cargando entrenamiento')
+            const text = await response.text()
+            if (!text) {
+                throw new Error('La API devolvió una respuesta vacía')
+            }
 
-            return data.data
+            const data = JSON.parse(text)
+            return data
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
             throw e
@@ -266,6 +282,10 @@ export const useWorkoutStore = defineStore('workouts', () => {
                     'Authorization': `Bearer ${authStore.token}`
                 }
             });
+            
+            if (response.status === 403) {
+                throw new Error('No tienes permiso para eliminar este entrenamiento');
+            }
             
             if (!response.ok) {
                 const errorData = await response.text();
