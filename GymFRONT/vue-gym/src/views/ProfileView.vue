@@ -45,6 +45,8 @@ const passwordState = ref({
 const workoutsFilter = ref({
   searchQuery: '',
   selectedDifficulty: null as string | null,
+  showPublicOnly: false,
+  showPrivateOnly: false,
   userWorkouts: [] as Workout[]
 })
 
@@ -103,8 +105,14 @@ const filteredWorkouts = computed(() =>
 
     const matchesDifficulty = !workoutsFilter.value.selectedDifficulty || 
       workout.dificultad === workoutsFilter.value.selectedDifficulty
+      
+    // Filtro de visibilidad
+    const matchesVisibility = 
+      (!workoutsFilter.value.showPublicOnly && !workoutsFilter.value.showPrivateOnly) ||
+      (workoutsFilter.value.showPublicOnly && workout.publico) ||
+      (workoutsFilter.value.showPrivateOnly && !workout.publico)
 
-    return matchesSearch && matchesDifficulty
+    return matchesSearch && matchesDifficulty && matchesVisibility
   })
 )
 
@@ -185,6 +193,8 @@ const deleteWorkout = async (workoutId: number) => {
 const clearWorkoutFilters = () => {
   workoutsFilter.value.searchQuery = ''
   workoutsFilter.value.selectedDifficulty = null
+  workoutsFilter.value.showPublicOnly = false
+  workoutsFilter.value.showPrivateOnly = false
 }
 </script>
 
@@ -397,7 +407,7 @@ const clearWorkoutFilters = () => {
 
             <div class="filters-container mb-6">
               <v-row>
-                <v-col cols="12" md="6">
+                <v-col cols="12" sm="6" md="4">
                   <v-text-field
                     v-model="workoutsFilter.searchQuery"
                     label="Buscar entrenamientos"
@@ -410,7 +420,7 @@ const clearWorkoutFilters = () => {
                   ></v-text-field>
                 </v-col>
 
-                <v-col cols="12" md="4">
+                <v-col cols="12" sm="6" md="3">
                   <v-select
                     v-model="workoutsFilter.selectedDifficulty"
                     :items="difficulties"
@@ -424,12 +434,27 @@ const clearWorkoutFilters = () => {
                   ></v-select>
                 </v-col>
 
-                <v-col cols="12" md="2" class="d-flex align-center">
+                <v-col cols="12" sm="6" md="3">
+                  <v-select
+                    v-model="workoutsFilter.showPublicOnly"
+                    :items="[{text: 'TODOS', value: false}, {text: 'PÚBLICOS', value: true}]"
+                    label="Visibilidad"
+                    prepend-inner-icon="mdi-eye"
+                    variant="outlined"
+                    hide-details
+                    bg-color="white"
+                    density="comfortable"
+                    :disabled="workoutsFilter.showPrivateOnly"
+                  ></v-select>
+                </v-col>
+
+                <v-col cols="12" sm="6" md="2">
                   <v-btn 
                     variant="text" 
                     @click="clearWorkoutFilters"
-                    :disabled="!workoutsFilter.searchQuery && !workoutsFilter.selectedDifficulty"
+                    :disabled="!workoutsFilter.searchQuery && !workoutsFilter.selectedDifficulty && !workoutsFilter.showPublicOnly && !workoutsFilter.showPrivateOnly"
                     class="clear-btn"
+                    block
                   >
                     LIMPIAR
                   </v-btn>
@@ -502,8 +527,15 @@ const clearWorkoutFilters = () => {
                         </template>
                       </v-img>
 
-                      <v-card-title class="workout-title">
-                        {{ workout.titulo }}
+                      <v-card-title class="workout-title d-flex align-center">
+                        <div class="text-truncate pe-2">{{ workout.titulo }}</div>
+                        <v-chip
+                          :color="workout.publico ? 'success' : 'warning'"
+                          size="small"
+                          class="ms-2 visibility-chip"
+                        >
+                          {{ workout.publico ? 'PÚBLICO' : 'PRIVADO' }}
+                        </v-chip>
                       </v-card-title>
 
                       <v-card-subtitle class="workout-subtitle">
@@ -705,6 +737,11 @@ const clearWorkoutFilters = () => {
   font-weight: 500;
   font-family: $font-family-base;
   line-height: 1.4;
+}
+
+.visibility-chip {
+  font-weight: bold;
+  font-size: 0.7rem !important;
 }
 
 .workout-subtitle {
