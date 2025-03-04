@@ -7,6 +7,7 @@ import { storeToRefs } from 'pinia'
 import type { Workout } from '@/types/Workout'
 import type { Exercise } from '@/types/Exercise'
 import SectionContainer from '@/components/SectionContainer.vue'
+import CommentSection from '@/components/CommentSection.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -57,7 +58,7 @@ onMounted(async () => {
               imagenURL: exercise?.imagenURL,
               videoURL: exercise?.videoURL,
               equipamientoNecesario: exercise?.equipamientoNecesario || false,
-              series: relation.series,  // ✅ Se agregan propiedades faltantes
+              series: relation.series,
               repeticiones: relation.repeticiones,
               descansoSegundos: relation.descansoSegundos,
               notas: relation.notas
@@ -213,6 +214,9 @@ const goBack = () => {
           </v-row>
         </v-card-text>
       </v-card>
+
+      <!-- Sección de Comentarios -->
+      <CommentSection v-if="workout" :workout-id="workout.entrenamientoID" />
     </SectionContainer>
   </v-container>
 </template>
