@@ -173,11 +173,7 @@ const getTotalWorkoutTime = computed(() => {
           Volver a entrenamientos
         </v-btn>
 
-        <div v-if="isAuthor" class="action-buttons">
-          <v-btn color="primary" variant="outlined" class="action-button" prepend-icon="mdi-pencil">
-            Editar
-          </v-btn>
-        </div>
+       
       </div>
 
       <v-row class="workout-header-row">
