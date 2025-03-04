@@ -11,6 +11,36 @@ export const useCommentStore = defineStore('comments', () => {
     const loading = ref(false)
     const error = ref<string | null>(null)
 
+    // Función auxiliar para obtener la información del usuario
+    async function fetchUserInfo(userId: number): Promise<{nombre: string, apellido: string} | null> {
+        try {
+            const authStore = useAuthStore()
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json'
+            }
+            
+            if (authStore.token) {
+                headers['Authorization'] = `Bearer ${authStore.token}`
+            }
+            
+            const response = await fetch(`${API_URL}/Usuario/${userId}`, { headers })
+            
+            if (!response.ok) {
+                console.error(`Error al obtener información del usuario ${userId}`)
+                return null
+            }
+            
+            const userData = await response.json()
+            return {
+                nombre: userData.nombre || 'Usuario',
+                apellido: userData.apellido || ''
+            }
+        } catch (error) {
+            console.error('Error al obtener información de usuario:', error)
+            return null
+        }
+    }
+
     async function fetchCommentsByWorkout(workoutId: number) {
         loading.value = true
         error.value = null
@@ -32,21 +62,47 @@ export const useCommentStore = defineStore('comments', () => {
             }
 
             const data = await response.json()
-            // Enriquecer los comentarios con los datos de usuario si están disponibles
-            comments.value = data.map((comment: any) => {
-                if (comment.usuario) {
-                    return { ...comment }
-                } else {
-                    return { 
-                        ...comment,
-                        usuario: {
-                            nombre: 'Usuario',
-                            apellido: ''
+            
+            // Procesar cada comentario para asegurar que tenga información de usuario
+            const processedComments = []
+            
+            for(const comment of data) {
+                let commentWithUser = { ...comment }
+                
+                // Si el comentario no tiene información de usuario pero sí un usuarioID
+                if ((!comment.usuario || !comment.usuario.nombre) && comment.usuarioID) {
+                    // Verificar si el comentario fue creado por el usuario actual
+                    if (authStore.user && comment.usuarioID === authStore.user.usuarioID) {
+                        commentWithUser.usuario = {
+                            nombre: authStore.user.nombre,
+                            apellido: authStore.user.apellido
+                        }
+                    } else {
+                        // Obtener información del usuario desde la API
+                        const userInfo = await fetchUserInfo(comment.usuarioID)
+                        if (userInfo) {
+                            commentWithUser.usuario = userInfo
+                        } else {
+                            // Si no se puede obtener la información, usar valores por defecto
+                            commentWithUser.usuario = {
+                                nombre: 'Usuario',
+                                apellido: ''
+                            }
                         }
                     }
+                } else if (!comment.usuario) {
+                    // Si no hay usuario ni ID, usar valores por defecto
+                    commentWithUser.usuario = {
+                        nombre: 'Usuario',
+                        apellido: ''
+                    }
                 }
-            })
-            return data
+                
+                processedComments.push(commentWithUser)
+            }
+            
+            comments.value = processedComments
+            return processedComments
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
             comments.value = []
@@ -90,8 +146,10 @@ export const useCommentStore = defineStore('comments', () => {
                 throw new Error(errorData.message || 'Error al añadir comentario')
             }
     
-            // Como el comentario no tiene ID válido en la respuesta,
-            // simplemente refrescamos la lista completa de comentarios
+            // Esperar un momento para que la BD procese la inserción
+            await new Promise(resolve => setTimeout(resolve, 300))
+            
+            // Refrescar la lista completa de comentarios con la información de usuario
             await fetchCommentsByWorkout(comment.entrenamientoID)
             
             return true
