@@ -68,14 +68,14 @@ export const useCommentStore = defineStore('comments', () => {
             if (!authStore.token || !authStore.user) {
                 throw new Error('No autorizado')
             }
-
+    
             const commentData = {
                 entrenamientoID: comment.entrenamientoID,
                 usuarioID: authStore.user.usuarioID,
                 contenido: comment.contenido,
                 calificacion: comment.calificacion
             }
-
+    
             const response = await fetch(`${API_URL}/Comentario`, {
                 method: 'POST',
                 headers: {
@@ -84,18 +84,17 @@ export const useCommentStore = defineStore('comments', () => {
                 },
                 body: JSON.stringify(commentData)
             })
-
+    
             if (!response.ok) {
                 const errorData = await response.json()
                 throw new Error(errorData.message || 'Error al añadir comentario')
             }
-
-            const newComment = await response.json()
+    
+            // Como el comentario no tiene ID válido en la respuesta,
+            // simplemente refrescamos la lista completa de comentarios
+            await fetchCommentsByWorkout(comment.entrenamientoID)
             
-            // Actualizar la lista de comentarios
-            comments.value.push(newComment)
-            
-            return newComment
+            return true
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
             throw e
@@ -149,6 +148,12 @@ export const useCommentStore = defineStore('comments', () => {
     }
 
     async function deleteComment(id: number) {
+        if (!id || id <= 0) {
+            console.error('Intentando eliminar un comentario con ID inválido:', id);
+            error.value = 'ID de comentario inválido';
+            return false;
+        }
+    
         loading.value = true
         error.value = null
         try {
@@ -156,19 +161,21 @@ export const useCommentStore = defineStore('comments', () => {
             if (!authStore.token) {
                 throw new Error('No autorizado')
             }
-
+    
+            console.log(`Eliminando comentario con ID: ${id}`);
             const response = await fetch(`${API_URL}/Comentario/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${authStore.token}`
                 }
             })
-
+    
             if (!response.ok) {
-                const errorData = await response.json()
-                throw new Error(errorData.message || 'Error al eliminar comentario')
+                const errorText = await response.text();
+                console.error(`Error al eliminar comentario. Status: ${response.status}, Respuesta:`, errorText);
+                throw new Error(`Error al eliminar comentario (${response.status})`)
             }
-
+    
             // Eliminar el comentario de la lista local
             comments.value = comments.value.filter(c => c.comentarioID !== id)
             
