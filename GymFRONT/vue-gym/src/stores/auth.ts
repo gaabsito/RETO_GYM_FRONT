@@ -10,9 +10,19 @@ export const useAuthStore = defineStore('auth', () => {
     const token = ref<string | null>(null)
     const loading = ref(false)
     const error = ref<string | null>(null)
-
+    
+    // Verificar si la cuenta es de Google basado ÚNICAMENTE en el método de autenticación guardado
+    const isGoogleAccount = computed(() => {
+        // Verificar solamente si hay un método de autenticación 'google' guardado
+        const authMethod = localStorage.getItem('authMethod') || sessionStorage.getItem('authMethod')
+        return authMethod === 'google';
+        
+        // Eliminar la verificación basada en características del email
+        // Esta parte causaba problemas con cuentas normales que usaban correos de Gmail
+    })
+    
     const isAuthenticated = computed(() => !!token.value)
-
+    
     async function init() {
         const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token')
         const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user')
@@ -30,7 +40,7 @@ export const useAuthStore = defineStore('auth', () => {
             }
         }
     }
-
+    
     async function login(credentials: LoginCredentials & { remember?: boolean }) {
         loading.value = true
         error.value = null
@@ -56,9 +66,13 @@ export const useAuthStore = defineStore('auth', () => {
             if (credentials.remember) {
                 localStorage.setItem('token', data.token)
                 localStorage.setItem('user', JSON.stringify(data.user))
+                // Guardar el método de autenticación como 'credentials'
+                localStorage.setItem('authMethod', 'credentials')
             } else {
                 sessionStorage.setItem('token', data.token)
                 sessionStorage.setItem('user', JSON.stringify(data.user))
+                // Guardar el método de autenticación como 'credentials'
+                sessionStorage.setItem('authMethod', 'credentials')
             }
     
             return data.user
@@ -69,7 +83,7 @@ export const useAuthStore = defineStore('auth', () => {
             loading.value = false
         }
     }
-
+    
     async function register(userData: RegisterData) {
         loading.value = true
         error.value = null
@@ -93,6 +107,8 @@ export const useAuthStore = defineStore('auth', () => {
             
             sessionStorage.setItem('token', data.token)
             sessionStorage.setItem('user', JSON.stringify(data.user))
+            // Guardar el método de autenticación como 'credentials'
+            sessionStorage.setItem('authMethod', 'credentials')
     
             return data.user
         } catch (e) {
@@ -102,7 +118,7 @@ export const useAuthStore = defineStore('auth', () => {
             loading.value = false
         }
     }
-
+    
     async function requestPasswordReset(email: string) {
         loading.value = true
         error.value = null
@@ -129,7 +145,7 @@ export const useAuthStore = defineStore('auth', () => {
             loading.value = false
         }
     }
-
+    
     async function resetPassword(resetData: { token: string; password: string; confirmPassword: string }) {
         loading.value = true
         error.value = null
@@ -156,11 +172,23 @@ export const useAuthStore = defineStore('auth', () => {
             loading.value = false
         }
     }
-
+    
     async function updateProfile(updateData: Partial<User> & { currentPassword?: string, newPassword?: string }) {
         loading.value = true;
         error.value = null;
         try {
+            // Verificar si es una cuenta de Google
+            if (isGoogleAccount.value) {
+                // No permitir cambios de email ni contraseña para cuentas de Google
+                if (updateData.email) {
+                    throw new Error("Las cuentas vinculadas a Google no pueden cambiar su correo electrónico directamente");
+                }
+                
+                if (updateData.currentPassword || updateData.newPassword) {
+                    throw new Error("Las cuentas vinculadas a Google no pueden cambiar su contraseña directamente");
+                }
+            }
+            
             const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
             if (!storedToken) throw new Error("No hay token disponible");
     
@@ -182,7 +210,17 @@ export const useAuthStore = defineStore('auth', () => {
             // Actualizar el usuario en el store
             if (updateData.nombre) user.value!.nombre = updateData.nombre;
             if (updateData.apellido) user.value!.apellido = updateData.apellido;
-            if (updateData.email) user.value!.email = updateData.email;
+            // Solo actualizar el email si no es una cuenta de Google
+            if (updateData.email && !isGoogleAccount.value) {
+                user.value!.email = updateData.email;
+            }
+            
+            // Actualizar el usuario en el almacenamiento
+            if (localStorage.getItem('user')) {
+                localStorage.setItem('user', JSON.stringify(user.value));
+            } else if (sessionStorage.getItem('user')) {
+                sessionStorage.setItem('user', JSON.stringify(user.value));
+            }
     
             return user.value;
         } catch (e) {
@@ -192,7 +230,7 @@ export const useAuthStore = defineStore('auth', () => {
             loading.value = false;
         }
     }
-
+    
     async function fetchUser() {
         loading.value = true;
         error.value = null;
@@ -215,6 +253,14 @@ export const useAuthStore = defineStore('auth', () => {
     
             const data: ApiResponse<UsuarioDTO> = await response.json();
             user.value = data.data;
+            
+            // Actualizar el usuario en el almacenamiento
+            if (localStorage.getItem('user')) {
+                localStorage.setItem('user', JSON.stringify(user.value));
+            } else if (sessionStorage.getItem('user')) {
+                sessionStorage.setItem('user', JSON.stringify(user.value));
+            }
+            
             return data.data;
         } catch (e) {
             error.value = e instanceof Error ? e.message : "Error desconocido";
@@ -223,7 +269,7 @@ export const useAuthStore = defineStore('auth', () => {
             loading.value = false;
         }
     }
-
+    
     function logout() {
         // Limpiar el estado
         user.value = null
@@ -233,10 +279,12 @@ export const useAuthStore = defineStore('auth', () => {
         // Limpiar el almacenamiento
         localStorage.removeItem('token')
         localStorage.removeItem('user')
+        localStorage.removeItem('authMethod')
         sessionStorage.removeItem('token')
         sessionStorage.removeItem('user')
+        sessionStorage.removeItem('authMethod')
     }
-
+    
     async function googleLogin(idToken: string) {
         loading.value = true
         error.value = null
@@ -258,10 +306,15 @@ export const useAuthStore = defineStore('auth', () => {
             user.value = data.user
             token.value = data.token
             
-            // Guardar en sessionStorage
+            // Guardar en sessionStorage y marcar como autenticación de Google
             sessionStorage.setItem('token', data.token)
             sessionStorage.setItem('user', JSON.stringify(data.user))
-    
+            sessionStorage.setItem('authMethod', 'google')
+            
+            // Registrar para debug
+            console.log('Inicio de sesión con Google exitoso')
+            console.log('AuthMethod guardado:', sessionStorage.getItem('authMethod'))
+            
             return data.user
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
@@ -270,7 +323,7 @@ export const useAuthStore = defineStore('auth', () => {
             loading.value = false
         }
     }
-
+    
     async function checkAuth() {
         const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token')
         if (!storedToken) return
@@ -294,13 +347,14 @@ export const useAuthStore = defineStore('auth', () => {
             logout()
         }
     }
-
+    
     return {
         user,
         token,
         loading,
         error,
         isAuthenticated,
+        isGoogleAccount,
         init,
         login,
         register,

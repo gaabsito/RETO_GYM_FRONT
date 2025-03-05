@@ -1,203 +1,3 @@
-<script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { useWorkoutStore } from '@/stores/workouts'
-import type { VForm } from 'vuetify/components'
-import type { User } from '@/types/User'
-import type { Workout } from '@/types/Workout'
-import WorkoutCard from '@/components/WorkoutCard.vue'
-
-// Store Initialization
-const authStore = useAuthStore()
-const workoutStore = useWorkoutStore()
-
-// Form References and State
-const formRef = ref<VForm | null>(null)
-const loading = ref({
-  profile: false,
-  workouts: false
-})
-const error = ref({
-  profile: '',
-  workouts: ''
-})
-const success = ref({
-  profile: '',
-  workouts: ''
-})
-
-// Personal Information Form
-const personalForm = ref({
-  nombre: '',
-  apellido: '',
-  email: ''
-})
-
-// Password Change State
-const passwordState = ref({
-  isChanging: false,
-  currentPassword: '',
-  newPassword: '',
-  confirmPassword: ''
-})
-
-// Workouts Filtering
-const workoutsFilter = ref({
-  searchQuery: '',
-  selectedDifficulty: null as string | null,
-  showPublicOnly: false,
-  showPrivateOnly: false,
-  userWorkouts: [] as Workout[]
-})
-
-const difficulties = ['Fácil', 'Media', 'Difícil']
-const selectedTabIndex = ref(0)
-const tabs = [
-  { title: 'INFORMACIÓN PERSONAL', icon: 'mdi-account' },
-  { title: 'MIS ENTRENAMIENTOS', icon: 'mdi-dumbbell' }
-]
-
-// Validation Rules
-const rules = {
-  required: (v: string) => !!v || 'Este campo es requerido',
-  email: (v: string) => /.+@.+\..+/.test(v) || 'Debe ser un email válido',
-  password: (v: string) => v.length >= 6 || 'La contraseña debe tener al menos 6 caracteres',
-  passwordMatch: (v: string) => v === passwordState.value.newPassword || 'Las contraseñas no coinciden'
-}
-
-// Lifecycle Hook: Load User Data and Workouts
-onMounted(async () => {
-  try {
-    loading.value.profile = true
-    loading.value.workouts = true
-
-    // Fetch User Profile
-    const userData = await authStore.fetchUser()
-    if (userData) {
-      personalForm.value = {
-        nombre: userData.nombre,
-        apellido: userData.apellido,
-        email: userData.email
-      }
-    }
-
-    // Fetch Workouts
-    await workoutStore.fetchWorkouts()
-    workoutsFilter.value.userWorkouts = workoutStore.workouts.filter(
-      workout => workout.autorID === userData?.usuarioID
-    )
-  } catch (err) {
-    error.value.profile = err instanceof Error 
-      ? err.message 
-      : 'Error al cargar el perfil'
-  } finally {
-    loading.value.profile = false
-    loading.value.workouts = false
-  }
-})
-
-// Computed: Filtered Workouts
-const filteredWorkouts = computed(() => 
-  workoutsFilter.value.userWorkouts.filter(workout => {
-    const matchesSearch = 
-      workout.titulo.toLowerCase().includes(workoutsFilter.value.searchQuery.toLowerCase()) ||
-      (workout.descripcion?.toLowerCase().includes(workoutsFilter.value.searchQuery.toLowerCase()) ?? false)
-
-    const matchesDifficulty = !workoutsFilter.value.selectedDifficulty || 
-      workout.dificultad === workoutsFilter.value.selectedDifficulty
-      
-    // Filtro de visibilidad
-    const matchesVisibility = 
-      (!workoutsFilter.value.showPublicOnly && !workoutsFilter.value.showPrivateOnly) ||
-      (workoutsFilter.value.showPublicOnly && workout.publico) ||
-      (workoutsFilter.value.showPrivateOnly && !workout.publico)
-
-    return matchesSearch && matchesDifficulty && matchesVisibility
-  })
-)
-
-// Method: Update Profile
-const updateProfile = async () => {
-  if (!formRef.value) return
-
-  const { valid } = await formRef.value.validate()
-  if (!valid) return
-
-  try {
-    loading.value.profile = true
-    error.value.profile = ''
-    success.value.profile = 'Perfil actualizado correctamente'
-
-    const updateData: Partial<User> & { 
-      currentPassword?: string, 
-      newPassword?: string 
-    } = {
-      nombre: personalForm.value.nombre,
-      apellido: personalForm.value.apellido,
-      email: personalForm.value.email
-    }
-
-    // Handle Password Change
-    if (passwordState.value.isChanging) {
-      updateData.currentPassword = passwordState.value.currentPassword
-      updateData.newPassword = passwordState.value.newPassword
-    }
-
-    await authStore.updateProfile(updateData)
-
-    // Reset Password Change State
-    passwordState.value = {
-      isChanging: false,
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    }
-  } catch (err: any) {
-    error.value.profile = err.message || 'Error al actualizar el perfil'
-    success.value.profile = ''
-  } finally {
-    loading.value.profile = false
-  }
-}
-
-// Method: Delete Workout
-const deleteWorkout = async (workoutId: number) => {
-  try {
-    // Confirmation dialog
-    const confirmDelete = confirm('¿Estás seguro de que deseas eliminar este entrenamiento?')
-    
-    if (confirmDelete) {
-      // Attempt to delete the workout
-      await workoutStore.deleteWorkout(workoutId)
-      
-      // Update local workouts list
-      workoutsFilter.value.userWorkouts = workoutsFilter.value.userWorkouts.filter(
-        w => w.entrenamientoID !== workoutId
-      )
-      
-      success.value.workouts = 'Entrenamiento eliminado correctamente'
-    }
-  } catch (err) {
-    // Comprehensive error handling
-    console.error('Detailed Delete Workout Error:', err)
-    error.value.workouts = err instanceof Error 
-      ? err.message 
-      : 'Error al eliminar entrenamiento'
-    
-    // Optional: Show error to user
-    alert(error.value.workouts)
-  }
-}
-
-// Method: Clear Workout Filters
-const clearWorkoutFilters = () => {
-  workoutsFilter.value.searchQuery = ''
-  workoutsFilter.value.selectedDifficulty = null
-  workoutsFilter.value.showPublicOnly = false
-  workoutsFilter.value.showPrivateOnly = false
-}
-</script>
-
 <template>
   <v-container fluid class="profile-container px-0">
     <!-- Header -->
@@ -292,6 +92,9 @@ const clearWorkoutFilters = () => {
                       density="comfortable"
                       bg-color="white"
                       class="input-field"
+                      :disabled="isGoogleAccount"
+                      :hint="isGoogleAccount ? 'El email no se puede modificar en cuentas vinculadas a Google' : ''"
+                      persistent-hint
                     />
                   </v-col>
                 </v-row>
@@ -304,20 +107,43 @@ const clearWorkoutFilters = () => {
                   <div class="d-flex align-center justify-space-between">
                     <div>
                       <div class="password-label">CONTRASEÑA</div>
-                      <div class="password-hint">Cambia tu contraseña para mantener tu cuenta segura</div>
+                      <div class="password-hint">
+                        <!-- Mostrar mensaje diferente dependiendo de si es cuenta de Google -->
+                        <span v-if="isGoogleAccount">
+                          Tu cuenta está vinculada a Google. La contraseña se gestiona a través de Google.
+                        </span>
+                        <span v-else>
+                          Cambia tu contraseña para mantener tu cuenta segura
+                        </span>
+                      </div>
                     </div>
+                    
+                    <!-- Desactivar el botón si es cuenta de Google -->
                     <v-btn 
                       color="primary" 
                       variant="outlined" 
                       @click="passwordState.isChanging = !passwordState.isChanging"
                       class="change-btn"
+                      :disabled="isGoogleAccount"
                     >
                       {{ passwordState.isChanging ? 'CANCELAR' : 'CAMBIAR' }}
                     </v-btn>
                   </div>
 
+                  <!-- Mostrar una alerta si es cuenta de Google -->
+                  <v-alert
+                    v-if="isGoogleAccount"
+                    type="info"
+                    class="mt-3"
+                    variant="tonal"
+                    density="compact"
+                  >
+                    Las cuentas vinculadas a Google no pueden cambiar su correo electrónico ni contraseña directamente.
+                    Debes gestionar estos datos a través de tu cuenta de Google.
+                  </v-alert>
+
                   <v-expand-transition>
-                    <div v-if="passwordState.isChanging" class="mt-4">
+                    <div v-if="passwordState.isChanging && !isGoogleAccount" class="mt-4">
                       <v-row>
                         <v-col cols="12">
                           <v-text-field
@@ -361,6 +187,13 @@ const clearWorkoutFilters = () => {
                     </div>
                   </v-expand-transition>
                 </div>
+
+                <!-- Información de debug (activar para depuración) -->
+                <v-card v-if="false" class="mt-4 pa-3">
+                  <pre>isGoogleAccount: {{ isGoogleAccount }}</pre>
+                  <!--<pre>authMethod: {{ localStorage.getItem('authMethod') || sessionStorage.getItem('authMethod') }}</pre>-->
+                  <pre>email: {{ personalForm.email }}</pre>
+                </v-card>
 
                 <div class="d-flex justify-center mt-6">
                   <v-btn
@@ -435,18 +268,23 @@ const clearWorkoutFilters = () => {
                 </v-col>
 
                 <v-col cols="12" sm="6" md="3">
-                  <v-select
-                    v-model="workoutsFilter.showPublicOnly"
-                    :items="[{text: 'TODOS', value: false}, {text: 'PÚBLICOS', value: true}]"
-                    label="Visibilidad"
-                    prepend-inner-icon="mdi-eye"
-                    variant="outlined"
-                    hide-details
-                    bg-color="white"
-                    density="comfortable"
-                    :disabled="workoutsFilter.showPrivateOnly"
-                  ></v-select>
-                </v-col>
+  <v-select
+    v-model="workoutsFilter.showPublicOnly"
+    :items="[
+      {text: 'TODOS', value: false},
+     
+    ]"
+    item-title="text"
+    item-value="value"
+    label="Visibilidad"
+    prepend-inner-icon="mdi-eye"
+    variant="outlined"
+    hide-details
+    bg-color="white"
+    density="comfortable"
+    :disabled="workoutsFilter.showPrivateOnly"
+  ></v-select>
+</v-col>
 
                 <v-col cols="12" sm="6" md="2">
                   <v-btn 
@@ -595,6 +433,223 @@ const clearWorkoutFilters = () => {
     </v-card>
   </v-container>
 </template>
+
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { useWorkoutStore } from '@/stores/workouts'
+import type { VForm } from 'vuetify/components'
+import type { User } from '@/types/User'
+import type { Workout } from '@/types/Workout'
+import WorkoutCard from '@/components/WorkoutCard.vue'
+
+// Store Initialization
+const authStore = useAuthStore()
+const workoutStore = useWorkoutStore()
+
+// Form References and State
+const formRef = ref<VForm | null>(null)
+const loading = ref({
+  profile: false,
+  workouts: false
+})
+const error = ref({
+  profile: '',
+  workouts: ''
+})
+const success = ref({
+  profile: '',
+  workouts: ''
+})
+
+// Personal Information Form
+const personalForm = ref({
+  nombre: '',
+  apellido: '',
+  email: ''
+})
+
+// Password Change State
+const passwordState = ref({
+  isChanging: false,
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+})
+
+// Workouts Filtering
+const workoutsFilter = ref({
+  searchQuery: '',
+  selectedDifficulty: null as string | null,
+  showPublicOnly: false,
+  showPrivateOnly: false,
+  userWorkouts: [] as Workout[]
+})
+
+const difficulties = ['Fácil', 'Media', 'Difícil']
+const selectedTabIndex = ref(0)
+const tabs = [
+  { title: 'INFORMACIÓN PERSONAL', icon: 'mdi-account' },
+  { title: 'MIS ENTRENAMIENTOS', icon: 'mdi-dumbbell' }
+]
+
+// Determinar si la cuenta es de Google basada en el método de autenticación
+const isGoogleAccount = computed(() => {
+  // Verificar SOLO si el método de autenticación es 'google'
+  const authMethod = localStorage.getItem('authMethod') || sessionStorage.getItem('authMethod')
+  return authMethod === 'google';
+})
+
+// Validation Rules
+const rules = {
+  required: (v: string) => !!v || 'Este campo es requerido',
+  email: (v: string) => /.+@.+\..+/.test(v) || 'Debe ser un email válido',
+  password: (v: string) => v.length >= 6 || 'La contraseña debe tener al menos 6 caracteres',
+  passwordMatch: (v: string) => v === passwordState.value.newPassword || 'Las contraseñas no coinciden'
+}
+
+// Lifecycle Hook: Load User Data and Workouts
+onMounted(async () => {
+  try {
+    loading.value.profile = true
+    loading.value.workouts = true
+
+    // Fetch User Profile
+    const userData = await authStore.fetchUser()
+    if (userData) {
+      personalForm.value = {
+        nombre: userData.nombre,
+        apellido: userData.apellido,
+        email: userData.email
+      }
+    }
+
+    // Fetch Workouts
+    await workoutStore.fetchWorkouts()
+    workoutsFilter.value.userWorkouts = workoutStore.workouts.filter(
+      workout => workout.autorID === userData?.usuarioID
+    )
+
+    // Registrar en la consola para debug
+    console.log('Is Google Account:', isGoogleAccount.value)
+    console.log('Auth Method:', localStorage.getItem('authMethod') || sessionStorage.getItem('authMethod'))
+    console.log('Email:', personalForm.value.email)
+  } catch (err) {
+    error.value.profile = err instanceof Error 
+      ? err.message 
+      : 'Error al cargar el perfil'
+  } finally {
+    loading.value.profile = false
+    loading.value.workouts = false
+  }
+})
+
+// Computed: Filtered Workouts
+const filteredWorkouts = computed(() => 
+  workoutsFilter.value.userWorkouts.filter(workout => {
+    const matchesSearch = 
+      workout.titulo.toLowerCase().includes(workoutsFilter.value.searchQuery.toLowerCase()) ||
+      (workout.descripcion?.toLowerCase().includes(workoutsFilter.value.searchQuery.toLowerCase()) ?? false)
+
+    const matchesDifficulty = !workoutsFilter.value.selectedDifficulty || 
+      workout.dificultad === workoutsFilter.value.selectedDifficulty
+      
+    // Filtro de visibilidad
+    const matchesVisibility = 
+      (!workoutsFilter.value.showPublicOnly && !workoutsFilter.value.showPrivateOnly) ||
+      (workoutsFilter.value.showPublicOnly && workout.publico) ||
+      (workoutsFilter.value.showPrivateOnly && !workout.publico)
+
+    return matchesSearch && matchesDifficulty && matchesVisibility
+  })
+)
+
+// Method: Update Profile
+const updateProfile = async () => {
+  if (!formRef.value) return
+
+  const { valid } = await formRef.value.validate()
+  if (!valid) return
+
+  try {
+    loading.value.profile = true
+    error.value.profile = ''
+    success.value.profile = ''
+
+    // Si la cuenta es de Google, no permitir cambiar el email
+    const updateData: Partial<User> & { 
+      currentPassword?: string, 
+      newPassword?: string 
+    } = {
+      nombre: personalForm.value.nombre,
+      apellido: personalForm.value.apellido,
+    }
+
+    // Solo añadir el email si NO es una cuenta de Google
+    if (!isGoogleAccount.value) {
+      updateData.email = personalForm.value.email
+    }
+
+    // Handle Password Change - Solo para cuentas no-Google
+    if (passwordState.value.isChanging && !isGoogleAccount.value) {
+      updateData.currentPassword = passwordState.value.currentPassword
+      updateData.newPassword = passwordState.value.newPassword
+    }
+
+    await authStore.updateProfile(updateData)
+    success.value.profile = 'Perfil actualizado correctamente'
+
+    // Reset Password Change State
+    passwordState.value = {
+      isChanging: false,
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: ''
+    }
+  } catch (err: any) {
+    error.value.profile = err.message || 'Error al actualizar el perfil'
+  } finally {
+    loading.value.profile = false
+  }
+}
+
+// Method: Delete Workout
+const deleteWorkout = async (workoutId: number) => {
+  try {
+    // Confirmation dialog
+    const confirmDelete = confirm('¿Estás seguro de que deseas eliminar este entrenamiento?')
+    
+    if (confirmDelete) {
+      // Attempt to delete the workout
+      await workoutStore.deleteWorkout(workoutId)
+      
+      // Update local workouts list
+      workoutsFilter.value.userWorkouts = workoutsFilter.value.userWorkouts.filter(
+        w => w.entrenamientoID !== workoutId
+      )
+      
+      success.value.workouts = 'Entrenamiento eliminado correctamente'
+    }
+  } catch (err) {
+    // Comprehensive error handling
+    console.error('Detailed Delete Workout Error:', err)
+    error.value.workouts = err instanceof Error 
+      ? err.message 
+      : 'Error al eliminar entrenamiento'
+    
+    // Optional: Show error to user
+    alert(error.value.workouts)
+  }
+}
+
+// Method: Clear Workout Filters
+const clearWorkoutFilters = () => {
+  workoutsFilter.value.searchQuery = ''
+  workoutsFilter.value.selectedDifficulty = null
+  workoutsFilter.value.showPublicOnly = false
+  workoutsFilter.value.showPrivateOnly = false
+}
+</script>
 
 <style lang="scss" scoped>
 @import '@/assets/styles/main.scss';
@@ -809,4 +864,4 @@ const clearWorkoutFilters = () => {
     font-size: 0.9rem;
   }
 }
-</style>
+</style> 
