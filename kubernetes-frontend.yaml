@@ -46,7 +46,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: jaimeescartinsv/gymweb:gymweb
+        image: jaimeescartinsv/sanvalero:gymweb
         imagePullPolicy: Always
         ports:
         - containerPort: 80
