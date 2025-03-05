@@ -168,6 +168,15 @@ const redirectToLogin = () => {
   }
 }
 
+.v-card-text {
+  padding: 12px;
+}
+
+.mb-6 {
+  margin: 0px !important;
+  padding: 12px;
+}
+
 .rating-container {
   background-color: $light-gray;
   border-radius: $border-radius;

@@ -227,7 +227,7 @@ const averageRating = computed(() => {
             </span>
           </v-card-title>
           
-          <v-card-subtitle class="d-flex justify-center">
+          <v-card-subtitle class="d-flex justify-left">
             <v-rating
               v-if="editingCommentId !== comment.comentarioID"
               :model-value="comment.calificacion"
@@ -416,6 +416,7 @@ const averageRating = computed(() => {
 }
 
 .comment-header {
+  padding: 12px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   background-color: $light-gray;
 }

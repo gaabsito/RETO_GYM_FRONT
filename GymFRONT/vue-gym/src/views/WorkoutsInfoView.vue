@@ -592,11 +592,19 @@ const getTotalWorkoutTime = computed(() => {
 }
 
 .exercises-container {
-  padding: 0.5rem;
+  padding: 12px;
 
   .v-col {
     padding: 0.75rem;
   }
+}
+
+.v-card-actions {
+  gap: 0px !important;
+}
+
+.v-col-sm-6 {
+  margin-right: 12px;
 }
 
 .exercise-card {
@@ -627,6 +635,10 @@ const getTotalWorkoutTime = computed(() => {
     font-size: 0.9rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
   }
+}
+
+.v-col-md-5 {
+  padding-right: 12px !important;
 }
 
 .exercise-image {
@@ -683,10 +695,6 @@ const getTotalWorkoutTime = computed(() => {
   padding: 0.65rem 1rem;
   font-weight: 500;
   font-family: $font-family-base;
-
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.05);
-  }
 }
 
 .comments-tab {
