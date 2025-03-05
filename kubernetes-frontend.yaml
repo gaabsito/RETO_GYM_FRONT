@@ -15,9 +15,9 @@ data:
         try_files $uri $uri/ /index.html;
       }
 
-      # Configuración para proxy inverso a la API backend
+      # Configuración para proxy inverso a la API backend externa
       location /api/ {
-        proxy_pass http://gymapi-service/;
+        proxy_pass http://a6a1abf29733143d29a7262e7abb3076-163996853.us-east-1.elb.amazonaws.com/;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
@@ -25,7 +25,7 @@ data:
       }
     }
   env.js: |
-    window.VUE_APP_API_URL = '/api';
+    window.VUE_APP_API_URL = 'http://a6a1abf29733143d29a7262e7abb3076-163996853.us-east-1.elb.amazonaws.com/api';
     window.VUE_APP_GOOGLE_CLIENT_ID = '1088462991637-hqvnr9hmlqpv6lfin0sga0o1h5k4kv21.apps.googleusercontent.com';
 ---
 apiVersion: apps/v1
