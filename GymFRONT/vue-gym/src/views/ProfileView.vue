@@ -663,6 +663,7 @@ const clearWorkoutFilters = () => {
 }
 
 .profile-title {
+  border-radius: $border-radius;
   background-color: $primary-color;
   padding: 1.5rem;
   font-size: 1.75rem;
@@ -676,8 +677,26 @@ const clearWorkoutFilters = () => {
   padding: 0;
 }
 
+.v-input {
+  padding: 12px;
+}
+
+.input-label {
+  padding: 12px;
+}
+
+.v-btn {
+  padding-right: 12px;
+  padding-left: 12px;
+}
+
+.v-row {
+  align-items: center;
+}
+
 .profile-tabs {
   background-color: $primary-color;
+  border-radius: $border-radius;
 }
 
 .tab-spacing {
