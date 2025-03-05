@@ -68,7 +68,7 @@ const acceptAll = () => {
         <v-container>
           <v-row>
             <v-col cols="12">
-              <p class="text-body-1 mb-4">
+              <p class="text-body-1">
                 Este sitio web utiliza cookies para mejorar tu experiencia mientras navegas por la web. 
                 A continuación, puedes elegir qué tipo de cookies deseas aceptar:
               </p>
@@ -168,6 +168,41 @@ const acceptAll = () => {
 :deep(.v-list-item-subtitle) {
   line-height: 1.4;
   opacity: 0.8;
+}
+
+.v-card {
+  border-radius: $border-radius !important;
+}
+
+.v-card-text {
+  padding: 12px !important;
+}
+
+.v-card-title {
+  padding: 12px !important;
+}
+
+.v-list {
+  border-radius: $border-radius !important;
+}
+
+.text-body-1 {
+  padding-top: 16px !important;
+  padding-bottom: 16px !important;
+}
+
+.text-body-2 {
+  padding-top: 16px !important;
+  padding-bottom: 16px !important;
+}
+
+.mb-4 {
+  margin: 0px !important;
+}
+
+.v-btn {
+  padding-right: 1rem !important;
+  padding-left: 1rem !important;
 }
 
 a {
