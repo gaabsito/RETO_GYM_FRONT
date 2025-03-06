@@ -2,7 +2,7 @@
 // Array de los enlaces de redes sociales
 const socialIcons = [
   { icon: 'mdi-facebook', url: 'https://facebook.com' },
-  { icon: 'mdi-instagram', url: 'https://instagram.com' },
+  { icon: 'mdi-instagram', url: 'https://www.instagram.com/entrenatee_?igsh=MXA5YTBvYnF0ZmJtbQ%3D%3D&utm_source=qr' },
   { icon: 'mdi-twitter', url: 'https://twitter.com' }
   
 ];
