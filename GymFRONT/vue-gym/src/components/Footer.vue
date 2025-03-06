@@ -2,9 +2,8 @@
 // Array de los enlaces de redes sociales
 const socialIcons = [
   { icon: 'mdi-facebook', url: 'https://facebook.com' },
-  { icon: 'mdi-instagram', url: 'https://www.instagram.com/entrenatee_?igsh=MXA5YTBvYnF0ZmJtbQ%3D%3D&utm_source=qr' },
+  { icon: 'mdi-instagram', url: 'https://www.instagram.com/entrenatee_/' }, // Make sure the trailing slash is included
   { icon: 'mdi-twitter', url: 'https://twitter.com' }
-  
 ];
 
 // Array de los enlaces de navegación
@@ -16,6 +15,17 @@ const footerLinks = [
 
 // Obtener el año actual para el copyright
 const currentYear = new Date().getFullYear();
+
+// Función para navegar a redes sociales
+const navigateToSocial = (url: string) => {
+  // Para Instagram, usamos location.href en lugar de window.open para evitar bloqueos
+  if (url.includes('instagram')) {
+    // Esto usa una redirección normal en lugar de intentar abrir en una nueva ventana
+    location.href = url;
+  } else {
+    window.open(url, '_blank', 'noopener,noreferrer');
+  }
+};
 </script>
 
 <template>
@@ -25,9 +35,7 @@ const currentYear = new Date().getFullYear();
         v-for="social in socialIcons" 
         :key="social.icon" 
         :icon="social.icon"
-        :href="social.url"
-        target="_blank"
-        rel="noopener noreferrer"
+        @click="navigateToSocial(social.url)"
         variant="text" 
         class="footer__icon"
       ></v-btn>
