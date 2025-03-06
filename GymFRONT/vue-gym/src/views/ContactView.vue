@@ -208,7 +208,7 @@ const handleSubmit = async () => {
                 </div>
                 <div>
                   <h3 class="info-subtitle mb-1">Email</h3>
-                  <p>info@entrenatefitness.com</p>
+                  <p>entrenategymapp@gmail.com</p>
                 </div>
               </div>
               

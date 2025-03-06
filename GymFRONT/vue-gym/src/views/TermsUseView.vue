@@ -138,7 +138,7 @@ const lastUpdated = '01 de Marzo de 2025';
                 </p>
                 <p class="contact-email">
                   <v-icon color="primary" class="me-2">mdi-email</v-icon>
-                  legal@entrenatefitness.com
+                  entrenategymapp@gmail.com
                 </p>
               </section>
             </v-card-text>

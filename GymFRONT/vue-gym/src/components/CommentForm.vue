@@ -70,28 +70,30 @@ const redirectToLogin = () => {
 
 <template>
   <div class="comment-form-wrapper">
-    <h3 class="info-section-title mb-4">Tu opinión</h3>
+    <h3 class="info-section-title">TU OPINIÓN</h3>
     
-    <v-alert v-if="error" type="error" variant="tonal" density="comfortable" class="mb-4 error-alert">
+    <v-alert v-if="error" type="error" variant="tonal" density="compact" class="error-alert">
       {{ error }}
     </v-alert>
     
-    <v-alert v-if="success" type="success" variant="tonal" density="comfortable" class="mb-4 success-alert">
+    <v-alert v-if="success" type="success" variant="tonal" density="compact" class="success-alert">
       <v-icon start>mdi-check-circle</v-icon>
       ¡Gracias por tu valoración!
     </v-alert>
     
     <v-card class="comment-form-card">
-      <v-card-text>
+      <v-card-text class="card-content">
         <v-form @submit.prevent="handleSubmit">
-          <div class="rating-container mb-4">
+          <div class="rating-container">
             <div class="d-flex justify-center align-center">
-              <span class="rating-label me-3">Tu valoración:</span>
+              <span class="rating-label">Tu valoración:</span>
               <v-rating
                 v-model="form.calificacion"
                 color="yellow-darken-3"
                 hover
                 half-increments
+                size="small"
+                density="compact"
               ></v-rating>
             </div>
           </div>
@@ -108,10 +110,12 @@ const redirectToLogin = () => {
             :disabled="loading || !authStore.isAuthenticated"
             :hint="!authStore.isAuthenticated ? 'Debes iniciar sesión para dejar un comentario' : ''"
             persistent-hint
+            hide-details="auto"
+            density="compact"
             class="comment-textarea"
           ></v-textarea>
           
-          <div class="d-flex justify-center mt-4 mb-6">
+          <div class="action-container">
             <!-- Botón de autenticación (muestra el botón normal de enviar o el de iniciar sesión) -->
             <v-btn
               v-if="authStore.isAuthenticated"
@@ -145,16 +149,18 @@ const redirectToLogin = () => {
 @import '@/assets/styles/main.scss';
 
 .comment-form-wrapper {
-  margin-bottom: 2rem;
+  margin-bottom: 1rem;
+  padding: 0 0.5rem;
 }
 
 .info-section-title {
   font-family: $font-family-base;
   font-weight: 600;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
   position: relative;
   padding-left: 1rem;
-  font-size: 1.25rem;
+  font-size: 1.1rem;
+  text-transform: uppercase;
 
   &::before {
     content: '';
@@ -168,19 +174,15 @@ const redirectToLogin = () => {
   }
 }
 
-.v-card-text {
-  padding: 12px;
-}
-
-.mb-6 {
-  margin: 0px !important;
-  padding: 12px;
+.card-content {
+  padding: 0.75rem !important;
 }
 
 .rating-container {
   background-color: $light-gray;
   border-radius: $border-radius;
-  padding: 1rem;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
   transition: background-color 0.2s ease;
 
   &:hover {
@@ -192,37 +194,45 @@ const redirectToLogin = () => {
   font-family: $font-family-text;
   font-weight: 600;
   color: rgba(0, 0, 0, 0.7);
+  margin-right: 0.5rem;
+  font-size: 0.9rem;
 }
 
 .comment-form-card {
   border-radius: $border-radius;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.05) !important;
   transition: box-shadow 0.3s ease;
 
   &:hover {
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
   }
 }
 
 .comment-textarea {
-  margin-top: 1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 0.5rem;
 
   :deep(.v-field) {
     border-radius: $border-radius !important;
-    transition: all 0.3s ease;
   }
+}
+
+.action-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 0.5rem;
 }
 
 .submit-button {
   border-radius: $border-radius;
   font-family: $font-family-base;
   font-weight: 500;
-  transition: transform 0.2s ease;
-  padding: 0.5rem 1.5rem;
+  font-size: 0.9rem;
+  padding: 0.4rem 1rem;
 
   &:not(:disabled):hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
   }
 }
 
@@ -230,5 +240,32 @@ const redirectToLogin = () => {
 .success-alert {
   border-radius: $border-radius;
   font-family: $font-family-text;
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* Ajustes específicos para móvil */
+@media (max-width: 600px) {
+  .comment-form-wrapper {
+    padding: 0 0.25rem;
+  }
+
+  .info-section-title {
+    font-size: 1rem;
+    margin: 0.5rem 0;
+  }
+
+  .card-content {
+    padding: 0.5rem !important;
+  }
+
+  .rating-container {
+    padding: 1rem;
+  }
+
+  .submit-button {
+    font-size: 0.85rem;
+    padding: 0.35rem 0.75rem;
+  }
 }
 </style>
