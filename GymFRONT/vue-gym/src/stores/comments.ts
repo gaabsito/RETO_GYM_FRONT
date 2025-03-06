@@ -81,16 +81,23 @@ export const useCommentStore = defineStore('comments', () => {
                 throw new Error(errorData.message || 'Error al añadir comentario')
             }
 
+            // Obtenemos la respuesta del servidor
             const newComment = await response.json()
             
-            // Añadimos la información del usuario actual al comentario
-            // para mostrarlo inmediatamente en la interfaz
+            // Si el ID es 0 o no existe, simplemente recargamos todos los comentarios
+            if (!newComment.comentarioID || newComment.comentarioID === 0) {
+                console.log('Comentario creado exitosamente, pero sin ID. Recargando comentarios...');
+                await fetchCommentsByWorkout(comment.entrenamientoID);
+                return;
+            }
+
+            // Si llegamos aquí, es porque el comentario tiene un ID válido
             const commentWithUser: Comment = {
                 ...newComment,
+                usuarioID: authStore.user.usuarioID,
                 usuario: {
                     nombre: authStore.user.nombre,
-                    apellido: authStore.user.apellido,
-                    email: authStore.user.email
+                    apellido: authStore.user.apellido
                 }
             }
             
@@ -108,6 +115,12 @@ export const useCommentStore = defineStore('comments', () => {
 
     // Eliminar un comentario
     async function deleteComment(commentId: number) {
+        // Validar que el ID sea válido
+        if (!commentId || commentId <= 0) {
+            console.error('ID de comentario inválido:', commentId);
+            return false;
+        }
+        
         loading.value = true
         error.value = null
         try {
@@ -141,6 +154,12 @@ export const useCommentStore = defineStore('comments', () => {
 
     // Actualizar un comentario
     async function updateComment(commentId: number, data: { contenido?: string, calificacion?: number }) {
+        // Validar que el ID sea válido
+        if (!commentId || commentId <= 0) {
+            console.error('ID de comentario inválido:', commentId);
+            return false;
+        }
+        
         loading.value = true
         error.value = null
         try {
