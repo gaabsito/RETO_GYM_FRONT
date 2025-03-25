@@ -16,6 +16,7 @@ import MisEntrenamientosView from '@/views/MisEntrenamientosView.vue'
 import ContactView from '@/views/ContactView.vue'
 import TermsView from '@/views/TermsUseView.vue'
 
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
