@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Line } from 'recharts';
 import type { Medicion } from '@/types/Medicion';
 
 const props = defineProps<{
@@ -91,7 +91,7 @@ const chartData = computed(() => {
 const metricaConfig = computed(() => metricas[props.metrica]);
 
 // Formatear tooltips
-const formatTooltip = (value: number, name: string, props: any) => {
+const formatTooltip = (value, name, props) => {
   if (name === props.metrica) {
     return [`${value} ${metricaConfig.value.unidad}`, metricaConfig.value.nombre];
   }
@@ -105,7 +105,7 @@ const yDomain = computed(() => {
   // Filtrar valores null
   const valores = props.mediciones
     .map(m => m[props.metrica])
-    .filter(val => val !== null && val !== undefined) as number[];
+    .filter(val => val !== null && val !== undefined);
   
   if (valores.length === 0) return [0, 100];
   
@@ -136,40 +136,43 @@ const referencias = computed(() => metricaConfig.value.referencia || []);
     </div>
     
     <div v-else class="chart-wrapper">
-      <ResponsiveContainer width="100%" height={300}>
-        <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 10 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-          <XAxis dataKey="fecha" stroke="#666" tick={{ fontSize: 12 }} />
-          <YAxis domain={yDomain} stroke="#666" tick={{ fontSize: 12 }} 
-                 tickFormatter={(v) => `${v}${metricaConfig.unidad}`} />
-          <Tooltip 
-            formatter={formatTooltip} 
-            contentStyle={{ backgroundColor: '#fff', border: '1px solid #ccc', borderRadius: '8px' }} 
-          />
-          <Legend />
-          
-          <!-- Línea principal -->
-          <Line 
-            type="monotone" 
-            dataKey={metrica} 
-            name={metricaConfig.nombre}
-            stroke={lineColor}
-            activeDot={{ r: 8 }}
-            strokeWidth={2}
-            dot={{ strokeWidth: 2, r: 4, stroke: lineColor, fill: 'white' }}
-          />
-          
-          <!-- Líneas de referencia (solo para IMC) -->
-          <ReferenceLine 
-            v-for="(ref, index) in referencias" 
-            :key="index"
-            y={ref.valor} 
-            stroke="#ddd" 
-            strokeDasharray="3 3"
-            label={{ value: ref.label, fill: '#888', fontSize: 12 }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+      <v-responsive :aspect-ratio="16/9">
+        <v-chart 
+          :option="{
+            tooltip: {
+              trigger: 'axis',
+              formatter: (params) => {
+                const param = params[0];
+                return `${param.name}: ${param.value[props.metrica]}${metricaConfig.unidad}`;
+              }
+            },
+            xAxis: {
+              type: 'category',
+              data: chartData.map(item => item.fecha)
+            },
+            yAxis: {
+              type: 'value',
+              min: yDomain[0],
+              max: yDomain[1]
+            },
+            series: [{
+              name: metricaConfig.nombre,
+              type: 'line',
+              smooth: true,
+              data: chartData.map(item => item[props.metrica]),
+              itemStyle: {
+                color: lineColor
+              }
+            }],
+            grid: {
+              left: '3%',
+              right: '4%',
+              bottom: '3%',
+              containLabel: true
+            }
+          }"
+        ></v-chart>
+      </v-responsive>
     </div>
   </div>
 </template>
