@@ -212,7 +212,8 @@
             </v-form>
           </v-card>
         </v-window-item>
-
+        <w-window-item><MedicionPerfil /></w-window-item>
+        
         <!-- Tab de Mis Entrenamientos -->
         <v-window-item :value="1">
           <v-card flat class="pa-4">
@@ -442,24 +443,30 @@ import type { VForm } from 'vuetify/components'
 import type { User } from '@/types/User'
 import type { Workout } from '@/types/Workout'
 import WorkoutCard from '@/components/WorkoutCard.vue'
+import MedicionPerfil from '@/components/MedicionPerfil.vue'
+import { useMedicionStore } from '@/stores/medicion'
 
 // Store Initialization
 const authStore = useAuthStore()
 const workoutStore = useWorkoutStore()
+const medicionStore = useMedicionStore()
 
 // Form References and State
 const formRef = ref<VForm | null>(null)
 const loading = ref({
   profile: false,
-  workouts: false
+  workouts: false,
+  medicion: false
 })
 const error = ref({
   profile: '',
-  workouts: ''
+  workouts: '',
+  medicion: ''
 })
 const success = ref({
   profile: '',
-  workouts: ''
+  workouts: '',
+  medicion: ''
 })
 
 // Personal Information Form
