@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUpdated, computed, watch, nextTick } from 'vue'
 import { useRutinasCompletadasStore } from '@/stores/rutinasCompletadas'
 import { useMedicionesStore } from '@/stores/mediciones'
 import type { ResumenRutinas } from '@/types/RutinaCompletada'
 import type { Medicion } from '@/types/Medicion'
+// Importamos Chart de forma condicional para evitar errores durante la compilación
+// La lógica de chart.js se moverá a un hook personalizado después de instalar el paquete
 
 // Props
 const props = defineProps<{
@@ -25,6 +27,16 @@ const resumen = ref<ResumenRutinas | null>(null)
 const mediciones = ref<Medicion[]>([])
 const showFullDetails = ref(false)
 const activeTab = ref(0)
+
+// Referencias para gráficos
+const weightChartCanvas = ref<HTMLCanvasElement | null>(null)
+const imcChartCanvas = ref<HTMLCanvasElement | null>(null)
+const grasaChartCanvas = ref<HTMLCanvasElement | null>(null)
+
+// Comentamos temporalmente las instancias de gráficos hasta que se instale chart.js
+// let weightChart: Chart | null = null
+// let imcChart: Chart | null = null
+// let grasaChart: Chart | null = null
 
 // Cargar datos
 const cargarDatos = async () => {
@@ -91,7 +103,7 @@ const chartData = computed(() => {
   const grasaData = {
     labels: sortedMediciones.map(m => new Date(m.fecha).toLocaleDateString()),
     datasets: [{
-      label: 'Grasa corporal (%)',
+      label: 'IMC',
       data: sortedMediciones.map(m => m.porcentajeGrasa),
       borderColor: '#1976d2',
       backgroundColor: 'rgba(25, 118, 210, 0.1)',
@@ -107,6 +119,77 @@ const chartData = computed(() => {
   }
 })
 
+// Inicializar los gráficos
+const initCharts = () => {
+  // La inicialización de gráficos se habilitará después de instalar chart.js
+  console.log('Gráficos deshabilitados temporalmente. Instale chart.js para habilitarlos.')
+  
+  /* Código comentado hasta instalar chart.js
+  // Inicializar gráfico de peso
+  if (weightChartCanvas.value && chartData.value.pesoData) {
+    if (weightChart) weightChart.destroy()
+    weightChart = new Chart(weightChartCanvas.value, {
+      type: 'line',
+      data: chartData.value.pesoData,
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Evolución del peso'
+          }
+        }
+      }
+    })
+  }
+  
+  // Inicializar gráfico de IMC
+  if (imcChartCanvas.value && chartData.value.imcData) {
+    if (imcChart) imcChart.destroy()
+    imcChart = new Chart(imcChartCanvas.value, {
+      type: 'line',
+      data: chartData.value.imcData,
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Evolución del IMC'
+          }
+        }
+      }
+    })
+  }
+  
+  // Inicializar gráfico de grasa
+  if (grasaChartCanvas.value && chartData.value.grasaData) {
+    if (grasaChart) grasaChart.destroy()
+    grasaChart = new Chart(grasaChartCanvas.value, {
+      type: 'line',
+      data: chartData.value.grasaData,
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            position: 'top',
+          },
+          title: {
+            display: true,
+            text: 'Porcentaje de grasa corporal'
+          }
+        }
+      }
+    })
+  }
+  */
+}
+
 // Formato para números
 const formatNumber = (value: number | undefined | null): string => {
   if (value === undefined || value === null) return '-'
@@ -116,6 +199,12 @@ const formatNumber = (value: number | undefined | null): string => {
 // Al montar el componente
 onMounted(() => {
   cargarDatos()
+  // La inicialización de gráficos se manejará después de instalar chart.js
+})
+
+// Al actualizar el componente
+onUpdated(() => {
+  // La inicialización de gráficos se manejará después de instalar chart.js
 })
 
 // Observar cambios en las props
@@ -126,6 +215,16 @@ watch([
   () => props.showProgress
 ], () => {
   cargarDatos()
+})
+
+// Observar cambios en mediciones
+watch(() => mediciones.value, () => {
+  // La actualización de gráficos se manejará después de instalar chart.js
+}, { deep: true })
+
+// Observar cambios en la pestaña activa
+watch(() => activeTab.value, () => {
+  // La actualización de gráficos se manejará después de instalar chart.js
 })
 </script>
 
@@ -236,7 +335,6 @@ watch([
               <v-card-text class="py-4">
                 <canvas
                   ref="weightChartCanvas"
-                  id="weightChart"
                   height="250"
                 >
                 </canvas>
@@ -250,7 +348,6 @@ watch([
               <v-card-text class="py-4">
                 <canvas
                   ref="imcChartCanvas"
-                  id="imcChart"
                   height="250"
                 >
                 </canvas>
@@ -264,7 +361,6 @@ watch([
               <v-card-text class="py-4">
                 <canvas
                   ref="grasaChartCanvas"
-                  id="grasaChart"
                   height="250"
                 >
                 </canvas>
@@ -330,110 +426,6 @@ watch([
     </div>
   </div>
 </template>
-
-<script>
-// Script de ciclo de vida para inicializar Chart.js
-import { onMounted, onUpdated, watch } from 'vue'
-import Chart from 'chart.js/auto'
-
-export default {
-  setup() {
-    let weightChart = null
-    let imcChart = null 
-    let grasaChart = null
-    
-    const initCharts = () => {
-      // Inicializar gráfico de peso
-      const weightChartEl = document.getElementById('weightChart')
-      if (weightChartEl && this.chartData && this.chartData.pesoData) {
-        if (weightChart) weightChart.destroy()
-        weightChart = new Chart(weightChartEl, {
-          type: 'line',
-          data: this.chartData.pesoData,
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                position: 'top',
-              },
-              title: {
-                display: true,
-                text: 'Evolución del peso'
-              }
-            }
-          }
-        })
-      }
-      
-      // Inicializar gráfico de IMC
-      const imcChartEl = document.getElementById('imcChart')
-      if (imcChartEl && this.chartData && this.chartData.imcData) {
-        if (imcChart) imcChart.destroy()
-        imcChart = new Chart(imcChartEl, {
-          type: 'line',
-          data: this.chartData.imcData,
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                position: 'top',
-              },
-              title: {
-                display: true,
-                text: 'Evolución del IMC'
-              }
-            }
-          }
-        })
-      }
-      
-      // Inicializar gráfico de grasa
-      const grasaChartEl = document.getElementById('grasaChart')
-      if (grasaChartEl && this.chartData && this.chartData.grasaData) {
-        if (grasaChart) grasaChart.destroy()
-        grasaChart = new Chart(grasaChartEl, {
-          type: 'line',
-          data: this.chartData.grasaData,
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                position: 'top',
-              },
-              title: {
-                display: true,
-                text: 'Porcentaje de grasa corporal'
-              }
-            }
-          }
-        })
-      }
-    }
-    
-    onMounted(() => {
-      initCharts()
-    })
-    
-    onUpdated(() => {
-      initCharts()
-    })
-    
-    watch(() => this.mediciones, () => {
-      setTimeout(() => {
-        initCharts()
-      }, 100)
-    }, { deep: true })
-    
-    watch(() => this.activeTab, () => {
-      setTimeout(() => {
-        initCharts()
-      }, 100)
-    })
-    
-    return {}
-  }
-}
-</script>
 
 <style lang="scss" scoped>
 @import '@/assets/styles/main.scss';

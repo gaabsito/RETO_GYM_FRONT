@@ -368,7 +368,7 @@ const difficulties = ['Fácil', 'Media', 'Difícil']
 const selectedTabIndex = ref(0)
 const tabs = [
   { title: 'INFORMACIÓN PERSONAL', icon: 'mdi-account' },
-  { title: 'MIS ENTRENAMIENTOS', icon: 'mdi-dumbbell' }
+  { title: 'MIS ENTRENAMIENTOS', icon: 'mdi-dumbbell' },
   { title: 'MI PROGRESO', icon: 'mdi-chart-line' }
 ]
 
