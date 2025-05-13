@@ -35,10 +35,48 @@
             <v-alert v-if="success.profile" type="success" class="mb-4" variant="tonal">
               {{ success.profile }}
             </v-alert>
+            
+            <!-- Alerta para la foto de perfil -->
+            <v-alert v-if="error.photo" type="error" class="mb-4" variant="tonal">
+              {{ error.photo }}
+            </v-alert>
+
+            <v-alert v-if="success.photo" type="success" class="mb-4" variant="tonal">
+              {{ success.photo }}
+            </v-alert>
 
             <v-form ref="formRef" @submit.prevent="updateProfile" :disabled="loading.profile">
               <div class="profile-section">
                 <h2 class="section-title">INFORMACIÓN PERSONAL</h2>
+                
+                <!-- Foto de Perfil -->
+                <div class="d-flex flex-column align-center mb-6">
+                  <div class="avatar-container">
+                    <UserAvatar
+                      :nombre="personalForm.nombre"
+                      :apellido="personalForm.apellido"
+                      :photoUrl="photoPreview"
+                      :size="avatarSize"
+                      :showUploadButton="true"
+                      @upload="handlePhotoUpload"
+                    />
+                    
+                    <!-- Botón para eliminar foto si existe -->
+                    <v-btn
+                      v-if="photoPreview"
+                      size="small"
+                      color="error"
+                      variant="text"
+                      class="mt-2"
+                      @click="removeProfilePhoto"
+                      :loading="loading.photo"
+                      :disabled="loading.photo"
+                    >
+                      <v-icon start size="small">mdi-delete</v-icon>
+                      Eliminar foto
+                    </v-btn>
+                  </div>
+                </div>
 
                 <v-row>
                   <v-col cols="12" md="6">
@@ -123,15 +161,8 @@
                   </v-expand-transition>
                 </div>
 
-                <!-- Información de debug (activar para depuración) -->
-                <v-card v-if="false" class="mt-4 pa-3">
-                  <pre>isGoogleAccount: {{ isGoogleAccount }}</pre>
-                  <!--<pre>authMethod: {{ localStorage.getItem('authMethod') || sessionStorage.getItem('authMethod') }}</pre>-->
-                  <pre>email: {{ personalForm.email }}</pre>
-                </v-card>
-
                 <div class="d-flex justify-center mt-6">
-                  <v-btn type="submit" color="primary" size="large" min-width="220" :loading="loading.profile"
+                  <v-btn type="submit" color="primary" size="large" min-width="220" :loading="loading.profile || loading.photo"
                     class="save-button">
                     <v-icon start class="mr-1">mdi-content-save</v-icon>
                     GUARDAR CAMBIOS
@@ -319,6 +350,7 @@ import type { Workout } from '@/types/Workout'
 import WorkoutCard from '@/components/WorkoutCard.vue'
 import ProgresoEstadisticas from '@/components/ProgresoEstadisticas.vue'
 import HistorialRutinas from '@/components/HistorialRutinas.vue'
+import UserAvatar from '@/components/UserAvatar.vue' // Importar el componente de avatar
 
 // Store Initialization
 const authStore = useAuthStore()
@@ -328,16 +360,19 @@ const workoutStore = useWorkoutStore()
 const formRef = ref<VForm | null>(null)
 const loading = ref({
   profile: false,
-  workouts: false
+  workouts: false,
+  photo: false // Nuevo estado para carga de foto
 })
 const error = ref({
   profile: '',
   workouts: '',
-  progreso: ''
+  progreso: '',
+  photo: '' // Nuevo estado para errores de foto
 })
 const success = ref({
   profile: '',
-  workouts: ''
+  workouts: '',
+  photo: '' // Nuevo estado para éxito de foto
 })
 
 // Personal Information Form
@@ -346,6 +381,11 @@ const personalForm = ref({
   apellido: '',
   email: ''
 })
+
+// Estado de la foto de perfil
+const photoPreview = ref<string | null>(null)
+const photoFile = ref<File | null>(null)
+const avatarSize = ref(120) // Tamaño del avatar
 
 // Password Change State
 const passwordState = ref({
@@ -401,6 +441,11 @@ onMounted(async () => {
         nombre: userData.nombre,
         apellido: userData.apellido,
         email: userData.email
+      }
+      
+      // Establecer la foto de perfil si existe
+      if (userData.fotoPerfilURL) {
+        photoPreview.value = userData.fotoPerfilURL
       }
     }
 
@@ -486,10 +531,68 @@ const updateProfile = async () => {
       newPassword: '',
       confirmPassword: ''
     }
+    
+    // Ahora, si hay una foto nueva, la subimos
+    if (photoFile.value) {
+      try {
+        loading.value.photo = true
+        error.value.photo = ''
+        
+        await authStore.updateProfilePhoto(photoFile.value)
+        success.value.photo = 'Foto de perfil actualizada correctamente'
+        
+        // Resetear el archivo de foto
+        photoFile.value = null
+      } catch (err) {
+        error.value.photo = err instanceof Error ? err.message : 'Error al actualizar la foto de perfil'
+      } finally {
+        loading.value.photo = false
+      }
+    }
   } catch (err: any) {
     error.value.profile = err.message || 'Error al actualizar el perfil'
   } finally {
     loading.value.profile = false
+  }
+}
+
+// Método: Manejar la subida de foto
+const handlePhotoUpload = (file: File) => {
+  photoFile.value = file
+  
+  // Crear un preview de la imagen
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    photoPreview.value = e.target?.result as string
+  }
+  reader.readAsDataURL(file)
+  
+  // Mostrar mensaje
+  success.value.photo = 'Foto seleccionada. Guarde cambios para actualizar.'
+}
+
+// Método: Eliminar foto de perfil
+const removeProfilePhoto = async () => {
+  try {
+    if (!confirm('¿Está seguro que desea eliminar su foto de perfil?')) {
+      return
+    }
+    
+    loading.value.photo = true
+    error.value.photo = ''
+    success.value.photo = ''
+    
+    await authStore.removeProfilePhoto()
+    
+    // Limpiar el preview
+    photoPreview.value = null
+    photoFile.value = null
+    
+    success.value.photo = 'Foto de perfil eliminada correctamente'
+  } catch (err) {
+    error.value.photo = err instanceof Error ? err.message : 'Error al eliminar la foto de perfil'
+  } finally {
+    loading.value.photo = false
   }
 }
 
@@ -751,6 +854,13 @@ const clearWorkoutFilters = () => {
   padding: 0.25rem;
 }
 
+.avatar-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
 /* Ajustes responsive para mantener espaciado en diferentes tamaños de pantalla */
 @media (max-width: 959px) {
   .tab-spacing {
@@ -760,6 +870,10 @@ const clearWorkoutFilters = () => {
 
   .section-title {
     font-size: 1.2rem;
+  }
+  
+  .avatar-container {
+    margin-bottom: 1rem;
   }
 }
 

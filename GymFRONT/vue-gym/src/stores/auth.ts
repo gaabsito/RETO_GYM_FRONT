@@ -1,3 +1,4 @@
+// src/stores/auth.ts
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import type { User, LoginCredentials, RegisterData, UsuarioDTO} from '@/types/User'
@@ -230,6 +231,95 @@ export const useAuthStore = defineStore('auth', () => {
             loading.value = false;
         }
     }
+
+    async function updateProfilePhoto(file: File) {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (!token.value || !user.value) {
+                throw new Error('No autorizado');
+            }
+
+            // Crear un FormData para enviar el archivo
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(`${API_URL}/usuario/${user.value.usuarioID}/foto`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token.value}`
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.message || 'Error al actualizar la foto de perfil');
+            }
+
+            const data = await response.json();
+            
+            // Actualizar el URL de la foto en el usuario
+            if (user.value) {
+                user.value.fotoPerfilURL = data.data; // Asumiendo que data.data contiene el URL
+                
+                // Actualizar el usuario en el almacenamiento
+                if (localStorage.getItem('user')) {
+                    localStorage.setItem('user', JSON.stringify(user.value));
+                } else if (sessionStorage.getItem('user')) {
+                    sessionStorage.setItem('user', JSON.stringify(user.value));
+                }
+            }
+
+            return data;
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido';
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    async function removeProfilePhoto() {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (!token.value || !user.value) {
+                throw new Error('No autorizado');
+            }
+
+            const response = await fetch(`${API_URL}/usuario/${user.value.usuarioID}/foto`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token.value}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.message || 'Error al eliminar la foto de perfil');
+            }
+
+            // Actualizar el URL de la foto en el usuario
+            if (user.value) {
+                user.value.fotoPerfilURL = null;
+                
+                // Actualizar el usuario en el almacenamiento
+                if (localStorage.getItem('user')) {
+                    localStorage.setItem('user', JSON.stringify(user.value));
+                } else if (sessionStorage.getItem('user')) {
+                    sessionStorage.setItem('user', JSON.stringify(user.value));
+                }
+            }
+
+            return true;
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido';
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
     
     async function fetchUser() {
         loading.value = true;
@@ -364,6 +454,8 @@ export const useAuthStore = defineStore('auth', () => {
         resetPassword,
         updateProfile,
         fetchUser,
-        googleLogin
+        googleLogin,
+        updateProfilePhoto,
+        removeProfilePhoto
     }
 })
