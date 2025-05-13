@@ -1,24 +1,28 @@
 <script setup lang="ts">
-import { ref, onMounted, onUpdated, computed, watch, nextTick } from 'vue'
+import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
 import { useRutinasCompletadasStore } from '@/stores/rutinasCompletadas'
-import { useMedicionesStore } from '@/stores/mediciones'
+import { useMedicionStore } from '@/stores/medicion'
 import type { ResumenRutinas } from '@/types/RutinaCompletada'
 import type { Medicion } from '@/types/Medicion'
-// Importamos Chart de forma condicional para evitar errores durante la compilación
-// La lógica de chart.js se moverá a un hook personalizado después de instalar el paquete
 
-// Props
-const props = defineProps<{
+// Props con valores por defecto
+const props = withDefaults(defineProps<{
   showCalendarHeatmap?: boolean;
   showWeeklyChart?: boolean;
   showMonthlyChart?: boolean;
   showProgress?: boolean;
   limitChartData?: number;
-}>()
+}>(), {
+  showCalendarHeatmap: false,
+  showWeeklyChart: false,
+  showMonthlyChart: false,
+  showProgress: false,
+  limitChartData: 12
+})
 
 // Stores
 const rutinasCompletadasStore = useRutinasCompletadasStore()
-const medicionesStore = useMedicionesStore()
+const medicionStore = useMedicionStore()
 
 // Estado local
 const loading = ref(false)
@@ -28,15 +32,12 @@ const mediciones = ref<Medicion[]>([])
 const showFullDetails = ref(false)
 const activeTab = ref(0)
 
-// Referencias para gráficos
-const weightChartCanvas = ref<HTMLCanvasElement | null>(null)
-const imcChartCanvas = ref<HTMLCanvasElement | null>(null)
-const grasaChartCanvas = ref<HTMLCanvasElement | null>(null)
-
-// Comentamos temporalmente las instancias de gráficos hasta que se instale chart.js
-// let weightChart: Chart | null = null
-// let imcChart: Chart | null = null
-// let grasaChart: Chart | null = null
+// Referencias para los charts
+const charts = ref<{[key: string]: any}>({
+  peso: null,
+  imc: null,
+  grasa: null
+})
 
 // Cargar datos
 const cargarDatos = async () => {
@@ -47,13 +48,12 @@ const cargarDatos = async () => {
     // Cargar resumen de rutinas completadas
     resumen.value = await rutinasCompletadasStore.fetchResumen()
     
-    // Cargar mediciones para gráficos de progreso
+    // Cargar mediciones para gráficos de progreso si es necesario
     if (props.showProgress) {
       try {
-        mediciones.value = await medicionesStore.getMediciones()
+        mediciones.value = await medicionStore.getMediciones()
       } catch (medError) {
         console.error('Error al cargar mediciones:', medError)
-        // No establecemos error global aquí para no interrumpir toda la pantalla
       }
     }
   } catch (e) {
@@ -65,129 +65,149 @@ const cargarDatos = async () => {
 
 // Calcular datos para gráficos
 const chartData = computed(() => {
-  // Limitar datos para gráficos si se ha especificado
-  const limit = props.limitChartData || 12
-  
-  // Filtrar y ordenar las mediciones primero por fecha
+  // Filtrar y ordenar las mediciones por fecha
   const sortedMediciones = [...mediciones.value]
     .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
-    .slice(-limit)
+    .slice(-props.limitChartData)
   
-  // Datos para gráfico de peso si hay mediciones disponibles
-  const pesoData = {
-    labels: sortedMediciones.map(m => new Date(m.fecha).toLocaleDateString()),
-    datasets: [{
-      label: 'Peso (kg)',
-      data: sortedMediciones.map(m => m.peso),
-      borderColor: '#e25401',
-      backgroundColor: 'rgba(226, 84, 1, 0.1)',
-      tension: 0.4,
-      fill: true
-    }]
-  }
+  // Función para crear dataset
+  const createDataset = (label: string, data: any[], color: string) => ({
+    label,
+    data,
+    borderColor: color,
+    backgroundColor: `${color}20`,
+    tension: 0.4,
+    fill: true,
+    pointBackgroundColor: color,
+    pointBorderColor: '#fff',
+    pointBorderWidth: 1,
+    pointRadius: 4
+  })
   
-  // Datos para gráfico de IMC si hay mediciones disponibles
-  const imcData = {
-    labels: sortedMediciones.map(m => new Date(m.fecha).toLocaleDateString()),
-    datasets: [{
-      label: 'IMC',
-      data: sortedMediciones.map(m => m.imc),
-      borderColor: '#2f7d32',
-      backgroundColor: 'rgba(47, 125, 50, 0.1)',
-      tension: 0.4,
-      fill: true
-    }]
-  }
-  
-  // Datos para gráfico de porcentaje de grasa si hay mediciones disponibles
-  const grasaData = {
-    labels: sortedMediciones.map(m => new Date(m.fecha).toLocaleDateString()),
-    datasets: [{
-      label: 'IMC',
-      data: sortedMediciones.map(m => m.porcentajeGrasa),
-      borderColor: '#1976d2',
-      backgroundColor: 'rgba(25, 118, 210, 0.1)',
-      tension: 0.4,
-      fill: true
-    }]
-  }
+  const commonLabels = sortedMediciones.map(m => {
+    const date = new Date(m.fecha)
+    return date.toLocaleDateString(undefined, { 
+      day: '2-digit', 
+      month: 'short' 
+    })
+  })
   
   return {
-    pesoData,
-    imcData,
-    grasaData
+    peso: {
+      labels: commonLabels,
+      datasets: [createDataset('Peso (kg)', 
+        sortedMediciones.map(m => m.peso), 
+        '#e25401')]
+    },
+    imc: {
+      labels: commonLabels,
+      datasets: [createDataset('IMC', 
+        sortedMediciones.map(m => m.imc), 
+        '#2f7d32')]
+    },
+    grasa: {
+      labels: commonLabels,
+      datasets: [createDataset('Grasa corporal (%)', 
+        sortedMediciones.map(m => m.porcentajeGrasa), 
+        '#1976d2')]
+    }
   }
 })
 
-// Inicializar los gráficos
+// Configuración común para todos los gráficos
+const chartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'top',
+      labels: {
+        boxWidth: 10,
+        usePointStyle: true
+      }
+    },
+    tooltip: {
+      backgroundColor: 'rgba(0, 0, 0, 0.7)',
+      padding: 10,
+      cornerRadius: 6,
+      boxPadding: 3
+    }
+  },
+  scales: {
+    x: {
+      grid: {
+        display: false
+      }
+    },
+    y: {
+      beginAtZero: false,
+      grid: {
+        color: 'rgba(0, 0, 0, 0.05)'
+      }
+    }
+  },
+  elements: {
+    line: {
+      borderWidth: 2
+    }
+  },
+  interaction: {
+    mode: 'index',
+    intersect: false
+  }
+}
+
+// Inicializar gráficos
 const initCharts = () => {
-  // La inicialización de gráficos se habilitará después de instalar chart.js
-  console.log('Gráficos deshabilitados temporalmente. Instale chart.js para habilitarlos.')
+  if (typeof window === 'undefined' || !window.Chart) {
+    console.error('Chart.js no está disponible')
+    return
+  }
+
+  const chartTypes = ['peso', 'imc', 'grasa']
+  const titles = ['Evolución del peso', 'Evolución del IMC', 'Porcentaje de grasa corporal']
   
-  /* Código comentado hasta instalar chart.js
-  // Inicializar gráfico de peso
-  if (weightChartCanvas.value && chartData.value.pesoData) {
-    if (weightChart) weightChart.destroy()
-    weightChart = new Chart(weightChartCanvas.value, {
-      type: 'line',
-      data: chartData.value.pesoData,
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'top',
-          },
-          title: {
-            display: true,
-            text: 'Evolución del peso'
+  chartTypes.forEach((type, index) => {
+    const canvas = document.getElementById(`${type}Chart`) as HTMLCanvasElement
+    if (canvas) {
+      // Destruir el gráfico existente si existe
+      if (charts.value[type]) {
+        charts.value[type].destroy()
+      }
+      
+      if (chartData.value[type].datasets[0].data.some(d => d !== null && d !== undefined)) {
+        const options = {
+          ...chartOptions,
+          plugins: {
+            ...chartOptions.plugins,
+            title: {
+              display: true,
+              text: titles[index],
+              font: {
+                size: 16,
+                weight: 'normal'
+              }
+            }
           }
         }
+        
+        charts.value[type] = new window.Chart(canvas, {
+          type: 'line',
+          data: chartData.value[type],
+          options: options
+        })
       }
-    })
-  }
-  
-  // Inicializar gráfico de IMC
-  if (imcChartCanvas.value && chartData.value.imcData) {
-    if (imcChart) imcChart.destroy()
-    imcChart = new Chart(imcChartCanvas.value, {
-      type: 'line',
-      data: chartData.value.imcData,
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'top',
-          },
-          title: {
-            display: true,
-            text: 'Evolución del IMC'
-          }
-        }
-      }
-    })
-  }
-  
-  // Inicializar gráfico de grasa
-  if (grasaChartCanvas.value && chartData.value.grasaData) {
-    if (grasaChart) grasaChart.destroy()
-    grasaChart = new Chart(grasaChartCanvas.value, {
-      type: 'line',
-      data: chartData.value.grasaData,
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {
-            position: 'top',
-          },
-          title: {
-            display: true,
-            text: 'Porcentaje de grasa corporal'
-          }
-        }
-      }
-    })
-  }
-  */
+    }
+  })
+}
+
+// Limpiar charts al desmontar el componente
+const cleanupCharts = () => {
+  Object.values(charts.value).forEach(chart => {
+    if (chart) {
+      chart.destroy()
+    }
+  })
 }
 
 // Formato para números
@@ -196,15 +216,27 @@ const formatNumber = (value: number | undefined | null): string => {
   return value.toLocaleString()
 }
 
+// Obtener nivel de esfuerzo con color
+const esfuerzoColor = computed(() => {
+  if (!resumen.value || !resumen.value.promedioEsfuerzo) return 'grey'
+  
+  const esfuerzo = resumen.value.promedioEsfuerzo
+  if (esfuerzo < 3) return 'success'
+  if (esfuerzo < 6) return 'amber-darken-1'
+  if (esfuerzo < 8) return 'orange-darken-1'
+  return 'error'
+})
+
 // Al montar el componente
 onMounted(() => {
   cargarDatos()
-  // La inicialización de gráficos se manejará después de instalar chart.js
+  // Damos tiempo a que se renderice el DOM
+  setTimeout(initCharts, 300)
 })
 
-// Al actualizar el componente
-onUpdated(() => {
-  // La inicialización de gráficos se manejará después de instalar chart.js
+// Antes de desmontar el componente
+onBeforeUnmount(() => {
+  cleanupCharts()
 })
 
 // Observar cambios en las props
@@ -217,83 +249,83 @@ watch([
   cargarDatos()
 })
 
-// Observar cambios en mediciones
-watch(() => mediciones.value, () => {
-  // La actualización de gráficos se manejará después de instalar chart.js
+// Observar cambios en las mediciones o en la pestaña activa
+watch([() => mediciones.value, () => activeTab.value], () => {
+  // Esperar a que se actualice el DOM
+  setTimeout(initCharts, 200)
 }, { deep: true })
-
-// Observar cambios en la pestaña activa
-watch(() => activeTab.value, () => {
-  // La actualización de gráficos se manejará después de instalar chart.js
-})
 </script>
 
 <template>
-  <div class="progreso-container">
+  <div class="progreso-estadisticas">
     <!-- Alerta de error -->
-    <v-alert v-if="error" type="error" class="mb-4">
+    <v-alert v-if="error" type="error" class="mb-4" variant="tonal" density="compact">
       {{ error }}
     </v-alert>
     
     <!-- Estado de carga -->
-    <div v-if="loading" class="d-flex justify-center my-6">
-      <v-progress-circular indeterminate color="primary" size="48"></v-progress-circular>
+    <div v-if="loading" class="d-flex justify-center align-center py-8">
+      <v-progress-circular indeterminate color="primary" size="42"></v-progress-circular>
     </div>
     
     <!-- Sin datos -->
-    <v-alert v-else-if="!resumen" type="info" class="mb-4">
-      No hay suficientes datos para mostrar estadísticas. Completa algunos entrenamientos para ver tu progreso.
+    <v-alert v-else-if="!resumen" type="info" class="mb-4" variant="tonal" density="compact">
+      <div class="d-flex align-center">
+        <v-icon start>mdi-information-outline</v-icon>
+        <span>No hay suficientes datos para mostrar estadísticas.</span>
+      </div>
+      <div class="text-caption mt-2">Completa algunos entrenamientos para ver tu progreso.</div>
     </v-alert>
     
     <!-- Contenido principal -->
-    <div v-else>
+    <div v-else class="progreso-content">
       <!-- Tarjetas de resumen -->
-      <div class="stats-cards">
-        <v-row>
+      <div class="stats-grid mb-4">
+        <v-row dense>
           <v-col cols="6" sm="3">
             <v-card class="stat-card">
-              <v-card-text class="d-flex flex-column align-center">
+              <v-card-text class="pa-3 d-flex flex-column align-center">
                 <div class="stat-icon primary-bg">
-                  <v-icon color="white" size="24">mdi-dumbbell</v-icon>
+                  <v-icon color="white" size="20">mdi-dumbbell</v-icon>
                 </div>
-                <div class="stat-label">Total completadas</div>
                 <div class="stat-value">{{ formatNumber(resumen.totalRutinasCompletadas) }}</div>
+                <div class="stat-label">Total completadas</div>
               </v-card-text>
             </v-card>
           </v-col>
           
           <v-col cols="6" sm="3">
             <v-card class="stat-card">
-              <v-card-text class="d-flex flex-column align-center">
+              <v-card-text class="pa-3 d-flex flex-column align-center">
                 <div class="stat-icon success-bg">
-                  <v-icon color="white" size="24">mdi-calendar-week</v-icon>
+                  <v-icon color="white" size="20">mdi-calendar-week</v-icon>
                 </div>
-                <div class="stat-label">Última semana</div>
                 <div class="stat-value">{{ formatNumber(resumen.rutinasUltimaSemana) }}</div>
+                <div class="stat-label">Última semana</div>
               </v-card-text>
             </v-card>
           </v-col>
           
           <v-col cols="6" sm="3">
             <v-card class="stat-card">
-              <v-card-text class="d-flex flex-column align-center">
+              <v-card-text class="pa-3 d-flex flex-column align-center">
                 <div class="stat-icon warning-bg">
-                  <v-icon color="white" size="24">mdi-fire</v-icon>
+                  <v-icon color="white" size="20">mdi-fire</v-icon>
                 </div>
-                <div class="stat-label">Calorías quemadas</div>
                 <div class="stat-value">{{ formatNumber(resumen.caloriasTotales) }}</div>
+                <div class="stat-label">Calorías totales</div>
               </v-card-text>
             </v-card>
           </v-col>
           
           <v-col cols="6" sm="3">
             <v-card class="stat-card">
-              <v-card-text class="d-flex flex-column align-center">
+              <v-card-text class="pa-3 d-flex flex-column align-center">
                 <div class="stat-icon info-bg">
-                  <v-icon color="white" size="24">mdi-clock-outline</v-icon>
+                  <v-icon color="white" size="20">mdi-clock-outline</v-icon>
                 </div>
-                <div class="stat-label">Tiempo total</div>
                 <div class="stat-value">{{ formatNumber(resumen.minutosTotales) }} min</div>
+                <div class="stat-label">Tiempo total</div>
               </v-card-text>
             </v-card>
           </v-col>
@@ -301,15 +333,17 @@ watch(() => activeTab.value, () => {
       </div>
       
       <!-- Entrenamiento favorito -->
-      <v-card v-if="resumen.nombreEntrenamientoMasRepetido" class="my-4 favorite-workout-card">
-        <v-card-text>
+      <v-card v-if="resumen.nombreEntrenamientoMasRepetido" class="mb-4 favorite-workout-card" elevation="1">
+        <v-card-text class="pa-4">
           <div class="d-flex align-center">
             <div class="favorite-icon">
-              <v-icon size="32" color="amber-darken-2">mdi-star</v-icon>
+              <v-icon size="24" color="amber-darken-2">mdi-star</v-icon>
             </div>
-            <div class="ms-4">
-              <div class="text-subtitle-1 font-weight-bold">Tu entrenamiento favorito</div>
-              <div class="text-h6 primary--text">{{ resumen.nombreEntrenamientoMasRepetido }}</div>
+            <div class="ms-3">
+              <div class="text-caption text-uppercase font-weight-medium">Tu entrenamiento favorito</div>
+              <div class="text-subtitle-1 font-weight-bold primary--text">
+                {{ resumen.nombreEntrenamientoMasRepetido }}
+              </div>
               <div class="text-caption">
                 Has completado este entrenamiento {{ resumen.vecesCompletado }} veces
               </div>
@@ -318,72 +352,20 @@ watch(() => activeTab.value, () => {
         </v-card-text>
       </v-card>
       
-      <!-- Gráficos para visualización de progreso -->
-      <div v-if="props.showProgress && mediciones.length > 0">
-        <h3 class="text-h6 mt-6 mb-3">Progreso físico</h3>
-        
-        <v-tabs v-model="activeTab" bg-color="transparent" color="primary">
-          <v-tab value="0">Peso</v-tab>
-          <v-tab value="1">IMC</v-tab>
-          <v-tab value="2">% Grasa</v-tab>
-        </v-tabs>
-        
-        <v-window v-model="activeTab">
-          <!-- Gráfico de Peso -->
-          <v-window-item value="0">
-            <v-card flat>
-              <v-card-text class="py-4">
-                <canvas
-                  ref="weightChartCanvas"
-                  height="250"
-                >
-                </canvas>
-              </v-card-text>
-            </v-card>
-          </v-window-item>
-          
-          <!-- Gráfico de IMC -->
-          <v-window-item value="1">
-            <v-card flat>
-              <v-card-text class="py-4">
-                <canvas
-                  ref="imcChartCanvas"
-                  height="250"
-                >
-                </canvas>
-              </v-card-text>
-            </v-card>
-          </v-window-item>
-          
-          <!-- Gráfico de % Grasa -->
-          <v-window-item value="2">
-            <v-card flat>
-              <v-card-text class="py-4">
-                <canvas
-                  ref="grasaChartCanvas"
-                  height="250"
-                >
-                </canvas>
-              </v-card-text>
-            </v-card>
-          </v-window-item>
-        </v-window>
-      </div>
-      
       <!-- Nivel de esfuerzo promedio -->
-      <v-card v-if="resumen.promedioEsfuerzo" class="my-4">
-        <v-card-title>Nivel de esfuerzo promedio</v-card-title>
-        <v-card-text>
+      <v-card v-if="resumen.promedioEsfuerzo" class="mb-4" elevation="1">
+        <v-card-title class="text-subtitle-1 pa-4 pb-0">Esfuerzo promedio</v-card-title>
+        <v-card-text class="pb-4">
           <div class="d-flex flex-column align-center">
-            <div class="esfuerzo-gauge">
+            <div class="py-3">
               <v-progress-circular
                 :model-value="resumen.promedioEsfuerzo * 10"
-                :size="120"
-                :width="15"
-                color="amber-darken-2"
-                class="mb-3"
+                :size="100"
+                :width="12"
+                :color="esfuerzoColor"
+                class="mb-2"
               >
-                {{ resumen.promedioEsfuerzo.toFixed(1) }}
+                <span class="text-h6">{{ resumen.promedioEsfuerzo.toFixed(1) }}</span>
               </v-progress-circular>
             </div>
             <div class="esfuerzo-scale d-flex justify-space-between width-100">
@@ -395,27 +377,74 @@ watch(() => activeTab.value, () => {
         </v-card-text>
       </v-card>
       
-      <!-- Botón para ver más detalles o estadísticas adicionales -->
-      <div class="text-center mt-6">
+      <!-- Gráficos para visualización de progreso -->
+      <div v-if="props.showProgress && mediciones.length > 0" class="charts-section">
+        <h3 class="text-subtitle-1 font-weight-medium mb-3">Tu progreso físico</h3>
+        
+        <v-card elevation="1">
+          <v-card-text class="pa-2">
+            <v-tabs v-model="activeTab" bg-color="transparent" color="primary" density="comfortable">
+              <v-tab value="0">
+                <v-icon start size="small">mdi-weight</v-icon>
+                Peso
+              </v-tab>
+              <v-tab value="1">
+                <v-icon start size="small">mdi-human</v-icon>
+                IMC
+              </v-tab>
+              <v-tab value="2">
+                <v-icon start size="small">mdi-percent</v-icon>
+                % Grasa
+              </v-tab>
+            </v-tabs>
+            
+            <v-window v-model="activeTab">
+              <!-- Gráfico de Peso -->
+              <v-window-item value="0">
+                <div class="chart-container">
+                  <canvas id="pesoChart" height="280"></canvas>
+                </div>
+              </v-window-item>
+              
+              <!-- Gráfico de IMC -->
+              <v-window-item value="1">
+                <div class="chart-container">
+                  <canvas id="imcChart" height="280"></canvas>
+                </div>
+              </v-window-item>
+              
+              <!-- Gráfico de % Grasa -->
+              <v-window-item value="2">
+                <div class="chart-container">
+                  <canvas id="grasaChart" height="280"></canvas>
+                </div>
+              </v-window-item>
+            </v-window>
+          </v-card-text>
+        </v-card>
+      </div>
+      
+      <!-- Botón para ver más detalles (opcional) -->
+      <div v-if="showFullDetails === false" class="text-center mt-6">
         <v-btn
-          v-if="!showFullDetails"
           color="primary"
           variant="outlined"
+          size="small"
+          rounded
           @click="showFullDetails = true"
         >
-          Ver estadísticas detalladas
-          <v-icon end>mdi-chevron-down</v-icon>
+          <span class="text-capitalize">Ver más estadísticas</span>
+          <v-icon end size="small">mdi-chevron-down</v-icon>
         </v-btn>
       </div>
       
       <!-- Estadísticas detalladas (mostradas solo si se expande) -->
       <v-expand-transition>
-        <div v-if="showFullDetails">
-          <h3 class="text-h6 mt-6 mb-3">Estadísticas mensuales</h3>
-          
+        <div v-if="showFullDetails" class="mt-6">
+          <h3 class="text-subtitle-1 font-weight-medium mb-3">Estadísticas mensuales</h3>
           <v-card>
             <v-card-text>
-              <!-- Aquí puedes añadir gráficos más avanzados -->
+              <!-- Aquí podrías añadir gráficos más avanzados -->
               <p class="text-body-1">
                 Estos son más detalles sobre tu actividad física y progreso.
               </p>
@@ -430,20 +459,27 @@ watch(() => activeTab.value, () => {
 <style lang="scss" scoped>
 @import '@/assets/styles/main.scss';
 
-.progreso-container {
+.progreso-estadisticas {
   width: 100%;
 }
 
-.stats-cards {
-  margin-bottom: 1rem;
-  
+.progreso-content {
+  animation: fade-in 0.3s ease-in-out;
+}
+
+.stats-grid {
   .stat-card {
     border-radius: $border-radius;
     height: 100%;
+    transition: transform 0.2s ease-in-out;
+    
+    &:hover {
+      transform: translateY(-2px);
+    }
     
     .stat-icon {
-      width: 50px;
-      height: 50px;
+      width: 40px;
+      height: 40px;
       border-radius: 50%;
       display: flex;
       align-items: center;
@@ -451,33 +487,24 @@ watch(() => activeTab.value, () => {
       margin-bottom: 0.5rem;
     }
     
-    .primary-bg {
-      background-color: $primary-color;
-    }
+    .primary-bg { background-color: $primary-color; }
+    .success-bg { background-color: #2e7d32; }
+    .warning-bg { background-color: #ed6c02; }
+    .info-bg { background-color: #0288d1; }
     
-    .success-bg {
-      background-color: #2e7d32;
-    }
-    
-    .warning-bg {
-      background-color: #ed6c02;
-    }
-    
-    .info-bg {
-      background-color: #0288d1;
+    .stat-value {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: $secondary-color;
+      margin-bottom: 0.25rem;
     }
     
     .stat-label {
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       color: rgba(0, 0, 0, 0.6);
-      margin-bottom: 0.25rem;
-      text-align: center;
-    }
-    
-    .stat-value {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: $secondary-color;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 500;
     }
   }
 }
@@ -487,8 +514,8 @@ watch(() => activeTab.value, () => {
   
   .favorite-icon {
     background-color: rgba(255, 193, 7, 0.1);
-    width: 60px;
-    height: 60px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -496,21 +523,47 @@ watch(() => activeTab.value, () => {
   }
 }
 
-.esfuerzo-gauge {
-  margin: 1rem 0;
-}
-
 .esfuerzo-scale {
   width: 80%;
   margin-top: 0.5rem;
+  color: rgba(0, 0, 0, 0.6);
+}
+
+.charts-section {
+  margin-top: 1.5rem;
+  
+  .chart-container {
+    height: 280px;
+    margin: 1rem 0;
+    position: relative;
+  }
+}
+
+// Animaciones
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 // Responsive adjustments
 @media (max-width: 600px) {
-  .stats-cards {
+  .stats-grid {
     .stat-card {
       .stat-value {
-        font-size: 1.25rem;
+        font-size: 1.1rem;
+      }
+      .stat-label {
+        font-size: 0.7rem;
+      }
+      .stat-icon {
+        width: 36px;
+        height: 36px;
       }
     }
   }
@@ -518,7 +571,21 @@ watch(() => activeTab.value, () => {
   .v-tabs {
     .v-tab {
       min-width: 0 !important;
-      padding: 0 10px !important;
+      padding: 0 8px !important;
+      font-size: 0.85rem;
+    }
+  }
+  
+  .charts-section {
+    .chart-container {
+      height: 250px;
+    }
+  }
+  
+  .favorite-workout-card {
+    .favorite-icon {
+      width: 40px;
+      height: 40px;
     }
   }
 }
