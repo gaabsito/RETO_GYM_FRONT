@@ -1,16 +1,21 @@
+// src/stores/workouts.ts
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Workout, CreateWorkoutDTO, EntrenamientoEjercicio } from '@/types/Workout'
 import type { ApiResponse } from '@/types/ApiResponse'
 import { useAuthStore } from './auth'
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087'
+const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087/api'
 
 export const useWorkoutStore = defineStore('workouts', () => {
     const workouts = ref<Workout[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
 
+    /**
+     * Fetches all workouts from the API
+     * @returns Promise with workouts array
+     */
     async function fetchWorkouts() {
         loading.value = true;
         error.value = null;
@@ -20,29 +25,40 @@ export const useWorkoutStore = defineStore('workouts', () => {
                 'Content-Type': 'application/json'
             };
 
-            // Siempre incluir el token de autenticación si está disponible
-            // para que el backend pueda identificar al usuario y filtrar correctamente
+            // Include auth token if available for proper filtering
             if (authStore.token) {
                 headers['Authorization'] = `Bearer ${authStore.token}`;
             }
 
             const response = await fetch(`${API_URL}/Entrenamiento`, { headers });
+            console.log('Fetch workouts response status:', response.status);
 
-            // Verificar si la respuesta está vacía o no es JSON
+            // Handle empty response
             const text = await response.text();
             if (!text) {
-                throw new Error('La API devolvió una respuesta vacía');
+                console.warn('API returned empty response');
+                workouts.value = [];
+                return [];
             }
 
-            const data: Workout[] = JSON.parse(text);
+            // Parse JSON response
+            let data: Workout[];
+            try {
+                data = JSON.parse(text);
+            } catch (e) {
+                console.error('Error parsing workouts JSON:', e);
+                throw new Error('Error en el formato de respuesta del servidor');
+            }
 
             if (!response.ok) {
                 throw new Error('Error al cargar los entrenamientos');
             }
 
+            console.log(`Fetched ${data.length} workouts`);
             workouts.value = data;
             return data;
         } catch (e) {
+            console.error('Error in fetchWorkouts:', e);
             error.value = e instanceof Error ? e.message : 'Error desconocido';
             workouts.value = [];
             throw e;
@@ -51,69 +67,88 @@ export const useWorkoutStore = defineStore('workouts', () => {
         }
     }
 
+    /**
+     * Get a specific workout by ID
+     * @param id Workout ID to fetch
+     * @returns Promise with workout data
+     */
     async function getWorkoutById(id: number) {
-        loading.value = true
-        error.value = null
+        loading.value = true;
+        error.value = null;
         try {
-            const authStore = useAuthStore()
+            const authStore = useAuthStore();
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json'
-            }
+            };
 
-            // Importante incluir el token para acceder a entrenamientos privados
             if (authStore.token) {
-                headers['Authorization'] = `Bearer ${authStore.token}`
+                headers['Authorization'] = `Bearer ${authStore.token}`;
             }
 
-            // Corregimos la URL para que apunte al endpoint correcto
-            const response = await fetch(`${API_URL}/Entrenamiento/${id}`, { headers })
+            console.log(`Fetching workout ID: ${id}`);
+            const response = await fetch(`${API_URL}/Entrenamiento/${id}`, { headers });
+            console.log('Fetch workout by ID response status:', response.status);
             
-            // Manejar errores de permisos (403 Forbidden)
+            // Handle permission errors
             if (response.status === 403) {
-                throw new Error('No tienes permiso para ver este entrenamiento')
+                throw new Error('No tienes permiso para ver este entrenamiento');
             }
             
             if (!response.ok) {
-                throw new Error('Error al cargar el entrenamiento')
+                throw new Error('Error al cargar el entrenamiento');
             }
 
-            const text = await response.text()
+            const text = await response.text();
             if (!text) {
-                throw new Error('La API devolvió una respuesta vacía')
+                throw new Error('La API devolvió una respuesta vacía');
             }
 
-            const data = JSON.parse(text)
-            return data
+            // Parse JSON response
+            let data: Workout;
+            try {
+                data = JSON.parse(text);
+                console.log('Workout data fetched:', data);
+                return data;
+            } catch (e) {
+                console.error('Error parsing workout JSON:', e);
+                throw new Error('Error en el formato de respuesta del servidor');
+            }
         } catch (e) {
-            error.value = e instanceof Error ? e.message : 'Error desconocido'
-            throw e
+            console.error('Error in getWorkoutById:', e);
+            error.value = e instanceof Error ? e.message : 'Error desconocido';
+            throw e;
         } finally {
-            loading.value = false
+            loading.value = false;
         }
     }
 
+    /**
+     * Create a new workout
+     * @param workout Workout data to create
+     * @returns Promise with created workout
+     */
     async function createWorkout(workout: CreateWorkoutDTO) {
         loading.value = true;
         error.value = null;
         try {
             const authStore = useAuthStore();
-            if (!authStore.token) throw new Error('No autorizado');
+            if (!authStore.token || !authStore.user) {
+                throw new Error('No autorizado');
+            }
             
-            // 1. Extraer los ejercicios del DTO
-            const ejercicios = workout.ejercicios;
-            
-            // 2. Crear un nuevo DTO sin los ejercicios para el entrenamiento base
+            // 1. Create workout base data with defaults for optional fields
             const workoutBase = {
                 titulo: workout.titulo,
-                descripcion: workout.descripcion,
+                descripcion: workout.descripcion || "",
                 duracionMinutos: workout.duracionMinutos,
                 dificultad: workout.dificultad,
-                imagenURL: workout.imagenURL,
+                imagenURL: workout.imagenURL || "",
                 publico: workout.publico,
-                autorID: authStore.user?.usuarioID
+                autorID: authStore.user.usuarioID
             };
-    
-            console.log('Creando entrenamiento base:', workoutBase);
+        
+            console.log('Creating workout with data:', JSON.stringify(workoutBase));
+            
             const response = await fetch(`${API_URL}/Entrenamiento`, {
                 method: 'POST',
                 headers: {
@@ -122,97 +157,117 @@ export const useWorkoutStore = defineStore('workouts', () => {
                 },
                 body: JSON.stringify(workoutBase)
             });
-    
+        
+            console.log('Create workout response status:', response.status);
+            
+            // Get response text for debugging
+            const responseText = await response.text();
+            console.log('Create workout response text:', responseText);
+            
+            // Handle error responses
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Error creando entrenamiento');
-            }
-    
-            const data = await response.json();
-            console.log('Entrenamiento creado - respuesta completa:', data);
-            
-            // 3. Como workaround, obtener el último entrenamiento creado por este usuario
-            console.log('Buscando el entrenamiento recién creado...');
-            
-            // Esperar un momento para asegurar que la BD ha procesado la inserción
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Obtener todos los entrenamientos y filtrar por usuario
-            const allWorkoutsResponse = await fetch(`${API_URL}/Entrenamiento`, {
-                headers: {
-                    'Authorization': `Bearer ${authStore.token}`,
-                    'Content-Type': 'application/json'
+                let errorMessage = 'Error creando entrenamiento';
+                try {
+                    const errorData = JSON.parse(responseText);
+                    errorMessage = errorData.message || errorMessage;
+                } catch (e) {
+                    if (responseText) errorMessage += ': ' + responseText;
                 }
-            });
-            
-            if (!allWorkoutsResponse.ok) {
-                throw new Error('Error al recuperar entrenamientos');
+                throw new Error(errorMessage);
             }
             
-            const allWorkouts = await allWorkoutsResponse.json();
-            console.log('Todos los entrenamientos:', allWorkouts);
-            
-            // Filtrar por usuario y ordenar por fecha de creación descendente
-            const userWorkouts = allWorkouts
-                .filter(w => w.autorID === authStore.user?.usuarioID)
-                .sort((a, b) => new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime());
-            
-            console.log('Entrenamientos del usuario ordenados:', userWorkouts);
-            
-            // Obtener el entrenamiento más reciente que coincida con el título
-            const recentWorkout = userWorkouts.find(w => w.titulo === workout.titulo);
-            
-            if (!recentWorkout || !recentWorkout.entrenamientoID) {
-                throw new Error('No se pudo encontrar el ID del entrenamiento recién creado');
-            }
-            
-            const entrenamientoID = recentWorkout.entrenamientoID;
-            console.log(`Entrenamiento encontrado con ID: ${entrenamientoID}`);
-            
-            // 4. Asociar los ejercicios al entrenamiento
-            if (ejercicios && ejercicios.length > 0) {
-                console.log(`Asociando ${ejercicios.length} ejercicios al entrenamiento ID ${entrenamientoID}...`);
+            // Try to extract workout ID from response
+            let workoutId: number | null = null;
+            try {
+                const data = JSON.parse(responseText);
+                console.log('Created workout response data:', data);
                 
-                // Asociar cada ejercicio al entrenamiento
-                for (const ejercicio of ejercicios) {
-                    console.log(`Asociando ejercicio ID ${ejercicio.ejercicioID} al entrenamiento ID ${entrenamientoID}`);
-                    
-                    const ejercicioData = {
-                        entrenamientoID: entrenamientoID,
-                        ejercicioID: ejercicio.ejercicioID,
-                        series: ejercicio.series,
-                        repeticiones: ejercicio.repeticiones,
-                        descansoSegundos: ejercicio.descansoSegundos,
-                        notas: ejercicio.notas || ""
-                    };
-                    
-                    const ejercicioResponse = await fetch(`${API_URL}/EntrenamientoEjercicio`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${authStore.token}`
-                        },
-                        body: JSON.stringify(ejercicioData)
-                    });
-                    
-                    if (!ejercicioResponse.ok) {
-                        console.error(`Error asociando ejercicio ID ${ejercicio.ejercicioID}:`, 
-                                      await ejercicioResponse.text());
-                    } else {
-                        console.log(`✅ Ejercicio ID ${ejercicio.ejercicioID} asociado correctamente`);
-                    }
+                // Handle different response formats
+                if (data.entrenamientoID) {
+                    workoutId = data.entrenamientoID;
+                } else if (data.id) {
+                    workoutId = data.id;
+                }
+            } catch (e) {
+                console.error('Error parsing workout response:', e);
+            }
+            
+            // If we couldn't get workout ID from response, find the newest workout
+            if (!workoutId) {
+                console.log('No workout ID in response, searching for newest workout...');
+                
+                // Get all workouts to find the one we just created
+                await fetchWorkouts();
+                
+                // Find workout by title and author ID
+                const createdWorkout = workouts.value.find(w => 
+                    w.autorID === authStore.user?.usuarioID && 
+                    w.titulo === workout.titulo
+                );
+                
+                if (createdWorkout) {
+                    workoutId = createdWorkout.entrenamientoID;
+                    console.log(`Found created workout with ID: ${workoutId}`);
+                } else {
+                    console.error('Could not find created workout in workouts list');
                 }
             }
             
-            // 5. Actualizar la lista de entrenamientos
-            if (recentWorkout) {
-                workouts.value.push(recentWorkout);
-                return recentWorkout;
+            // If we have workout ID and exercises to add, associate them
+            if (workoutId && workout.ejercicios && workout.ejercicios.length > 0) {
+                console.log(`Associating ${workout.ejercicios.length} exercises with workout ID ${workoutId}`);
+                
+                const exercisePromises = workout.ejercicios.map(async (ejercicio) => {
+                    try {
+                        const ejercicioData = {
+                            entrenamientoID: workoutId,
+                            ejercicioID: ejercicio.ejercicioID,
+                            series: ejercicio.series,
+                            repeticiones: ejercicio.repeticiones,
+                            descansoSegundos: ejercicio.descansoSegundos,
+                            notas: ejercicio.notas || ""
+                        };
+                        
+                        console.log(`Associating exercise:`, ejercicioData);
+                        
+                        const ejercicioResponse = await fetch(`${API_URL}/EntrenamientoEjercicio`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${authStore.token}`
+                            },
+                            body: JSON.stringify(ejercicioData)
+                        });
+                        
+                        if (!ejercicioResponse.ok) {
+                            const errorText = await ejercicioResponse.text();
+                            console.warn(`Error associating exercise ID ${ejercicio.ejercicioID}:`, errorText);
+                        } else {
+                            console.log(`✅ Exercise ID ${ejercicio.ejercicioID} associated successfully`);
+                        }
+                        
+                        return ejercicioResponse.ok;
+                    } catch (e) {
+                        console.error(`Error associating exercise:`, e);
+                        return false;
+                    }
+                });
+                
+                // Wait for all exercise associations to complete
+                await Promise.allSettled(exercisePromises);
             }
             
+            // Get the full workout data to return
+            if (workoutId) {
+                const createdWorkout = await getWorkoutById(workoutId);
+                return createdWorkout;
+            }
+            
+            // If we get here, we couldn't get the workout ID
+            console.warn('Creating workout succeeded but could not get workout details');
             return null;
         } catch (e) {
-            console.error('Error en createWorkout:', e);
+            console.error('Error in createWorkout:', e);
             error.value = e instanceof Error ? e.message : 'Error desconocido';
             throw e;
         } finally {
@@ -220,6 +275,11 @@ export const useWorkoutStore = defineStore('workouts', () => {
         }
     }
 
+    /**
+     * Get exercises associated with a workout
+     * @param workoutId Workout ID to get exercises for
+     * @returns Promise with workout exercises data
+     */
     async function getWorkoutExercises(workoutId: number) {
         loading.value = true;
         error.value = null;
@@ -233,34 +293,40 @@ export const useWorkoutStore = defineStore('workouts', () => {
                 headers['Authorization'] = `Bearer ${authStore.token}`;
             }
 
-            console.log(`🟡 Solicitando ejercicios para el entrenamiento ID: ${workoutId}`);
-
+            console.log(`Fetching exercises for workout ID: ${workoutId}`);
             const response = await fetch(`${API_URL}/EntrenamientoEjercicio/${workoutId}`, { headers });
+            console.log('Fetch workout exercises response status:', response.status);
 
             if (!response.ok) {
-                throw new Error(`❌ Error al cargar ejercicios. Código: ${response.status}`);
+                throw new Error(`Error al cargar ejercicios. Código: ${response.status}`);
             }
 
             const text = await response.text();
             if (!text) {
-                console.warn("⚠️ La API devolvió una respuesta vacía.");
+                console.warn("API returned empty response for exercises");
                 return [];
             }
 
-            const data: ApiResponse<EntrenamientoEjercicio[]> = JSON.parse(text);
-            console.log("🟢 Respuesta de la API:", data);
-
-            const exercises = data.data ?? data; // Si data.data no existe, usa data directamente
-            console.log("🟢 Ejercicios procesados:", exercises);
-
-            if (!exercises || exercises.length === 0) {
-                console.warn("⚠️ No se encontraron ejercicios para este entrenamiento.");
-                return [];
+            // Parse the JSON response carefully
+            try {
+                const data = JSON.parse(text);
+                console.log("Workout exercises response:", data);
+                
+                // Handle both response formats (with data property or direct array)
+                const exercises = data.data || data;
+                
+                if (!exercises || !Array.isArray(exercises) || exercises.length === 0) {
+                    console.warn("No exercises found for this workout");
+                    return [];
+                }
+                
+                return exercises;
+            } catch (e) {
+                console.error("Error parsing exercises JSON:", e);
+                throw new Error("Error al procesar la respuesta de ejercicios");
             }
-
-            return exercises;
         } catch (e) {
-            console.error("🔴 Error en getWorkoutExercises:", e);
+            console.error("Error in getWorkoutExercises:", e);
             error.value = e instanceof Error ? e.message : 'Error desconocido';
             throw e;
         } finally {
@@ -268,13 +334,21 @@ export const useWorkoutStore = defineStore('workouts', () => {
         }
     }
 
+    /**
+     * Delete a workout
+     * @param id Workout ID to delete
+     * @returns Promise with success status
+     */
     async function deleteWorkout(id: number) {
         loading.value = true;
         error.value = null;
         try {
             const authStore = useAuthStore();
-            if (!authStore.token) throw new Error('No autorizado');
+            if (!authStore.token) {
+                throw new Error('No autorizado');
+            }
             
+            console.log(`Deleting workout ID: ${id}`);
             const response = await fetch(`${API_URL}/Entrenamiento/${id}`, {
                 method: 'DELETE',
                 headers: {
@@ -283,20 +357,23 @@ export const useWorkoutStore = defineStore('workouts', () => {
                 }
             });
             
+            console.log('Delete workout response status:', response.status);
+            
             if (response.status === 403) {
                 throw new Error('No tienes permiso para eliminar este entrenamiento');
             }
             
             if (!response.ok) {
-                const errorData = await response.text();
-                throw new Error(errorData || 'Error eliminando entrenamiento');
+                const errorText = await response.text();
+                throw new Error(errorText || 'Error eliminando entrenamiento');
             }
             
             // Remove the workout from the local state
             workouts.value = workouts.value.filter(w => w.entrenamientoID !== id);
+            console.log(`Workout ID ${id} deleted successfully`);
             return true;
         } catch (e) {
-            console.error('Error en deleteWorkout:', e);
+            console.error('Error in deleteWorkout:', e);
             error.value = e instanceof Error ? e.message : 'Error desconocido';
             throw e;
         } finally {
