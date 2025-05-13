@@ -10,20 +10,9 @@
     <!-- Content Section -->
     <v-card class="content-card mx-auto" elevation="0" max-width="1400">
       <!-- Tabs -->
-      <v-tabs 
-        v-model="selectedTabIndex" 
-        bg-color="#e25401" 
-        align-tabs="center" 
-        show-arrows 
-        slider-color="white" 
-        class="profile-tabs"
-      >
-        <v-tab 
-          v-for="(tab, index) in tabs" 
-          :key="index" 
-          :value="index" 
-          class="white--text tab-spacing"
-        >
+      <v-tabs v-model="selectedTabIndex" bg-color="#e25401" align-tabs="center" show-arrows slider-color="white"
+        class="profile-tabs">
+        <v-tab v-for="(tab, index) in tabs" :key="index" :value="index" class="white--text tab-spacing">
           <v-icon start color="white" class="mr-2">{{ tab.icon }}</v-icon>
           {{ tab.title }}
         </v-tab>
@@ -50,52 +39,29 @@
             <v-form ref="formRef" @submit.prevent="updateProfile" :disabled="loading.profile">
               <div class="profile-section">
                 <h2 class="section-title">INFORMACIÓN PERSONAL</h2>
-                
+
                 <v-row>
                   <v-col cols="12" md="6">
                     <label class="input-label">NOMBRE</label>
-                    <v-text-field
-                      v-model="personalForm.nombre"
-                      prepend-inner-icon="mdi-account"
-                      :rules="[rules.required]"
-                      variant="outlined"
-                      required
-                      density="comfortable"
-                      bg-color="white"
-                      class="input-field"
-                    />
+                    <v-text-field v-model="personalForm.nombre" prepend-inner-icon="mdi-account"
+                      :rules="[rules.required]" variant="outlined" required density="comfortable" bg-color="white"
+                      class="input-field" />
                   </v-col>
 
                   <v-col cols="12" md="6">
                     <label class="input-label">APELLIDO</label>
-                    <v-text-field
-                      v-model="personalForm.apellido"
-                      prepend-inner-icon="mdi-account"
-                      :rules="[rules.required]"
-                      variant="outlined"
-                      required
-                      density="comfortable"
-                      bg-color="white"
-                      class="input-field"
-                    />
+                    <v-text-field v-model="personalForm.apellido" prepend-inner-icon="mdi-account"
+                      :rules="[rules.required]" variant="outlined" required density="comfortable" bg-color="white"
+                      class="input-field" />
                   </v-col>
 
                   <v-col cols="12">
                     <label class="input-label">EMAIL</label>
-                    <v-text-field
-                      v-model="personalForm.email"
-                      prepend-inner-icon="mdi-email"
-                      :rules="[rules.required, rules.email]"
-                      type="email"
-                      variant="outlined"
-                      required
-                      density="comfortable"
-                      bg-color="white"
-                      class="input-field"
-                      :disabled="isGoogleAccount"
+                    <v-text-field v-model="personalForm.email" prepend-inner-icon="mdi-email"
+                      :rules="[rules.required, rules.email]" type="email" variant="outlined" required
+                      density="comfortable" bg-color="white" class="input-field" :disabled="isGoogleAccount"
                       :hint="isGoogleAccount ? 'El email no se puede modificar en cuentas vinculadas a Google' : ''"
-                      persistent-hint
-                    />
+                      persistent-hint />
                   </v-col>
                 </v-row>
               </div>
@@ -117,27 +83,17 @@
                         </span>
                       </div>
                     </div>
-                    
+
                     <!-- Desactivar el botón si es cuenta de Google -->
-                    <v-btn 
-                      color="primary" 
-                      variant="outlined" 
-                      @click="passwordState.isChanging = !passwordState.isChanging"
-                      class="change-btn"
-                      :disabled="isGoogleAccount"
-                    >
+                    <v-btn color="primary" variant="outlined"
+                      @click="passwordState.isChanging = !passwordState.isChanging" class="change-btn"
+                      :disabled="isGoogleAccount">
                       {{ passwordState.isChanging ? 'CANCELAR' : 'CAMBIAR' }}
                     </v-btn>
                   </div>
 
                   <!-- Mostrar una alerta si es cuenta de Google -->
-                  <v-alert
-                    v-if="isGoogleAccount"
-                    type="info"
-                    class="mt-3"
-                    variant="tonal"
-                    density="compact"
-                  >
+                  <v-alert v-if="isGoogleAccount" type="info" class="mt-3" variant="tonal" density="compact">
                     Las cuentas vinculadas a Google no pueden cambiar su correo electrónico ni contraseña directamente.
                     Debes gestionar estos datos a través de tu cuenta de Google.
                   </v-alert>
@@ -146,42 +102,21 @@
                     <div v-if="passwordState.isChanging && !isGoogleAccount" class="mt-4">
                       <v-row>
                         <v-col cols="12">
-                          <v-text-field
-                            v-model="passwordState.currentPassword"
-                            label="Contraseña Actual"
-                            :rules="[rules.required, rules.password]"
-                            type="password"
-                            variant="outlined"
-                            prepend-inner-icon="mdi-lock"
-                            bg-color="white"
-                            density="comfortable"
-                          />
+                          <v-text-field v-model="passwordState.currentPassword" label="Contraseña Actual"
+                            :rules="[rules.required, rules.password]" type="password" variant="outlined"
+                            prepend-inner-icon="mdi-lock" bg-color="white" density="comfortable" />
                         </v-col>
 
                         <v-col cols="12" md="6">
-                          <v-text-field
-                            v-model="passwordState.newPassword"
-                            label="Nueva Contraseña"
-                            :rules="[rules.required, rules.password]"
-                            type="password"
-                            variant="outlined"
-                            prepend-inner-icon="mdi-lock-plus"
-                            bg-color="white"
-                            density="comfortable"
-                          />
+                          <v-text-field v-model="passwordState.newPassword" label="Nueva Contraseña"
+                            :rules="[rules.required, rules.password]" type="password" variant="outlined"
+                            prepend-inner-icon="mdi-lock-plus" bg-color="white" density="comfortable" />
                         </v-col>
 
                         <v-col cols="12" md="6">
-                          <v-text-field
-                            v-model="passwordState.confirmPassword"
-                            label="Confirmar Contraseña"
-                            :rules="[rules.required, rules.passwordMatch]"
-                            type="password"
-                            variant="outlined"
-                            prepend-inner-icon="mdi-lock-check"
-                            bg-color="white"
-                            density="comfortable"
-                          />
+                          <v-text-field v-model="passwordState.confirmPassword" label="Confirmar Contraseña"
+                            :rules="[rules.required, rules.passwordMatch]" type="password" variant="outlined"
+                            prepend-inner-icon="mdi-lock-check" bg-color="white" density="comfortable" />
                         </v-col>
                       </v-row>
                     </div>
@@ -196,14 +131,8 @@
                 </v-card>
 
                 <div class="d-flex justify-center mt-6">
-                  <v-btn
-                    type="submit"
-                    color="primary"
-                    size="large"
-                    min-width="220"
-                    :loading="loading.profile"
-                    class="save-button"
-                  >
+                  <v-btn type="submit" color="primary" size="large" min-width="220" :loading="loading.profile"
+                    class="save-button">
                     <v-icon start class="mr-1">mdi-content-save</v-icon>
                     GUARDAR CAMBIOS
                   </v-btn>
@@ -227,13 +156,8 @@
 
             <!-- Workouts Filters -->
             <div class="d-flex justify-end mb-4">
-              <v-btn 
-                color="primary" 
-                variant="elevated"
-                to="/crear-entrenamiento"
-                prepend-icon="mdi-plus"
-                class="create-btn"
-              >
+              <v-btn color="primary" variant="elevated" to="/crear-entrenamiento" prepend-icon="mdi-plus"
+                class="create-btn">
                 CREAR NUEVO
               </v-btn>
             </div>
@@ -241,59 +165,30 @@
             <div class="filters-container mb-6">
               <v-row>
                 <v-col cols="12" sm="6" md="4">
-                  <v-text-field
-                    v-model="workoutsFilter.searchQuery"
-                    label="Buscar entrenamientos"
-                    prepend-inner-icon="mdi-magnify"
-                    variant="outlined"
-                    clearable
-                    hide-details
-                    bg-color="white"
-                    density="comfortable"
-                  ></v-text-field>
+                  <v-text-field v-model="workoutsFilter.searchQuery" label="Buscar entrenamientos"
+                    prepend-inner-icon="mdi-magnify" variant="outlined" clearable hide-details bg-color="white"
+                    density="comfortable"></v-text-field>
                 </v-col>
 
                 <v-col cols="12" sm="6" md="3">
-                  <v-select
-                    v-model="workoutsFilter.selectedDifficulty"
-                    :items="difficulties"
-                    label="Dificultad"
-                    prepend-inner-icon="mdi-signal-cellular-outline"
-                    variant="outlined"
-                    clearable
-                    hide-details
-                    bg-color="white"
-                    density="comfortable"
-                  ></v-select>
+                  <v-select v-model="workoutsFilter.selectedDifficulty" :items="difficulties" label="Dificultad"
+                    prepend-inner-icon="mdi-signal-cellular-outline" variant="outlined" clearable hide-details
+                    bg-color="white" density="comfortable"></v-select>
                 </v-col>
 
                 <v-col cols="12" sm="6" md="3">
-  <v-select
-    v-model="workoutsFilter.showPublicOnly"
-    :items="[
-      {text: 'TODOS', value: false},
-     
-    ]"
-    item-title="text"
-    item-value="value"
-    label="Visibilidad"
-    prepend-inner-icon="mdi-eye"
-    variant="outlined"
-    hide-details
-    bg-color="white"
-    density="comfortable"
-    :disabled="workoutsFilter.showPrivateOnly"
-  ></v-select>
-</v-col>
+                  <v-select v-model="workoutsFilter.showPublicOnly" :items="[
+                    { text: 'TODOS', value: false },
+
+                  ]" item-title="text" item-value="value" label="Visibilidad" prepend-inner-icon="mdi-eye" variant="outlined"
+                    hide-details bg-color="white" density="comfortable"
+                    :disabled="workoutsFilter.showPrivateOnly"></v-select>
+                </v-col>
 
                 <v-col cols="12" sm="6" md="2">
-                  <v-btn 
-                    variant="text" 
-                    @click="clearWorkoutFilters"
+                  <v-btn variant="text" @click="clearWorkoutFilters"
                     :disabled="!workoutsFilter.searchQuery && !workoutsFilter.selectedDifficulty && !workoutsFilter.showPublicOnly && !workoutsFilter.showPrivateOnly"
-                    class="clear-btn"
-                    block
-                  >
+                    class="clear-btn" block>
                     LIMPIAR
                   </v-btn>
                 </v-col>
@@ -303,32 +198,20 @@
             <!-- Loading State -->
             <v-row v-if="loading.workouts" justify="center">
               <v-col cols="12" class="text-center">
-                <v-progress-circular 
-                  indeterminate 
-                  color="primary" 
-                  size="64" 
-                />
+                <v-progress-circular indeterminate color="primary" size="64" />
               </v-col>
             </v-row>
 
             <!-- No Workouts State -->
-            <v-row 
-              v-else-if="filteredWorkouts.length === 0" 
-              justify="center"
-            >
+            <v-row v-else-if="filteredWorkouts.length === 0" justify="center">
               <v-col cols="12" class="text-center py-6">
                 <v-icon size="64" color="grey-lighten-1" class="mb-4">mdi-dumbbell-off</v-icon>
                 <h3 class="text-h5 mb-2">No tienes entrenamientos creados</h3>
                 <p class="text-subtitle-1 text-medium-emphasis mb-4">
                   Comienza a crear tus propios entrenamientos personalizados
                 </p>
-                <v-btn 
-                  color="primary" 
-                  to="/crear-entrenamiento"
-                  size="large"
-                  prepend-icon="mdi-plus"
-                  class="create-btn"
-                >
+                <v-btn color="primary" to="/crear-entrenamiento" size="large" prepend-icon="mdi-plus"
+                  class="create-btn">
                   CREAR PRIMER ENTRENAMIENTO
                 </v-btn>
               </v-col>
@@ -337,27 +220,12 @@
             <!-- Workouts List -->
             <div v-else class="workouts-container">
               <v-row>
-                <v-col 
-                  v-for="workout in filteredWorkouts" 
-                  :key="workout.entrenamientoID"
-                  cols="12" 
-                  sm="6"
-                  md="4"
-                  lg="3"
-                  class="workout-col"
-                >
+                <v-col v-for="workout in filteredWorkouts" :key="workout.entrenamientoID" cols="12" sm="6" md="4" lg="3"
+                  class="workout-col">
                   <v-hover v-slot="{ isHovering, props }">
-                    <v-card 
-                      v-bind="props" 
-                      :elevation="isHovering ? 8 : 2" 
-                      class="workout-card h-100"
-                    >
-                      <v-img 
-                        :src="workout.imagenURL || '/api/placeholder/400/300'" 
-                        height="200" 
-                        cover 
-                        class="bg-grey-lighten-2"
-                      >
+                    <v-card v-bind="props" :elevation="isHovering ? 8 : 2" class="workout-card h-100">
+                      <v-img :src="workout.imagenURL || '/api/placeholder/400/300'" height="200" cover
+                        class="bg-grey-lighten-2">
                         <template v-slot:placeholder>
                           <v-row class="fill-height ma-0" align="center" justify="center">
                             <v-progress-circular indeterminate color="primary"></v-progress-circular>
@@ -367,28 +235,20 @@
 
                       <v-card-title class="workout-title d-flex align-center">
                         <div class="text-truncate pe-2">{{ workout.titulo }}</div>
-                        <v-chip
-                          :color="workout.publico ? 'success' : 'warning'"
-                          size="small"
-                          class="ms-2 visibility-chip"
-                        >
+                        <v-chip :color="workout.publico ? 'success' : 'warning'" size="small"
+                          class="ms-2 visibility-chip">
                           {{ workout.publico ? 'PÚBLICO' : 'PRIVADO' }}
                         </v-chip>
                       </v-card-title>
 
                       <v-card-subtitle class="workout-subtitle">
                         <div class="d-flex align-center">
-                          <v-icon 
-                            size="small"
-                            :color="
-                              workout.dificultad === 'Fácil' ? 'success' : 
+                          <v-icon size="small" :color="workout.dificultad === 'Fácil' ? 'success' :
                               workout.dificultad === 'Media' ? 'warning' : 'error'
-                            "
-                            class="me-2"
-                          >
+                            " class="me-2">
                             mdi-signal-cellular-{{
-                              workout.dificultad === 'Fácil' ? '1' : 
-                              workout.dificultad === 'Media' ? '2' : '3'
+                              workout.dificultad === 'Fácil' ? '1' :
+                                workout.dificultad === 'Media' ? '2' : '3'
                             }}
                           </v-icon>
                           {{ workout.dificultad }} | {{ workout.duracionMinutos }} min
@@ -402,22 +262,14 @@
                       <v-divider></v-divider>
 
                       <v-card-actions class="workout-actions">
-                        <v-btn
-                          variant="text"
-                          color="error"
-                          @click="deleteWorkout(workout.entrenamientoID)"
-                          class="delete-btn"
-                        >
+                        <v-btn variant="text" color="error" @click="deleteWorkout(workout.entrenamientoID)"
+                          class="delete-btn">
                           <v-icon start>mdi-delete</v-icon>
                           ELIMINAR
                         </v-btn>
                         <v-spacer></v-spacer>
-                        <v-btn
-                          variant="text"
-                          color="primary"
-                          :to="`/workouts/${workout.entrenamientoID}`"
-                          class="view-btn"
-                        >
+                        <v-btn variant="text" color="primary" :to="`/workouts/${workout.entrenamientoID}`"
+                          class="view-btn">
                           VER MÁS
                           <v-icon end>mdi-arrow-right</v-icon>
                         </v-btn>
@@ -426,6 +278,29 @@
                   </v-hover>
                 </v-col>
               </v-row>
+            </div>
+          </v-card>
+        </v-window-item>
+
+        <v-window-item :value="2">
+          <v-card flat class="pa-4">
+            <!-- Alertas -->
+            <v-alert v-if="error.progreso" type="error" class="mb-4" variant="tonal">
+              {{ error.progreso }}
+            </v-alert>
+
+            <!-- Resumen y estadísticas -->
+            <div class="progreso-section">
+              <h2 class="section-title">ESTADÍSTICAS DE ENTRENAMIENTO</h2>
+
+              <ProgresoEstadisticas :showProgress="true" :showCalendarHeatmap="true" />
+            </div>
+
+            <!-- Historial de entrenamientos -->
+            <div class="progreso-section mt-6">
+              <h2 class="section-title">HISTORIAL DE ENTRENAMIENTOS</h2>
+
+              <HistorialRutinas />
             </div>
           </v-card>
         </v-window-item>
@@ -442,6 +317,8 @@ import type { VForm } from 'vuetify/components'
 import type { User } from '@/types/User'
 import type { Workout } from '@/types/Workout'
 import WorkoutCard from '@/components/WorkoutCard.vue'
+import ProgresoEstadisticas from '@/components/ProgresoEstadisticas.vue'
+import HistorialRutinas from '@/components/HistorialRutinas.vue'
 
 // Store Initialization
 const authStore = useAuthStore()
@@ -455,7 +332,8 @@ const loading = ref({
 })
 const error = ref({
   profile: '',
-  workouts: ''
+  workouts: '',
+  progreso: ''
 })
 const success = ref({
   profile: '',
@@ -491,7 +369,9 @@ const selectedTabIndex = ref(0)
 const tabs = [
   { title: 'INFORMACIÓN PERSONAL', icon: 'mdi-account' },
   { title: 'MIS ENTRENAMIENTOS', icon: 'mdi-dumbbell' }
+  { title: 'MI PROGRESO', icon: 'mdi-chart-line' }
 ]
+
 
 // Determinar si la cuenta es de Google basada en el método de autenticación
 const isGoogleAccount = computed(() => {
@@ -535,8 +415,8 @@ onMounted(async () => {
     console.log('Auth Method:', localStorage.getItem('authMethod') || sessionStorage.getItem('authMethod'))
     console.log('Email:', personalForm.value.email)
   } catch (err) {
-    error.value.profile = err instanceof Error 
-      ? err.message 
+    error.value.profile = err instanceof Error
+      ? err.message
       : 'Error al cargar el perfil'
   } finally {
     loading.value.profile = false
@@ -545,17 +425,17 @@ onMounted(async () => {
 })
 
 // Computed: Filtered Workouts
-const filteredWorkouts = computed(() => 
+const filteredWorkouts = computed(() =>
   workoutsFilter.value.userWorkouts.filter(workout => {
-    const matchesSearch = 
+    const matchesSearch =
       workout.titulo.toLowerCase().includes(workoutsFilter.value.searchQuery.toLowerCase()) ||
       (workout.descripcion?.toLowerCase().includes(workoutsFilter.value.searchQuery.toLowerCase()) ?? false)
 
-    const matchesDifficulty = !workoutsFilter.value.selectedDifficulty || 
+    const matchesDifficulty = !workoutsFilter.value.selectedDifficulty ||
       workout.dificultad === workoutsFilter.value.selectedDifficulty
-      
+
     // Filtro de visibilidad
-    const matchesVisibility = 
+    const matchesVisibility =
       (!workoutsFilter.value.showPublicOnly && !workoutsFilter.value.showPrivateOnly) ||
       (workoutsFilter.value.showPublicOnly && workout.publico) ||
       (workoutsFilter.value.showPrivateOnly && !workout.publico)
@@ -577,9 +457,9 @@ const updateProfile = async () => {
     success.value.profile = ''
 
     // Si la cuenta es de Google, no permitir cambiar el email
-    const updateData: Partial<User> & { 
-      currentPassword?: string, 
-      newPassword?: string 
+    const updateData: Partial<User> & {
+      currentPassword?: string,
+      newPassword?: string
     } = {
       nombre: personalForm.value.nombre,
       apellido: personalForm.value.apellido,
@@ -618,25 +498,25 @@ const deleteWorkout = async (workoutId: number) => {
   try {
     // Confirmation dialog
     const confirmDelete = confirm('¿Estás seguro de que deseas eliminar este entrenamiento?')
-    
+
     if (confirmDelete) {
       // Attempt to delete the workout
       await workoutStore.deleteWorkout(workoutId)
-      
+
       // Update local workouts list
       workoutsFilter.value.userWorkouts = workoutsFilter.value.userWorkouts.filter(
         w => w.entrenamientoID !== workoutId
       )
-      
+
       success.value.workouts = 'Entrenamiento eliminado correctamente'
     }
   } catch (err) {
     // Comprehensive error handling
     console.error('Detailed Delete Workout Error:', err)
-    error.value.workouts = err instanceof Error 
-      ? err.message 
+    error.value.workouts = err instanceof Error
+      ? err.message
       : 'Error al eliminar entrenamiento'
-    
+
     // Optional: Show error to user
     alert(error.value.workouts)
   }
@@ -700,7 +580,8 @@ const clearWorkoutFilters = () => {
 }
 
 .tab-spacing {
-  margin: 0 50px; /* Mayor espacio entre pestañas */
+  margin: 0 50px;
+  /* Mayor espacio entre pestañas */
   padding: 0 20px;
   font-size: 1.1rem;
 }
@@ -823,7 +704,19 @@ const clearWorkoutFilters = () => {
   background-color: rgba(0, 0, 0, 0.02);
   font-weight: 500;
 }
+.progreso-section {
+  margin-bottom: 2rem;
+}
 
+.section-title {
+  color: $secondary-color;
+  font-size: 1.3rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+  padding-left: 1rem;
+  border-left: 5px solid $primary-color;
+  font-family: $font-family-base;
+}
 .workout-text {
   padding: 1rem;
 }
@@ -832,7 +725,10 @@ const clearWorkoutFilters = () => {
   padding: 0.5rem;
 }
 
-.create-btn, .clear-btn, .view-btn, .delete-btn {
+.create-btn,
+.clear-btn,
+.view-btn,
+.delete-btn {
   font-family: $font-family-base;
   font-weight: 600;
   letter-spacing: 0.5px;
@@ -861,7 +757,7 @@ const clearWorkoutFilters = () => {
     margin: 0 20px;
     padding: 0 10px;
   }
-  
+
   .section-title {
     font-size: 1.2rem;
   }
@@ -876,11 +772,11 @@ const clearWorkoutFilters = () => {
   .section-title {
     font-size: 1.1rem;
   }
-  
+
   .tab-spacing {
     margin: 0 10px;
     padding: 0 5px;
     font-size: 0.9rem;
   }
 }
-</style> 
+</style>
