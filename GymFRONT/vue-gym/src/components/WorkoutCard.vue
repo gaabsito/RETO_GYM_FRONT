@@ -1,12 +1,22 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useAuthStore } from '@/stores/auth'
 import type { Workout } from '@/types/Workout'
 
 const props = defineProps<{
   workout: Workout
   showDescription?: boolean
+  showCompleteButton?: boolean
 }>()
 
+const emit = defineEmits(['complete'])
+
+const authStore = useAuthStore()
+
+// Verificar si el usuario está autenticado
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+
+// Determinar el color de dificultad
 const difficultyColor = computed(() => {
   switch (props.workout.dificultad) {
     case 'Fácil':
@@ -20,6 +30,7 @@ const difficultyColor = computed(() => {
   }
 })
 
+// Determinar icono de dificultad
 const difficultyIcon = computed(() => {
   switch (props.workout.dificultad) {
     case 'Fácil':
@@ -32,6 +43,12 @@ const difficultyIcon = computed(() => {
       return 'mdi-signal-cellular-1'
   }
 })
+
+// Manejar el clic en completar
+const handleComplete = (event) => {
+  event.stopPropagation() // Evitar navegación si está dentro de un elemento clickeable
+  emit('complete', props.workout)
+}
 </script>
 
 <template>
@@ -41,6 +58,9 @@ const difficultyIcon = computed(() => {
       </v-img>
       <v-card-title class="text-white pb-4">
         {{ workout.titulo }}
+        <v-chip v-if="!workout.publico" color="warning" size="small" class="ml-2">
+          Privado
+        </v-chip>
       </v-card-title>
       <v-card-text>
         <div class="d-flex align-center mb-2">
@@ -56,6 +76,16 @@ const difficultyIcon = computed(() => {
       </v-card-text>
 
       <v-card-actions>
+        <!-- Botón para marcar como completado (si está habilitado y autenticado) -->
+        <v-btn 
+          v-if="showCompleteButton && isAuthenticated" 
+          color="success" 
+          variant="text" 
+          @click="handleComplete"
+          prepend-icon="mdi-check-circle"
+        >
+          Completar
+        </v-btn>
         <v-spacer></v-spacer>
         <v-btn color="primary" variant="text" :to="`/workouts/${workout.entrenamientoID}`">
           Ver más
@@ -68,8 +98,6 @@ const difficultyIcon = computed(() => {
 
 <style lang="scss" scoped>
 @import '@/assets/styles/main.scss';
-
-
 
 .workout-card {
   border-radius: $border-radius;

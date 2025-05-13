@@ -5,7 +5,7 @@ import type { RutinaCompletada, RutinaCompletadaCreate, RutinaCompletadaUpdate, 
 import type { ApiResponse } from '@/types/ApiResponse'
 import { useAuthStore } from './auth'
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087'
+const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087/api'
 
 export const useRutinasCompletadasStore = defineStore('rutinasCompletadas', () => {
     const rutinasCompletadas = ref<RutinaCompletada[]>([])
@@ -31,13 +31,14 @@ export const useRutinasCompletadasStore = defineStore('rutinasCompletadas', () =
             })
 
             if (!response.ok) {
-                throw new Error('Error al cargar las rutinas completadas')
+                const errorData = await response.json()
+                throw new Error(errorData.message || 'Error al cargar rutinas completadas')
             }
 
             const data: ApiResponse<RutinaCompletada[]> = await response.json()
             
             if (!data.success) {
-                throw new Error(data.message || 'Error al cargar las rutinas completadas')
+                throw new Error(data.message || 'Error al cargar rutinas completadas')
             }
 
             // Convertir fechas de string a Date
@@ -73,13 +74,14 @@ export const useRutinasCompletadasStore = defineStore('rutinasCompletadas', () =
             })
 
             if (!response.ok) {
-                throw new Error('Error al cargar la rutina completada')
+                const errorData = await response.json()
+                throw new Error(errorData.message || 'Error al cargar rutina completada')
             }
 
             const data: ApiResponse<RutinaCompletada> = await response.json()
             
             if (!data.success) {
-                throw new Error(data.message || 'Error al cargar la rutina completada')
+                throw new Error(data.message || 'Error al cargar rutina completada')
             }
 
             // Convertir fecha de string a Date
@@ -115,13 +117,19 @@ export const useRutinasCompletadasStore = defineStore('rutinasCompletadas', () =
             })
 
             if (!response.ok) {
-                throw new Error('Error al cargar las rutinas completadas')
+                const errorData = await response.json().catch(() => ({}))
+                throw new Error(errorData.message || 'Error al cargar rutinas completadas')
             }
 
-            const data: ApiResponse<RutinaCompletada[]> = await response.json()
+            const text = await response.text()
+            if (!text) {
+                return []
+            }
+
+            const data: ApiResponse<RutinaCompletada[]> = JSON.parse(text)
             
             if (!data.success) {
-                throw new Error(data.message || 'Error al cargar las rutinas completadas')
+                throw new Error(data.message || 'Error al cargar rutinas completadas')
             }
 
             // Convertir fechas de string a Date
@@ -132,8 +140,10 @@ export const useRutinasCompletadasStore = defineStore('rutinasCompletadas', () =
             
             return rutinasEntrenamiento
         } catch (e) {
+            console.error('Error al cargar rutinas completadas por entrenamiento:', e)
             error.value = e instanceof Error ? e.message : 'Error desconocido'
-            throw e
+            // Retornar array vacío en lugar de lanzar error para manejar gracefully
+            return []
         } finally {
             loading.value = false
         }
@@ -157,13 +167,14 @@ export const useRutinasCompletadasStore = defineStore('rutinasCompletadas', () =
             })
 
             if (!response.ok) {
-                throw new Error('Error al cargar el resumen')
+                const errorData = await response.json()
+                throw new Error(errorData.message || 'Error al cargar resumen')
             }
 
             const data: ApiResponse<ResumenRutinas> = await response.json()
             
             if (!data.success) {
-                throw new Error(data.message || 'Error al cargar el resumen')
+                throw new Error(data.message || 'Error al cargar resumen')
             }
 
             resumen.value = data.data
@@ -196,13 +207,14 @@ export const useRutinasCompletadasStore = defineStore('rutinasCompletadas', () =
             })
 
             if (!response.ok) {
-                throw new Error('Error al marcar la rutina como completada')
+                const errorData = await response.json()
+                throw new Error(errorData.message || 'Error al marcar rutina como completada')
             }
 
             const data: ApiResponse<RutinaCompletada> = await response.json()
             
             if (!data.success) {
-                throw new Error(data.message || 'Error al marcar la rutina como completada')
+                throw new Error(data.message || 'Error al marcar rutina como completada')
             }
 
             // Convertir fecha de string a Date
@@ -243,13 +255,14 @@ export const useRutinasCompletadasStore = defineStore('rutinasCompletadas', () =
             })
 
             if (!response.ok) {
-                throw new Error('Error al actualizar la rutina completada')
+                const errorData = await response.json()
+                throw new Error(errorData.message || 'Error al actualizar rutina completada')
             }
 
             const data: ApiResponse<RutinaCompletada> = await response.json()
             
             if (!data.success) {
-                throw new Error(data.message || 'Error al actualizar la rutina completada')
+                throw new Error(data.message || 'Error al actualizar rutina completada')
             }
 
             // Convertir fecha de string a Date
@@ -292,13 +305,14 @@ export const useRutinasCompletadasStore = defineStore('rutinasCompletadas', () =
             })
 
             if (!response.ok) {
-                throw new Error('Error al eliminar la rutina completada')
+                const errorData = await response.json()
+                throw new Error(errorData.message || 'Error al eliminar rutina completada')
             }
 
             const data: ApiResponse<boolean> = await response.json()
             
             if (!data.success) {
-                throw new Error(data.message || 'Error al eliminar la rutina completada')
+                throw new Error(data.message || 'Error al eliminar rutina completada')
             }
 
             // Eliminar de la lista local

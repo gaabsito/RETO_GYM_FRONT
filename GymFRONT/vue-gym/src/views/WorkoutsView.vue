@@ -2,12 +2,24 @@
 import { ref, onMounted, computed } from 'vue'
 import { useWorkoutStore } from '@/stores/workouts'
 import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
+import WorkoutCard from '@/components/WorkoutCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import CompletarRutinaModal from '@/components/CompletarRutinaModal.vue'
+import heroImage from '@/assets/images/ejercicios.jpg'
 
 const workoutStore = useWorkoutStore()
 const authStore = useAuthStore()
+const router = useRouter()
 const { workouts, loading, error } = storeToRefs(workoutStore)
 const initialized = ref(false)
+
+// Modal de completar rutina
+const showCompletarModal = ref(false)
+const selectedWorkoutForCompletion = ref<number | null>(null)
+const selectedWorkoutName = ref('')
+const selectedWorkoutDuration = ref<number | undefined>(undefined)
 
 // Filtros
 const searchQuery = ref('')
@@ -19,6 +31,9 @@ const difficulties = [
   'Media', 
   'Difícil'
 ]
+
+// Verificar si el usuario está autenticado
+const isAuthenticated = computed(() => authStore.isAuthenticated)
 
 onMounted(async () => {
   try {
@@ -49,6 +64,26 @@ const filteredWorkouts = computed(() => {
   })
 })
 
+// Función para abrir modal de completar rutina
+const openCompletarModal = (workout) => {
+  if (!authStore.isAuthenticated) {
+    // Redirigir a login si no está autenticado
+    router.push(`/login?redirect=/workouts`)
+    return
+  }
+  
+  selectedWorkoutForCompletion.value = workout.entrenamientoID
+  selectedWorkoutName.value = workout.titulo
+  selectedWorkoutDuration.value = workout.duracionMinutos
+  showCompletarModal.value = true
+}
+
+// Manejar el evento de rutina completada
+const handleRutinaCompletada = () => {
+  // Se podría mostrar una notificación de éxito
+  // o realizar alguna actualización en la UI
+}
+
 // Limpiar filtros
 const clearFilters = () => {
   searchQuery.value = ''
@@ -60,29 +95,24 @@ const clearFilters = () => {
 <template>
   <v-container fluid>
     <!-- Hero Section -->
-    <v-row class="mb-8">
-      <v-col cols="12" class="d-flex flex-column flex-md-row justify-space-between align-center">
-        <div class="text-center text-md-left">
-          <h1 class="text-h3 mb-4">Entrenamientos</h1>
-          <p class="text-body-1">
-            Explora nuestra colección de entrenamientos para todos los niveles
-          </p>
-        </div>
-        
-        <!-- Botón para crear nuevo entrenamiento (solo para usuarios autenticados) -->
-        <div v-if="authStore.isAuthenticated" class="mt-4 mt-md-0">
-          <v-btn
-            color="primary"
-            size="large"
-            to="/crear-entrenamiento"
-            prepend-icon="mdi-plus"
-            class="boton-crear"
-          >
-            Crear Entrenamiento
-          </v-btn>
-        </div>
-      </v-col>
-    </v-row>
+    <PageHeader 
+      title="Entrenamientos"
+      subtitle="Explora nuestra colección de entrenamientos para todos los niveles"
+      :backgroundImage="heroImage"
+    >
+      <!-- Botón para crear nuevo entrenamiento (solo para usuarios autenticados) -->
+      <div v-if="isAuthenticated" class="mt-4">
+        <v-btn
+          color="primary"
+          size="large"
+          to="/crear-entrenamiento"
+          prepend-icon="mdi-plus"
+          class="mr-2"
+        >
+          Crear Entrenamiento
+        </v-btn>
+      </div>
+    </PageHeader>
 
     <!-- Filtros -->
     <v-row class="filters-container">
@@ -201,6 +231,16 @@ const clearFilters = () => {
             </v-card-text>
 
             <v-card-actions>
+              <!-- Botón para marcar como completado (solo si está autenticado) -->
+              <v-btn
+                v-if="isAuthenticated"
+                variant="text"
+                color="success"
+                @click.stop="openCompletarModal(workout)"
+                prepend-icon="mdi-check-circle"
+              >
+                Completar
+              </v-btn>
               <v-spacer></v-spacer>
               <v-btn
                 variant="text"
@@ -244,6 +284,16 @@ const clearFilters = () => {
         </v-alert>
       </v-col>
     </v-row>
+    
+    <!-- Modal para marcar como completado -->
+    <CompletarRutinaModal
+      v-if="selectedWorkoutForCompletion"
+      v-model:show="showCompletarModal"
+      :entrenamientoID="selectedWorkoutForCompletion"
+      :entrenamientoNombre="selectedWorkoutName"
+      :duracionRecomendada="selectedWorkoutDuration"
+      @completada="handleRutinaCompletada"
+    />
   </v-container>
 </template>
 

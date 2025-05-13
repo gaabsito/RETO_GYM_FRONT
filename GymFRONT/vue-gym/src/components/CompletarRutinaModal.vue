@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRutinasCompletadasStore } from '@/stores/rutinasCompletadas'
 import type { RutinaCompletadaCreate } from '@/types/RutinaCompletada'
 
@@ -12,22 +12,38 @@ const props = defineProps<{
 
 const emit = defineEmits(['update:show', 'completada'])
 
-const rutinaCompletadaStore = useRutinasCompletadasStore()
+const rutinasCompletadasStore = useRutinasCompletadasStore()
+
+// Fecha con hora actual
+const fechaActual = new Date()
+// Formateo para el datepicker de Vuetify
+const fechaFormateada = computed(() => {
+  return fechaActual.toISOString().split('T')[0]
+})
 
 // Formulario para la rutina completada
 const form = ref<RutinaCompletadaCreate>({
   entrenamientoID: props.entrenamientoID,
-  fechaCompletada: new Date(),
+  fechaCompletada: fechaActual,
   duracionMinutos: props.duracionRecomendada || undefined,
   caloriasEstimadas: undefined,
   nivelEsfuerzoPercibido: 5,
   notas: ''
 })
 
+// Estado del datepicker
+const dateMenu = ref(false)
+
 // Estados de UI
 const loading = ref(false)
 const error = ref('')
 const success = ref(false)
+
+// Formatear fecha para mostrar
+const formattedDate = computed(() => {
+  if (!form.value.fechaCompletada) return ''
+  return new Date(form.value.fechaCompletada).toLocaleDateString()
+})
 
 // Enviar el formulario
 const handleSubmit = async () => {
@@ -42,14 +58,16 @@ const handleSubmit = async () => {
     success.value = false
     
     // Completar la rutina
-    const resultado = await rutinaCompletadaStore.completarRutina(form.value)
+    const resultado = await rutinasCompletadasStore.completarRutina(form.value)
     
     success.value = true
+    
+    // Emitir evento completado
+    emit('completada', resultado)
     
     // Cerrar el diálogo después de un breve tiempo
     setTimeout(() => {
       emit('update:show', false)
-      emit('completada', resultado)
     }, 1500)
     
   } catch (e) {
@@ -66,11 +84,21 @@ const closeDialog = () => {
 </script>
 
 <template>
-  <v-dialog v-model="props.show" max-width="500" persistent>
+  <v-dialog 
+    v-model="props.show" 
+    max-width="500" 
+    persistent
+    transition="dialog-bottom-transition"
+  >
     <v-card class="rutina-completada-dialog">
       <v-card-title class="dialog-title">
-        Marcar Entrenamiento como Completado
-        <v-btn icon @click="closeDialog" class="ml-auto">
+        Marcar como completado
+        <v-btn 
+          icon 
+          @click="closeDialog" 
+          class="ml-auto" 
+          variant="text"
+        >
           <v-icon>mdi-close</v-icon>
         </v-btn>
       </v-card-title>
@@ -78,33 +106,49 @@ const closeDialog = () => {
       <v-divider></v-divider>
 
       <v-card-text class="pa-4">
-        <v-alert v-if="error" type="error" class="mb-4">
+        <v-alert v-if="error" type="error" class="mb-4" density="compact" variant="tonal">
           {{ error }}
         </v-alert>
 
-        <v-alert v-if="success" type="success" class="mb-4">
-          ¡Entrenamiento registrado exitosamente!
+        <v-alert v-if="success" type="success" class="mb-4" density="compact" variant="tonal">
+          ¡Genial! Entrenamiento registrado como completado.
         </v-alert>
 
         <v-form @submit.prevent="handleSubmit" v-if="!success">
-          <div class="text-body-1 mb-4">
-            Vas a marcar como completado: <strong>{{ entrenamientoNombre }}</strong>
+          <div class="text-subtitle-1 font-weight-medium mb-4">
+            Estás marcando como completado:
           </div>
+          
+          <v-card flat border class="mb-4 pa-3 workout-title-card">
+            <div class="d-flex align-center">
+              <v-icon 
+                color="primary" 
+                class="mr-3" 
+                size="large"
+              >
+                mdi-dumbbell
+              </v-icon>
+              <div>
+                <div class="text-h6">{{ entrenamientoNombre }}</div>
+                <div class="text-caption" v-if="duracionRecomendada">
+                  Duración recomendada: {{ duracionRecomendada }} minutos
+                </div>
+              </div>
+            </div>
+          </v-card>
 
-          <v-row>
+          <v-row dense>
             <v-col cols="12">
               <v-menu
-                ref="menu"
-                v-model="menu"
+                v-model="dateMenu"
                 :close-on-content-click="false"
                 transition="scale-transition"
-                offset-y
                 min-width="auto"
               >
                 <template v-slot:activator="{ props }">
                   <v-text-field
                     v-model="formattedDate"
-                    label="Fecha"
+                    label="Fecha de completado"
                     prepend-inner-icon="mdi-calendar"
                     readonly
                     v-bind="props"
@@ -113,8 +157,8 @@ const closeDialog = () => {
                   ></v-text-field>
                 </template>
                 <v-date-picker
-                  v-model="form.fechaCompletada"
-                  @update:model-value="menu = false"
+                  v-model="fechaFormateada"
+                  @update:model-value="form.fechaCompletada = new Date($event); dateMenu = false"
                 ></v-date-picker>
               </v-menu>
             </v-col>
@@ -140,27 +184,26 @@ const closeDialog = () => {
                 min="1"
                 variant="outlined"
                 density="comfortable"
+                hint="Opcional"
               ></v-text-field>
             </v-col>
 
             <v-col cols="12">
-              <label class="text-subtitle-2 mb-2 d-block">Nivel de esfuerzo</label>
+              <div class="text-body-2 mb-2">Nivel de esfuerzo percibido</div>
               <v-slider
                 v-model="form.nivelEsfuerzoPercibido"
                 :max="10"
                 :min="1"
                 :step="1"
-                :ticks="true"
                 color="primary"
                 track-color="grey-lighten-3"
-                show-ticks="always"
                 thumb-label="always"
               >
                 <template v-slot:prepend>
-                  <v-icon icon="mdi-emoticon-outline" color="blue"></v-icon>
+                  <v-icon color="success">mdi-emoticon</v-icon>
                 </template>
                 <template v-slot:append>
-                  <v-icon icon="mdi-emoticon-dead-outline" color="red"></v-icon>
+                  <v-icon color="error">mdi-emoticon-dead</v-icon>
                 </template>
               </v-slider>
             </v-col>
@@ -169,34 +212,34 @@ const closeDialog = () => {
               <v-textarea
                 v-model="form.notas"
                 label="Notas adicionales"
-                hint="Escribe observaciones, sensaciones o cualquier detalle relevante del entrenamiento"
+                hint="Escribe observaciones, sensaciones o cualquier detalle relevante (opcional)"
                 prepend-inner-icon="mdi-note-text-outline"
                 variant="outlined"
                 rows="3"
                 auto-grow
                 counter
                 maxlength="500"
+                density="comfortable"
               ></v-textarea>
             </v-col>
           </v-row>
 
-          <v-card-actions class="mt-4 d-flex justify-center">
+          <v-card-actions class="mt-4 pt-2 d-flex justify-space-between">
             <v-btn
               color="grey-lighten-3"
               variant="flat"
               @click="closeDialog"
               :disabled="loading"
-              class="mr-2"
             >
               Cancelar
             </v-btn>
             <v-btn
-              color="primary"
+              color="success"
               type="submit"
               :loading="loading"
               :disabled="loading"
             >
-              Completar Entrenamiento
+              Completar
             </v-btn>
           </v-card-actions>
         </v-form>
@@ -204,22 +247,6 @@ const closeDialog = () => {
     </v-card>
   </v-dialog>
 </template>
-
-<script lang="ts">
-export default {
-  data() {
-    return {
-      menu: false,
-      
-      get formattedDate() {
-        return this.form.fechaCompletada 
-          ? new Date(this.form.fechaCompletada).toLocaleDateString() 
-          : '';
-      }
-    }
-  }
-}
-</script>
 
 <style lang="scss" scoped>
 @import '@/assets/styles/main.scss';
@@ -239,8 +266,10 @@ export default {
   align-items: center;
 }
 
-.v-text-field {
-  margin-bottom: 0.5rem;
+.workout-title-card {
+  border-radius: $border-radius;
+  background-color: rgba(226, 84, 1, 0.05);
+  border-color: rgba(226, 84, 1, 0.2) !important;
 }
 
 :deep(.v-field) {
@@ -250,12 +279,30 @@ export default {
 .v-btn {
   font-family: $font-family-base;
   border-radius: $border-radius;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
 }
 
 // Responsive adjustments
 @media (max-width: 600px) {
   .dialog-title {
     font-size: 1.1rem;
+  }
+  
+  .v-dialog {
+    margin: 0.5rem;
+  }
+  
+  .v-card-actions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+    
+    .v-btn {
+      width: 100%;
+    }
   }
 }
 </style>

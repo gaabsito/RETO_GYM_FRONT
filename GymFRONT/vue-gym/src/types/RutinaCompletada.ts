@@ -9,7 +9,7 @@ export interface RutinaCompletada {
     caloriasEstimadas?: number;
     nivelEsfuerzoPercibido?: number;
     
-    // Información adicional del entrenamiento
+    // Información adicional del entrenamiento (opcional)
     nombreEntrenamiento?: string;
     dificultadEntrenamiento?: string;
 }
