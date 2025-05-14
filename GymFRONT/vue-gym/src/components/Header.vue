@@ -55,50 +55,48 @@ const updateDrawer = (value: boolean) => {
 </script>
 
 <template>
-  <v-app-bar class="app-bar">
-    <!-- Icono de menú móvil -->
-    <v-app-bar-nav-icon @click="toggleDrawer" class="nav-icon"></v-app-bar-nav-icon>
-    
-    <!-- Logo -->
-    <router-link to="/" class="app-bar__logo">
-      <div class="logo-container">
-        <LogoCanvas />
-      </div>
-    </router-link>
-    
-    <v-spacer></v-spacer>
-    
-    <!-- Sección de autenticación simplificada -->
-    <div class="auth-section">
-      <template v-if="!authStore.isAuthenticated">
-        <!-- Solo botón de iniciar sesión -->
-        <v-btn variant="text" to="/login" class="auth-btn">
-          INICIAR SESIÓN
-        </v-btn>
-      </template>
-      
-      <template v-else>
-        <!-- Solo el avatar con menú desplegable -->
-        <div class="user-menu-container">
-          <UserAvatar
-            :nombre="authStore.user?.nombre"
-            :apellido="authStore.user?.apellido"
-            :photoUrl="photoUrl"
-            :size="avatarSize"
-            :showBorder="true"
-            class="user-avatar-header"
-            @click="menuOpen = !menuOpen"
-          />
+  <v-app-bar class="app-bar" flat>
+    <v-container class="d-flex align-center pa-0 ma-0" fluid>
+      <div class="d-flex align-center justify-space-between w-100">
+        <!-- Sección izquierda: Menú y logo -->
+        <div class="d-flex align-center">
+          <v-app-bar-nav-icon @click="toggleDrawer" class="nav-icon"></v-app-bar-nav-icon>
           
-          <!-- Menú desplegable simplificado -->
-          <v-menu
-            v-model="menuOpen"
-            :close-on-content-click="false"
-            location="bottom end"
-            transition="scale-transition"
-            min-width="200"
-          >
-            <v-card>
+          <router-link to="/" class="app-bar__logo">
+            <div class="logo-container">
+              <LogoCanvas />
+            </div>
+          </router-link>
+        </div>
+        
+        <!-- Sección centro: Espacio vacío con tamaño controlado -->
+        <div class="center-spacer"></div>
+        
+        <!-- Sección derecha: Botón login o usuario -->
+        <div class="d-flex align-center auth-section">
+          <template v-if="!authStore.isAuthenticated">
+            <!-- Botón de iniciar sesión -->
+            <v-btn variant="text" to="/login" class="login-btn text-white">
+              INICIAR SESIÓN
+            </v-btn>
+          </template>
+          
+          <template v-else>
+            <!-- Menu de usuario simple -->
+            <v-menu v-model="menuOpen" location="bottom">
+              <template v-slot:activator="{ props }">
+                <div v-bind="props" style="cursor: pointer;">
+                  <UserAvatar
+                    :nombre="authStore.user?.nombre"
+                    :apellido="authStore.user?.apellido"
+                    :photoUrl="photoUrl"
+                    :size="avatarSize"
+                    :showBorder="true"
+                    class="user-avatar-header"
+                  />
+                </div>
+              </template>
+              
               <v-list>
                 <!-- Info del usuario -->
                 <v-list-item class="user-info pa-3">
@@ -120,7 +118,6 @@ const updateDrawer = (value: boolean) => {
                 
                 <v-divider></v-divider>
                 
-                <!-- Opciones simplificadas -->
                 <v-list-item to="/profile" prepend-icon="mdi-account">
                   <v-list-item-title>Mi Perfil</v-list-item-title>
                 </v-list-item>
@@ -129,11 +126,11 @@ const updateDrawer = (value: boolean) => {
                   <v-list-item-title>Cerrar Sesión</v-list-item-title>
                 </v-list-item>
               </v-list>
-            </v-card>
-          </v-menu>
+            </v-menu>
+          </template>
         </div>
-      </template>
-    </div>
+      </div>
+    </v-container>
   </v-app-bar>
 
   <!-- Navigation Drawer -->
@@ -194,42 +191,41 @@ const updateDrawer = (value: boolean) => {
 
 .app-bar {
   background-color: $primary-color !important;
-  padding: 0 16px;
+  padding: 0;
 }
 
 .app-bar__logo {
   color: white;
   font-weight: bold;
   text-decoration: none;
-  margin-right: 16px;
+  margin-left: 4px;
 }
-
-/* Eliminados todos los estilos relacionados con la navegación en el header */
 
 .nav-icon {
-  margin-right: 8px;
+  margin-right: 4px;
 }
 
-/* Sección de autenticación */
+/* Espaciador central con ancho controlado - menos espacio para mover elementos a la izquierda */
+.center-spacer {
+  flex-grow: 0.6;  /* Reducido de 1 para dar menos espacio en el centro */
+  min-width: 20px; /* Espacio mínimo para mantener una separación adecuada */
+}
+
+/* Sección de autenticación movida más a la izquierda */
 .auth-section {
-  display: flex;
-  align-items: center;
+  margin-right: 24px; /* Aumentado para mover el botón/avatar más a la izquierda */
 }
 
-.auth-btn {
+/* Button styles */
+.login-btn {
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-/* Estilos para el avatar y menú de usuario */
-.user-menu-container {
-  position: relative;
-  cursor: pointer;
-}
-
+/* Avatar styles */
 .user-avatar-header {
-  cursor: pointer;
+  margin-right: 8px;
   transition: transform 0.2s ease;
   
   &:hover {
@@ -253,5 +249,27 @@ const updateDrawer = (value: boolean) => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.logo-container {
+  width: 48px;
+  height: 48px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Make container full width */
+.container {
+  max-width: 100% !important;
+}
+
+/* Mobile adjustments */
+@media (max-width: 600px) {
+  .logo-container {
+    width: 40px;
+    height: 40px;
+  }
 }
 </style>
