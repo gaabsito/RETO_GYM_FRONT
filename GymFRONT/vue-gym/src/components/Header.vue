@@ -1,4 +1,8 @@
-<script setup lang="ts">
+.drawer-title {
+  font-weight: bold !important;
+  text-align: center !important; /* Centrar el texto */
+  font-size: 1.5rem !important; /* Aumentar tamaño para compensar falta de logo */
+}<script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
@@ -62,6 +66,7 @@ const updateDrawer = (value: boolean) => {
         <div class="d-flex align-center">
           <v-app-bar-nav-icon @click="toggleDrawer" class="nav-icon"></v-app-bar-nav-icon>
           
+          <!-- Logo con mayor espacio asignado -->
           <router-link to="/" class="app-bar__logo">
             <div class="logo-container">
               <LogoCanvas />
@@ -138,16 +143,12 @@ const updateDrawer = (value: boolean) => {
     :model-value="drawer" 
     @update:model-value="updateDrawer"
     temporary
+    class="custom-drawer"
   >
-    <v-list>
-      <!-- Logo/título del drawer -->
-      <v-list-item>
-        <template v-slot:prepend>
-          <div class="logo-small">
-            <LogoCanvas />
-          </div>
-        </template>
-        <v-list-item-title class="text-h6">ENTRÉNATE</v-list-item-title>
+    <v-list class="drawer-list">
+      <!-- Solo título en el drawer - Sin logo -->
+      <v-list-item class="drawer-header">
+        <v-list-item-title class="text-h6 drawer-title">ENTRÉNATE</v-list-item-title>
       </v-list-item>
       
       <v-divider class="my-2"></v-divider>
@@ -155,7 +156,7 @@ const updateDrawer = (value: boolean) => {
       <!-- Items de navegación principal -->
       <v-list-item v-for="item in menuItems" :key="item.title" 
                    :to="item.route" :prepend-icon="item.icon"
-                   :title="item.title"></v-list-item>
+                   :title="item.title" class="menu-item"></v-list-item>
       
       <v-divider class="my-2"></v-divider>
       
@@ -192,13 +193,17 @@ const updateDrawer = (value: boolean) => {
 .app-bar {
   background-color: $primary-color !important;
   padding: 0;
+  height: 64px !important; /* Reducido de 80px a un valor más estándar */
 }
 
 .app-bar__logo {
   color: white;
   font-weight: bold;
   text-decoration: none;
-  margin-left: 4px;
+  margin-left: 8px;
+  display: flex;
+  align-items: center;
+  height: 100%;
 }
 
 .nav-icon {
@@ -242,34 +247,37 @@ const updateDrawer = (value: boolean) => {
   background-color: rgba(0, 0, 0, 0.03);
 }
 
-.logo-small {
-  width: 32px;
-  height: 32px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .logo-container {
-  width: 48px;
-  height: 48px;
-  overflow: hidden;
+  width: 60px;  /* Ancho ajustado */
+  height: 60px; /* Igual al ancho para mantener proporción cuadrada */
+  overflow: visible;
   display: flex;
   align-items: center;
   justify-content: center;
+  margin-left: 8px;
+  position: relative; /* Para mejor control de posicionamiento */
 }
 
-/* Make container full width */
-.container {
-  max-width: 100% !important;
+/* Ajuste para el logo canvas */
+:deep(canvas) {
+  transform: scale(1); /* Escala natural sin distorsión */
+  position: absolute; /* Posicionamiento absoluto para evitar distorsión */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Preserva proporción */
 }
 
-/* Mobile adjustments */
+/* Mobile adjustments - Logo más grande en móvil */
 @media (max-width: 600px) {
   .logo-container {
-    width: 40px;
-    height: 40px;
+    width: 58px;   /* Aumentado de 55px a 65px */
+    height: 58px;  /* Manteniendo proporción cuadrada */
+  }
+  
+  :deep(canvas) {
+    transform: scale(1.1); /* Aumentado de 0.9 a 1.1 para hacer el logo más grande */
   }
 }
 </style>
