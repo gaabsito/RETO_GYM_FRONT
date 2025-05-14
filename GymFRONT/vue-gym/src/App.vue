@@ -1,41 +1,57 @@
 <script setup lang="ts">
 import { RouterView, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import Header from '@/components/Header.vue';
 import Footer from '@/components/Footer.vue';
+
+// Definir la interfaz para los items del menú
+interface MenuItem {
+  title: string;
+  icon: string;
+  route: string;
+}
 
 const authStore = useAuthStore()
 const router = useRouter()
 const drawer = ref(false)
 
-const menuItems = [
+// Inicializar la autenticación al cargar la app
+onMounted(() => {
+  authStore.init();
+})
+
+const menuItems: MenuItem[] = [
   { title: 'Inicio', icon: 'mdi-home', route: '/' },
   { title: 'Entrenamientos', icon: 'mdi-dumbbell', route: '/workouts' },
   { title: 'Ejercicios', icon: 'mdi-run', route: '/exercises' },
   { title: 'Sobre Nosotros', icon: 'mdi-information', route: '/about' },
 ]
 
-const authMenuItems = [
+const authMenuItems: MenuItem[] = [
   { title: 'Mi Perfil', icon: 'mdi-account', route: '/profile' },
   { title: 'Mis Entrenamientos', icon: 'mdi-playlist-check', route: '/mis-entrenamientos' },
 ]
+
+// Método para alternar el drawer
+const toggleDrawer = () => {
+  drawer.value = !drawer.value;
+};
 </script>
 
 <template>
- <v-app>
-    <Header 
+  <v-app>
+    <Header
       :menuItems="menuItems"
       :authMenuItems="authMenuItems"
       :drawer="drawer"
+      @toggle-drawer="toggleDrawer"
     />
-    
     <v-main>
       <v-container>
         <RouterView />
       </v-container>
     </v-main>
-
     <Footer />
   </v-app>
 </template>
@@ -44,9 +60,7 @@ const authMenuItems = [
 @import './assets/styles/main.scss';
 
 /* MOBILE FIRST */
-
 /* General */
-
 * {
   font-family: $font-family-base;
 }
@@ -122,15 +136,12 @@ canvas {
   padding: 20px 0;
   text-align: center;
   flex-direction: column;
-
   &__icons {
     margin-bottom: 10px;
   }
-
   &__icon {
     margin: 0 10px;
   }
-
   &__links {
     display: flex;
     justify-content: center;
@@ -138,14 +149,12 @@ canvas {
     gap: 10px;
     margin-bottom: 10px;
   }
-
   &__text {
     font-size: 0.9rem;
   }
 }
 
 /* RESPONSIVE DESIGN */
-
 /* Tablets (>= 768px) */
 @media (min-width: 768px) {
   .desktop-only {
@@ -155,18 +164,14 @@ canvas {
 
 /* Escritorio (>= 1024px) */
 @media (min-width: 1024px) {
-
   .v-btn__overlay {
     background-color: rgba(255, 255, 255, 0) !important;
   }
-
   .v-btn__underlay {
     opacity: 0 !important;
   }
-
   .app-bar {
     background-color: $primary-color !important;
-
     .v-btn {
       &:hover {
         color: white !important;
@@ -175,7 +180,6 @@ canvas {
       }
     }
   }
-
   .logo-container {
     display: flex;
     align-items: center;
@@ -184,20 +188,16 @@ canvas {
     height: 100px;
     overflow: hidden;
   }
-
   .v-toolbar__content {
     justify-content: space-around;
     height: 64px !important;
   }
-
   .app-bar__logo {
     margin-left: 0;
   }
-
   .main-content {
     padding: 40px;
   }
-
   .footer__links {
     flex-direction: row;
     justify-content: center;
@@ -218,7 +218,6 @@ canvas {
   * {
     font-family: $font-family-base !important;
   }
-
   .text-body-1,
   .text-body-2,
   p {

@@ -1,71 +1,189 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import LogoCanvas from '@/components/LogoCanvas.vue'
+import UserAvatar from '@/components/UserAvatar.vue'
+
+// Definir la interfaz para los items del menú
+interface MenuItem {
+  title: string;
+  icon: string;
+  route: string;
+}
+
+const props = defineProps<{
+  menuItems: MenuItem[];
+  authMenuItems: MenuItem[];
+  drawer: boolean;
+}>();
+
+const emit = defineEmits(['toggle-drawer', 'update:drawer'])
 
 const authStore = useAuthStore()
 const router = useRouter()
-const drawer = ref(false)
 
+// Estado para el menú desplegable del avatar
+const menuOpen = ref(false)
+const avatarSize = 40 // Tamaño del avatar en el header
+
+// Computed para obtener la URL de la foto o null
+const photoUrl = computed(() => authStore.user?.fotoPerfilURL || null)
+
+// Método para cerrar sesión
 const handleLogout = () => {
   authStore.logout()
   router.push('/')
+  menuOpen.value = false
 }
 
-const menuItems = [
-  { title: 'Inicio', icon: 'mdi-home', route: '/' },
-  { title: 'Entrenamientos', icon: 'mdi-dumbbell', route: '/workouts' },
-  { title: 'Ejercicios', icon: 'mdi-run', route: '/exercises' },
-  { title: 'Sobre Nosotros', icon: 'mdi-information', route: '/about' },
-]
+// Método para ir al perfil
+const goToProfile = () => {
+  router.push('/profile')
+  menuOpen.value = false
+}
 
-const authMenuItems = [
-  { title: 'Mi Perfil', icon: 'mdi-account', route: '/profile' },
-  { title: 'Mis Entrenamientos', icon: 'mdi-playlist-check', route: '/mis-entrenamientos' },
-  { title: 'Mis Mediciones', icon: 'mdi-scale-bathroom', route: '/mediciones' },
-]
+// Método para abrir/cerrar drawer
+const toggleDrawer = () => {
+  emit('toggle-drawer')
+}
+
+// Método para manejar el cambio del drawer
+const updateDrawer = (value: boolean) => {
+  emit('update:drawer', value)
+}
 </script>
 
 <template>
   <v-app-bar class="app-bar">
-    <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
+    <!-- Icono de menú móvil -->
+    <v-app-bar-nav-icon @click="toggleDrawer" class="nav-icon"></v-app-bar-nav-icon>
+    
+    <!-- Logo -->
     <router-link to="/" class="app-bar__logo">
       <div class="logo-container">
         <LogoCanvas />
       </div>
     </router-link>
-
-    <v-btn variant="text" to="/about" class="desktop-only">
-      Sobre Nosotros
-    </v-btn>
-    <template v-if="!authStore.isAuthenticated">
-      <v-btn variant="text" to="/login" class="desktop-only">
-        Iniciar Sesión
-      </v-btn>
-    </template>
-    <template v-else>
-      <v-btn variant="text" @click="handleLogout" class="desktop-only">
-        Cerrar Sesión
-      </v-btn>
-    </template>
+    
+    <v-spacer></v-spacer>
+    
+    <!-- Sección de autenticación simplificada -->
+    <div class="auth-section">
+      <template v-if="!authStore.isAuthenticated">
+        <!-- Solo botón de iniciar sesión -->
+        <v-btn variant="text" to="/login" class="auth-btn">
+          INICIAR SESIÓN
+        </v-btn>
+      </template>
+      
+      <template v-else>
+        <!-- Solo el avatar con menú desplegable -->
+        <div class="user-menu-container">
+          <UserAvatar
+            :nombre="authStore.user?.nombre"
+            :apellido="authStore.user?.apellido"
+            :photoUrl="photoUrl"
+            :size="avatarSize"
+            :showBorder="true"
+            class="user-avatar-header"
+            @click="menuOpen = !menuOpen"
+          />
+          
+          <!-- Menú desplegable simplificado -->
+          <v-menu
+            v-model="menuOpen"
+            :close-on-content-click="false"
+            location="bottom end"
+            transition="scale-transition"
+            min-width="200"
+          >
+            <v-card>
+              <v-list>
+                <!-- Info del usuario -->
+                <v-list-item class="user-info pa-3">
+                  <template v-slot:prepend>
+                    <UserAvatar
+                      :nombre="authStore.user?.nombre"
+                      :apellido="authStore.user?.apellido"
+                      :photoUrl="photoUrl"
+                      :size="40"
+                    />
+                  </template>
+                  <v-list-item-title class="text-subtitle-1 font-weight-medium">
+                    {{ authStore.user?.nombre }} {{ authStore.user?.apellido }}
+                  </v-list-item-title>
+                  <v-list-item-subtitle class="text-caption">
+                    {{ authStore.user?.email }}
+                  </v-list-item-subtitle>
+                </v-list-item>
+                
+                <v-divider></v-divider>
+                
+                <!-- Opciones simplificadas -->
+                <v-list-item to="/profile" prepend-icon="mdi-account">
+                  <v-list-item-title>Mi Perfil</v-list-item-title>
+                </v-list-item>
+                
+                <v-list-item @click="handleLogout" prepend-icon="mdi-logout" color="error">
+                  <v-list-item-title>Cerrar Sesión</v-list-item-title>
+                </v-list-item>
+              </v-list>
+            </v-card>
+          </v-menu>
+        </div>
+      </template>
+    </div>
   </v-app-bar>
 
-  <v-navigation-drawer v-model="drawer" temporary>
+  <!-- Navigation Drawer -->
+  <v-navigation-drawer 
+    :model-value="drawer" 
+    @update:model-value="updateDrawer"
+    temporary
+  >
     <v-list>
-      <v-list-item v-for="item in menuItems" :key="item.title" :to="item.route" :prepend-icon="item.icon"
-        :title="item.title"></v-list-item>
-
+      <!-- Logo/título del drawer -->
+      <v-list-item>
+        <template v-slot:prepend>
+          <div class="logo-small">
+            <LogoCanvas />
+          </div>
+        </template>
+        <v-list-item-title class="text-h6">ENTRÉNATE</v-list-item-title>
+      </v-list-item>
+      
       <v-divider class="my-2"></v-divider>
-
+      
+      <!-- Items de navegación principal -->
+      <v-list-item v-for="item in menuItems" :key="item.title" 
+                   :to="item.route" :prepend-icon="item.icon"
+                   :title="item.title"></v-list-item>
+      
+      <v-divider class="my-2"></v-divider>
+      
+      <!-- Sección de autenticación -->
       <template v-if="authStore.isAuthenticated">
-        <v-list-item v-for="item in authMenuItems" :key="item.title" :to="item.route" :prepend-icon="item.icon"
-          :title="item.title"></v-list-item>
-        <v-list-item @click="handleLogout" prepend-icon="mdi-logout" title="Cerrar Sesión"></v-list-item>
+        <!-- Información del usuario -->
+        <v-list-item class="user-drawer-info" v-if="authStore.user">
+          <template v-slot:prepend>
+            <UserAvatar
+              :nombre="authStore.user?.nombre"
+              :apellido="authStore.user?.apellido"
+              :photoUrl="photoUrl"
+              :size="36"
+            />
+          </template>
+          <v-list-item-title>{{ authStore.user.nombre }}</v-list-item-title>
+          <v-list-item-subtitle class="text-caption">{{ authStore.user.email }}</v-list-item-subtitle>
+        </v-list-item>
+        
+        <v-list-item to="/profile" prepend-icon="mdi-account" title="MI PERFIL"></v-list-item>
+        <v-list-item @click="handleLogout" prepend-icon="mdi-logout" title="CERRAR SESIÓN"></v-list-item>
       </template>
       <template v-else>
-        <v-list-item to="/login" prepend-icon="mdi-login" title="Iniciar Sesión"></v-list-item>
-        <v-list-item to="/register" prepend-icon="mdi-account-plus" title="Registrarse"></v-list-item>
+        <v-list-item to="/login" prepend-icon="mdi-login" title="INICIAR SESIÓN"></v-list-item>
+        <v-list-item to="/register" prepend-icon="mdi-account-plus" title="REGISTRARSE"></v-list-item>
       </template>
     </v-list>
   </v-navigation-drawer>
@@ -76,22 +194,64 @@ const authMenuItems = [
 
 .app-bar {
   background-color: $primary-color !important;
+  padding: 0 16px;
 }
 
 .app-bar__logo {
   color: white;
   font-weight: bold;
   text-decoration: none;
-  font-size: 1.2rem;
+  margin-right: 16px;
 }
 
-.desktop-only {
-  display: none;
+/* Eliminados todos los estilos relacionados con la navegación en el header */
+
+.nav-icon {
+  margin-right: 8px;
 }
 
-@media (min-width: 768px) {
-  .desktop-only {
-    display: inline-flex;
+/* Sección de autenticación */
+.auth-section {
+  display: flex;
+  align-items: center;
+}
+
+.auth-btn {
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Estilos para el avatar y menú de usuario */
+.user-menu-container {
+  position: relative;
+  cursor: pointer;
+}
+
+.user-avatar-header {
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  
+  &:hover {
+    transform: scale(1.1);
   }
+}
+
+.user-info {
+  background-color: $light-gray;
+}
+
+.user-drawer-info {
+  padding: 16px;
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.logo-small {
+  width: 32px;
+  height: 32px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
