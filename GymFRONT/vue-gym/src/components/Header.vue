@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import LogoCanvas from '@/components/LogoCanvas.vue'
@@ -22,17 +22,6 @@ const emit = defineEmits(['toggle-drawer', 'update:drawer'])
 
 const authStore = useAuthStore()
 const router = useRouter()
-const localDrawer = ref(props.drawer)
-
-// Sincronizar el estado local con las props
-watch(() => props.drawer, (newValue) => {
-  localDrawer.value = newValue
-})
-
-// Emitir cambios del estado local
-watch(localDrawer, (newValue) => {
-  emit('update:drawer', newValue)
-})
 
 // Estado para el menú desplegable del avatar
 const menuOpen = ref(false)
@@ -48,28 +37,26 @@ const handleLogout = () => {
   menuOpen.value = false
 }
 
-// Método para cerrar sesión y cerrar el drawer
-const handleLogoutAndCloseDrawer = () => {
-  authStore.logout()
-  router.push('/')
-  closeDrawer()
-}
-
 // Método para abrir/cerrar drawer
 const toggleDrawer = () => {
-  localDrawer.value = !localDrawer.value
   emit('toggle-drawer')
 }
 
 // Método para cerrar el drawer
 const closeDrawer = () => {
-  localDrawer.value = false
   emit('update:drawer', false)
 }
 
-// Método para ir a una ruta y cerrar el drawer
+// Método para navegar y cerrar el drawer
 const navigateAndClose = (route) => {
   router.push(route)
+  closeDrawer()
+}
+
+// Método específico para cerrar sesión y drawer
+const logoutAndCloseDrawer = () => {
+  authStore.logout()
+  router.push('/')
   closeDrawer()
 }
 </script>
@@ -158,62 +145,67 @@ const navigateAndClose = (route) => {
     </v-container>
   </v-app-bar>
 
-  <!-- Overlay to capture clicks outside the drawer -->
-  <div v-if="localDrawer" class="drawer-overlay" @click="closeDrawer"></div>
+  <!-- Contenedor para drawer y overlay, esto asegura un manejo correcto de z-index -->
+  <div class="drawer-container">
+    <!-- Overlay que cubre toda la pantalla cuando el menú está abierto -->
+    <div v-if="drawer" class="menu-overlay" @click.stop="closeDrawer"></div>
 
-  <!-- Navigation Drawer -->
-  <v-navigation-drawer
-    v-model="localDrawer"
-    temporary
-    class="custom-drawer"
-  >
-    <v-list class="drawer-list">
-      <!-- Solo título en el drawer - Sin logo -->
-      <v-list-item class="drawer-header">
-        <v-list-item-title class="text-h6 drawer-title">ENTRÉNATE</v-list-item-title>
-      </v-list-item>
-      
-      <v-divider class="my-2"></v-divider>
-      
-      <!-- Items de navegación principal -->
-      <v-list-item 
-        v-for="item in menuItems" 
-        :key="item.title" 
-        :to="item.route" 
-        :prepend-icon="item.icon"
-        :title="item.title" 
-        class="menu-item"
-        @click="closeDrawer"
-      ></v-list-item>
-      
-      <v-divider class="my-2"></v-divider>
-      
-      <!-- Sección de autenticación -->
-      <template v-if="authStore.isAuthenticated">
-        <!-- Información del usuario -->
-        <v-list-item class="user-drawer-info" v-if="authStore.user">
-          <template v-slot:prepend>
-            <UserAvatar
-              :nombre="authStore.user?.nombre"
-              :apellido="authStore.user?.apellido"
-              :photoUrl="photoUrl"
-              :size="36"
-            />
-          </template>
-          <v-list-item-title>{{ authStore.user.nombre }}</v-list-item-title>
-          <v-list-item-subtitle class="text-caption">{{ authStore.user.email }}</v-list-item-subtitle>
+    <!-- Navigation Drawer -->
+    <v-navigation-drawer
+      :model-value="drawer"
+      @update:model-value="emit('update:drawer', $event)"
+      temporary
+      class="custom-drawer"
+      width="280"
+    >
+      <v-list class="drawer-list">
+        <!-- Solo título en el drawer - Sin logo -->
+        <v-list-item class="drawer-header">
+          <v-list-item-title class="text-h6 drawer-title">ENTRÉNATE</v-list-item-title>
         </v-list-item>
         
-        <v-list-item to="/profile" prepend-icon="mdi-account" title="MI PERFIL" @click="closeDrawer"></v-list-item>
-        <v-list-item to="/mediciones" prepend-icon="mdi-scale-bathroom" title="MIS MEDICIONES" @click="closeDrawer"></v-list-item>
-        <v-list-item @click="handleLogoutAndCloseDrawer" prepend-icon="mdi-logout" title="CERRAR SESIÓN"></v-list-item>
-      </template>
-      <template v-else>
-        <v-list-item to="/login" prepend-icon="mdi-login" title="INICIAR SESIÓN" @click="closeDrawer"></v-list-item>
-        <v-list-item to="/register" prepend-icon="mdi-account-plus" title="REGISTRARSE" @click="closeDrawer"></v-list-item>
-      </template>
-    </v-list>
-  </v-navigation-drawer>
+        <v-divider class="my-2"></v-divider>
+        
+        <!-- Items de navegación principal - Usando @click directamente para garantizar que se cierran -->
+        <v-list-item 
+          v-for="item in menuItems" 
+          :key="item.title" 
+          :prepend-icon="item.icon"
+          :title="item.title" 
+          class="menu-item"
+          @click.stop="navigateAndClose(item.route)"
+        ></v-list-item>
+        
+        <v-divider class="my-2"></v-divider>
+        
+        <!-- Sección de autenticación -->
+        <template v-if="authStore.isAuthenticated">
+          <!-- Información del usuario -->
+          <v-list-item class="user-drawer-info" v-if="authStore.user">
+            <template v-slot:prepend>
+              <UserAvatar
+                :nombre="authStore.user?.nombre"
+                :apellido="authStore.user?.apellido"
+                :photoUrl="photoUrl"
+                :size="36"
+              />
+            </template>
+            <v-list-item-title>{{ authStore.user.nombre }}</v-list-item-title>
+            <v-list-item-subtitle class="text-caption">{{ authStore.user.email }}</v-list-item-subtitle>
+          </v-list-item>
+          
+          <!-- Rutas protegidas - Con navegación manual para cierre garantizado -->
+          <v-list-item prepend-icon="mdi-account" title="MI PERFIL" @click.stop="navigateAndClose('/profile')"></v-list-item>
+          <v-list-item prepend-icon="mdi-scale-bathroom" title="MIS MEDICIONES" @click.stop="navigateAndClose('/mediciones')"></v-list-item>
+          <v-list-item @click.stop="logoutAndCloseDrawer" prepend-icon="mdi-logout" title="CERRAR SESIÓN"></v-list-item>
+        </template>
+        <template v-else>
+          <v-list-item prepend-icon="mdi-login" title="INICIAR SESIÓN" @click.stop="navigateAndClose('/login')"></v-list-item>
+          <v-list-item prepend-icon="mdi-account-plus" title="REGISTRARSE" @click.stop="navigateAndClose('/register')"></v-list-item>
+        </template>
+      </v-list>
+    </v-navigation-drawer>
+  </div>
 </template>
 
 <style scoped lang="scss">
@@ -237,6 +229,24 @@ const navigateAndClose = (route) => {
 
 .nav-icon {
   margin-right: 4px;
+}
+
+/* Contenedor para el drawer y overlay */
+.drawer-container {
+  position: relative;
+  z-index: 1000; /* Asegura que esté por encima de otros elementos */
+}
+
+/* Overlay que cubre toda la pantalla cuando el menú está abierto */
+.menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 998; /* Justo debajo del drawer pero encima de todo lo demás */
+  cursor: pointer;
 }
 
 /* Espaciador central con ancho controlado - menos espacio para mover elementos a la izquierda */
@@ -287,17 +297,6 @@ const navigateAndClose = (route) => {
   position: relative; /* Para mejor control de posicionamiento */
 }
 
-/* Overlay para capturar clics fuera del drawer */
-.drawer-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 5; /* Por encima del contenido pero por debajo del drawer */
-}
-
 /* Ajuste para el logo canvas */
 :deep(canvas) {
   transform: scale(1); /* Escala natural sin distorsión */
@@ -312,8 +311,8 @@ const navigateAndClose = (route) => {
 /* Mobile adjustments - Logo más grande en móvil */
 @media (max-width: 600px) {
   .logo-container {
-    width: 58px;   /* Aumentado de 55px a 65px */
-    height: 58px;  /* Manteniendo proporción cuadrada */
+    width: 56px;   /* Aumentado de 55px a 65px */
+    height: 56px;  /* Manteniendo proporción cuadrada */
   }
   
   :deep(canvas) {
@@ -329,8 +328,17 @@ const navigateAndClose = (route) => {
   font-size: 1.5rem !important; /* Aumentar tamaño para compensar falta de logo */
 }
 
-/* Asegurar que el drawer esté por encima del overlay */
+/* Asegurar que el drawer tenga un z-index mayor que el overlay */
 .v-navigation-drawer {
-  z-index: 6 !important;
+  z-index: 999 !important;
+}
+
+/* Estilos para los item del menú */
+.v-list-item {
+  transition: background-color 0.2s ease;
+}
+
+.v-list-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
 }
 </style>
