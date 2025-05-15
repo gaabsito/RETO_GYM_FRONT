@@ -1,9 +1,5 @@
-.drawer-title {
-  font-weight: bold !important;
-  text-align: center !important; /* Centrar el texto */
-  font-size: 1.5rem !important; /* Aumentar tamaño para compensar falta de logo */
-}<script setup lang="ts">
-import { ref, computed } from 'vue'
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import LogoCanvas from '@/components/LogoCanvas.vue'
@@ -26,6 +22,17 @@ const emit = defineEmits(['toggle-drawer', 'update:drawer'])
 
 const authStore = useAuthStore()
 const router = useRouter()
+const localDrawer = ref(props.drawer)
+
+// Sincronizar el estado local con las props
+watch(() => props.drawer, (newValue) => {
+  localDrawer.value = newValue
+})
+
+// Emitir cambios del estado local
+watch(localDrawer, (newValue) => {
+  emit('update:drawer', newValue)
+})
 
 // Estado para el menú desplegable del avatar
 const menuOpen = ref(false)
@@ -41,20 +48,29 @@ const handleLogout = () => {
   menuOpen.value = false
 }
 
-// Método para ir al perfil
-const goToProfile = () => {
-  router.push('/profile')
-  menuOpen.value = false
+// Método para cerrar sesión y cerrar el drawer
+const handleLogoutAndCloseDrawer = () => {
+  authStore.logout()
+  router.push('/')
+  closeDrawer()
 }
 
 // Método para abrir/cerrar drawer
 const toggleDrawer = () => {
+  localDrawer.value = !localDrawer.value
   emit('toggle-drawer')
 }
 
-// Método para manejar el cambio del drawer
-const updateDrawer = (value: boolean) => {
-  emit('update:drawer', value)
+// Método para cerrar el drawer
+const closeDrawer = () => {
+  localDrawer.value = false
+  emit('update:drawer', false)
+}
+
+// Método para ir a una ruta y cerrar el drawer
+const navigateAndClose = (route) => {
+  router.push(route)
+  closeDrawer()
 }
 </script>
 
@@ -127,6 +143,10 @@ const updateDrawer = (value: boolean) => {
                   <v-list-item-title>Mi Perfil</v-list-item-title>
                 </v-list-item>
                 
+                <v-list-item to="/mediciones" prepend-icon="mdi-scale-bathroom">
+                  <v-list-item-title>Mis Mediciones</v-list-item-title>
+                </v-list-item>
+                
                 <v-list-item @click="handleLogout" prepend-icon="mdi-logout" color="error">
                   <v-list-item-title>Cerrar Sesión</v-list-item-title>
                 </v-list-item>
@@ -138,10 +158,12 @@ const updateDrawer = (value: boolean) => {
     </v-container>
   </v-app-bar>
 
+  <!-- Overlay to capture clicks outside the drawer -->
+  <div v-if="localDrawer" class="drawer-overlay" @click="closeDrawer"></div>
+
   <!-- Navigation Drawer -->
-  <v-navigation-drawer 
-    :model-value="drawer" 
-    @update:model-value="updateDrawer"
+  <v-navigation-drawer
+    v-model="localDrawer"
     temporary
     class="custom-drawer"
   >
@@ -154,9 +176,15 @@ const updateDrawer = (value: boolean) => {
       <v-divider class="my-2"></v-divider>
       
       <!-- Items de navegación principal -->
-      <v-list-item v-for="item in menuItems" :key="item.title" 
-                   :to="item.route" :prepend-icon="item.icon"
-                   :title="item.title" class="menu-item"></v-list-item>
+      <v-list-item 
+        v-for="item in menuItems" 
+        :key="item.title" 
+        :to="item.route" 
+        :prepend-icon="item.icon"
+        :title="item.title" 
+        class="menu-item"
+        @click="closeDrawer"
+      ></v-list-item>
       
       <v-divider class="my-2"></v-divider>
       
@@ -176,12 +204,13 @@ const updateDrawer = (value: boolean) => {
           <v-list-item-subtitle class="text-caption">{{ authStore.user.email }}</v-list-item-subtitle>
         </v-list-item>
         
-        <v-list-item to="/profile" prepend-icon="mdi-account" title="MI PERFIL"></v-list-item>
-        <v-list-item @click="handleLogout" prepend-icon="mdi-logout" title="CERRAR SESIÓN"></v-list-item>
+        <v-list-item to="/profile" prepend-icon="mdi-account" title="MI PERFIL" @click="closeDrawer"></v-list-item>
+        <v-list-item to="/mediciones" prepend-icon="mdi-scale-bathroom" title="MIS MEDICIONES" @click="closeDrawer"></v-list-item>
+        <v-list-item @click="handleLogoutAndCloseDrawer" prepend-icon="mdi-logout" title="CERRAR SESIÓN"></v-list-item>
       </template>
       <template v-else>
-        <v-list-item to="/login" prepend-icon="mdi-login" title="INICIAR SESIÓN"></v-list-item>
-        <v-list-item to="/register" prepend-icon="mdi-account-plus" title="REGISTRARSE"></v-list-item>
+        <v-list-item to="/login" prepend-icon="mdi-login" title="INICIAR SESIÓN" @click="closeDrawer"></v-list-item>
+        <v-list-item to="/register" prepend-icon="mdi-account-plus" title="REGISTRARSE" @click="closeDrawer"></v-list-item>
       </template>
     </v-list>
   </v-navigation-drawer>
@@ -258,6 +287,17 @@ const updateDrawer = (value: boolean) => {
   position: relative; /* Para mejor control de posicionamiento */
 }
 
+/* Overlay para capturar clics fuera del drawer */
+.drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 5; /* Por encima del contenido pero por debajo del drawer */
+}
+
 /* Ajuste para el logo canvas */
 :deep(canvas) {
   transform: scale(1); /* Escala natural sin distorsión */
@@ -279,5 +319,18 @@ const updateDrawer = (value: boolean) => {
   :deep(canvas) {
     transform: scale(1.1); /* Aumentado de 0.9 a 1.1 para hacer el logo más grande */
   }
+}
+</style>
+
+<style>
+.drawer-title {
+  font-weight: bold !important;
+  text-align: center !important; /* Centrar el texto */
+  font-size: 1.5rem !important; /* Aumentar tamaño para compensar falta de logo */
+}
+
+/* Asegurar que el drawer esté por encima del overlay */
+.v-navigation-drawer {
+  z-index: 6 !important;
 }
 </style>
