@@ -341,4 +341,4 @@ const logoutAndCloseDrawer = () => {
 .v-list-item:hover {
   background-color: rgba(0, 0, 0, 0.04);
 }
-</style>
+</style> 
