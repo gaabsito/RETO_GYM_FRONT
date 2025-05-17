@@ -119,7 +119,12 @@
             <v-list-item-subtitle class="text-caption">{{ authStore.user.email }}</v-list-item-subtitle>
           </v-list-item>
           
-          <v-list-item to="/profile" prepend-icon="mdi-account" title="MI PERFIL" @click="closeDrawer"></v-list-item>
+          <!-- Iteramos sobre authMenuItems proporcionados por props -->
+          <v-list-item v-for="item in authMenuItems" :key="item.title"
+                      :to="item.route" :prepend-icon="item.icon"
+                      :title="item.title" @click="closeDrawer"></v-list-item>
+          
+          <!-- Botón de cerrar sesión -->
           <v-list-item @click="closeDrawerAndLogout" prepend-icon="mdi-logout" title="CERRAR SESIÓN"></v-list-item>
         </template>
         <template v-else>

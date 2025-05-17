@@ -31,6 +31,7 @@ const menuItems: MenuItem[] = [
 const authMenuItems: MenuItem[] = [
   { title: 'Mi Perfil', icon: 'mdi-account', route: '/profile' },
   { title: 'Mis Entrenamientos', icon: 'mdi-playlist-check', route: '/mis-entrenamientos' },
+  { title: 'Mis Mediciones', icon: 'mdi-chart-line', route: '/mediciones' },
 ]
 
 // Método para alternar el drawer
