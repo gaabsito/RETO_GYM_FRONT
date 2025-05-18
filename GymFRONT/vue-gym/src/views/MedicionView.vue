@@ -1,16 +1,14 @@
 <!-- src/views/MedicionView.vue -->
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue';
+import { ref, onMounted, computed, nextTick, watch } from 'vue';
 import { useMedicionStore } from '@/stores/medicion';
 import { useAuthStore } from '@/stores/auth';
 import { storeToRefs } from 'pinia';
 import type { Medicion, MedicionCreateDTO } from '@/types/Medicion';
 import PageHeader from '@/components/PageHeader.vue';
 import SectionContainer from '@/components/SectionContainer.vue';
-// Import progress image properly
-//  import progressImage from '@/assets/images/progress.jpg';
-// Import Chart.js con anotación para TypeScript
-// @ts-ignore
+//import progressImage from '@/assets/images/progress.jpg';
+// Import Chart.js
 import Chart from 'chart.js/auto';
 
 // Stores
@@ -26,6 +24,8 @@ const showDeleteDialog = ref(false);
 const medicionToDelete = ref<number | null>(null);
 const formRef = ref<any>(null);
 const successMessage = ref('');
+const dateMenu = ref(false);
+const activeTab = ref('medidas');
 
 // Table headers
 const tableHeaders = ref([
@@ -50,6 +50,40 @@ const medicionForm = ref<MedicionCreateDTO>({
   notas: ''
 });
 
+// Formateo legible de la fecha seleccionada
+const formattedDate = computed(() => {
+  if (!medicionForm.value.fecha) return '';
+  
+  const date = new Date(medicionForm.value.fecha);
+  return new Intl.DateTimeFormat('es-ES', { 
+    day: '2-digit', 
+    month: 'long', 
+    year: 'numeric' 
+  }).format(date);
+});
+
+// Calcular IMC si hay peso y altura
+const calculatedIMC = computed(() => {
+  if (!medicionForm.value.peso || !medicionForm.value.altura) return null;
+  
+  const imc = medicionForm.value.peso / (medicionForm.value.altura * medicionForm.value.altura);
+  return imc.toFixed(1);
+});
+
+// Categoría de IMC basada en el valor calculado
+const imcCategory = computed(() => {
+  if (!calculatedIMC.value) return '';
+  
+  const imc = parseFloat(calculatedIMC.value);
+  
+  if (imc < 18.5) return 'Bajo peso';
+  if (imc < 25) return 'Peso normal (saludable)';
+  if (imc < 30) return 'Sobrepeso';
+  if (imc < 35) return 'Obesidad grado I';
+  if (imc < 40) return 'Obesidad grado II';
+  return 'Obesidad grado III';
+});
+
 // Load data on component mount
 onMounted(async () => {
   if (!authStore.isAuthenticated) {
@@ -70,7 +104,7 @@ onMounted(async () => {
 
 // Referencia al elemento canvas para el gráfico
 const weightChart = ref<HTMLCanvasElement | null>(null);
-// Definir el tipo para la instancia de Chart
+// Variable para la instancia de Chart
 let weightChartInstance: any = null;
 
 // Función para renderizar el gráfico de peso
@@ -226,6 +260,7 @@ const openCreateForm = () => {
     notas: ''
   };
   editingMedicionId.value = null;
+  activeTab.value = 'medidas'; // Resetear a la primera pestaña
   showForm.value = true;
 };
 
@@ -244,6 +279,7 @@ const openEditForm = (medicion: Medicion) => {
     notas: medicion.notas
   };
   editingMedicionId.value = medicion.medicionID;
+  activeTab.value = 'medidas'; // Resetear a la primera pestaña
   showForm.value = true;
 };
 
@@ -275,6 +311,11 @@ const handleSubmitForm = async () => {
     // Close form
     showForm.value = false;
     
+    // Update chart
+    nextTick(() => {
+      renderWeightChart();
+    });
+    
     // Auto-hide success message after 3 seconds
     setTimeout(() => {
       successMessage.value = '';
@@ -301,6 +342,11 @@ const handleDelete = async () => {
     await medicionStore.fetchMediciones();
     await medicionStore.fetchMedicionesResumen();
     
+    // Update chart
+    nextTick(() => {
+      renderWeightChart();
+    });
+    
     successMessage.value = 'Medición eliminada correctamente';
     
     // Auto-hide success message after 3 seconds
@@ -316,6 +362,13 @@ const handleDelete = async () => {
 const formatDate = (date: Date | string) => {
   return new Date(date).toLocaleDateString();
 };
+
+// Actualizar chart cuando cambian los datos
+watch(() => mediciones.value, () => {
+  nextTick(() => {
+    renderWeightChart();
+  });
+}, { deep: true });
 </script>
 
 <template>
@@ -323,7 +376,7 @@ const formatDate = (date: Date | string) => {
     <!-- Hero Section -->
     <PageHeader 
       title="Seguimiento de Medidas"
-      subtitle="Registra y monitorea tus medidas corporales y progreso a lo largo del tiempo"
+      subtitle="Registra y monitorea tus medidas corporales para ver tu progreso"
       :backgroundImage="progressImage"
     >
       <v-btn 
@@ -538,77 +591,141 @@ const formatDate = (date: Date | string) => {
       </SectionContainer>
     </div>
 
-    <!-- Form Dialog -->
-    <v-dialog v-model="showForm" max-width="600px">
+    <!-- Form Dialog - DISEÑO MEJORADO -->
+    <v-dialog v-model="showForm" :fullscreen="$vuetify.display.smAndDown" :max-width="$vuetify.display.smAndDown ? '100%' : '800px'">
       <v-card>
-        <v-card-title class="dialog-title">
-          {{ formMode === 'create' ? 'Nueva Medición' : 'Editar Medición' }}
-          <v-btn icon @click="closeForm" class="ml-auto">
+        <!-- Header del formulario con color naranja -->
+        <v-toolbar color="#e25401" density="compact" dark>
+          <v-toolbar-title class="font-weight-bold">{{ formMode === 'create' ? 'NUEVA MEDICIÓN' : 'EDITAR MEDICIÓN' }}</v-toolbar-title>
+          <v-spacer></v-spacer>
+          <v-btn icon @click="closeForm">
             <v-icon>mdi-close</v-icon>
           </v-btn>
-        </v-card-title>
-        <v-card-text>
+        </v-toolbar>
+
+        <v-card-text class="pa-4">
           <v-form ref="formRef" @submit.prevent="handleSubmitForm">
-            <v-row>
-              <v-col cols="12" sm="6">
-                <v-date-picker v-model="medicionForm.fecha" title="Fecha" class="mb-4" width="100%"></v-date-picker>
+            <!-- Selección de fecha y descripción general -->
+            <v-row class="mb-6">
+              <v-col cols="12">
+                <div class="text-subtitle-1 font-weight-medium mb-2">¿Cuándo tomaste estas medidas?</div>
+                <v-menu
+                  v-model="dateMenu"
+                  :close-on-content-click="false"
+                  transition="scale-transition"
+                  min-width="auto"
+                >
+                  <template v-slot:activator="{ props }">
+                    <v-text-field
+                      v-model="formattedDate"
+                      label="Fecha"
+                      prepend-inner-icon="mdi-calendar"
+                      readonly
+                      variant="outlined"
+                      v-bind="props"
+                      density="comfortable"
+                    ></v-text-field>
+                  </template>
+                  <v-date-picker 
+                    v-model="medicionForm.fecha" 
+                    @update:model-value="dateMenu = false"
+                  ></v-date-picker>
+                </v-menu>
               </v-col>
-              
-              <v-col cols="12" sm="6">
-                <v-card variant="outlined" class="pa-4">
+            </v-row>
+
+            <!-- Secciones en pestañas para mejor organización y experiencia móvil -->
+            <v-tabs v-model="activeTab" show-arrows density="comfortable" color="#e25401" slider-color="#e25401" class="my-4">
+              <v-tab value="medidas" class="text-uppercase font-weight-bold px-4">
+                <v-icon start class="me-2">mdi-weight</v-icon>
+                Medidas Principales
+              </v-tab>
+              <v-tab value="circunferencias" class="text-uppercase font-weight-bold px-4">
+                <v-icon start class="me-2">mdi-tape-measure</v-icon>
+                Circunferencias
+              </v-tab>
+              <v-tab value="notas" class="text-uppercase font-weight-bold px-4">
+                <v-icon start class="me-2">mdi-note-text</v-icon>
+                Notas
+              </v-tab>
+            </v-tabs>
+
+            <v-window v-model="activeTab" class="mt-4">
+              <!-- Pestaña 1: Medidas Principales -->
+              <v-window-item value="medidas">
+                <v-card variant="flat" class="pa-0">
+                  <v-card-title class="px-0 text-subtitle-1 font-weight-medium">
+                    Medidas Principales
+                    <div class="text-caption text-medium-emphasis mt-1">Estas medidas son esenciales para calcular tu IMC</div>
+                  </v-card-title>
+                  
                   <v-row>
-                    <v-col cols="12">
+                    <v-col cols="12" sm="6">
                       <v-text-field
                         v-model="medicionForm.peso"
                         :rules="rules.peso"
                         label="Peso (kg)"
+                        prepend-inner-icon="mdi-weight"
                         type="number"
                         density="comfortable"
-                        hint="Entre 20 y 300 kg"
                         variant="outlined"
+                        hint="Entre 20 y 300 kg"
+                        persistent-hint
                       ></v-text-field>
                     </v-col>
                     
-                    <v-col cols="12">
+                    <v-col cols="12" sm="6">
                       <v-text-field
                         v-model="medicionForm.altura"
                         :rules="rules.altura"
                         label="Altura (m)"
+                        prepend-inner-icon="mdi-human-male-height"
                         type="number"
                         step="0.01"
                         density="comfortable"
-                        hint="Entre 0.5 y 2.5 metros"
                         variant="outlined"
+                        hint="Entre 0.5 y 2.5 metros"
+                        persistent-hint
                       ></v-text-field>
                     </v-col>
                     
-                    <v-col cols="12">
+                    <v-col cols="12" sm="6">
                       <v-text-field
                         v-model="medicionForm.porcentajeGrasa"
                         :rules="rules.porcentajeGrasa"
                         label="% Grasa Corporal"
+                        prepend-inner-icon="mdi-percent"
                         type="number"
                         density="comfortable"
-                        hint="Entre 1% y 80%"
                         variant="outlined"
+                        hint="Entre 1% y 80%"
+                        persistent-hint
                       ></v-text-field>
                     </v-col>
                   </v-row>
                 </v-card>
-              </v-col>
+              </v-window-item>
               
-              <v-col cols="12">
-                <v-card variant="outlined" class="pa-4">
-                  <div class="text-subtitle-1 mb-2">Circunferencias (cm)</div>
+              <!-- Pestaña 2: Circunferencias -->
+              <v-window-item value="circunferencias">
+                <v-card variant="flat" class="pa-0">
+                  <v-card-title class="px-0 text-subtitle-1 font-weight-medium">
+                    Circunferencias
+                    <div class="text-caption text-medium-emphasis mt-1">Medidas en centímetros de diferentes partes del cuerpo</div>
+                  </v-card-title>
+                  
                   <v-row>
                     <v-col cols="12" sm="6">
                       <v-text-field
                         v-model="medicionForm.circunferenciaBrazo"
                         :rules="rules.circunferencia"
                         label="Brazo"
+                        prepend-inner-icon="mdi-arm-flex"
                         type="number"
                         density="comfortable"
                         variant="outlined"
+                        hint="A la altura del bíceps"
+                        persistent-hint
                       ></v-text-field>
                     </v-col>
                     
@@ -617,9 +734,12 @@ const formatDate = (date: Date | string) => {
                         v-model="medicionForm.circunferenciaPecho"
                         :rules="rules.circunferencia"
                         label="Pecho"
+                        prepend-inner-icon="mdi-human-male"
                         type="number"
                         density="comfortable"
                         variant="outlined"
+                        hint="A la altura de los pectorales"
+                        persistent-hint
                       ></v-text-field>
                     </v-col>
                     
@@ -628,9 +748,12 @@ const formatDate = (date: Date | string) => {
                         v-model="medicionForm.circunferenciaCintura"
                         :rules="rules.circunferencia"
                         label="Cintura"
+                        prepend-inner-icon="mdi-tape-measure"
                         type="number"
                         density="comfortable"
                         variant="outlined"
+                        hint="A la altura del ombligo"
+                        persistent-hint
                       ></v-text-field>
                     </v-col>
                     
@@ -639,44 +762,82 @@ const formatDate = (date: Date | string) => {
                         v-model="medicionForm.circunferenciaMuslo"
                         :rules="rules.circunferencia"
                         label="Muslo"
+                        prepend-inner-icon="mdi-human-handsdown"
                         type="number"
                         density="comfortable"
                         variant="outlined"
+                        hint="En la parte más ancha"
+                        persistent-hint
                       ></v-text-field>
                     </v-col>
                   </v-row>
                 </v-card>
-              </v-col>
+              </v-window-item>
               
-              <v-col cols="12">
-                <v-textarea
-                  v-model="medicionForm.notas"
-                  :rules="rules.notas"
-                  label="Notas"
-                  rows="3"
-                  density="comfortable"
-                  variant="outlined"
-                  counter="500"
-                ></v-textarea>
-              </v-col>
-            </v-row>
+              <!-- Pestaña 3: Notas -->
+              <v-window-item value="notas">
+                <v-card variant="flat" class="pa-0">
+                  <v-card-title class="px-0 text-subtitle-1 font-weight-medium">
+                    Notas Adicionales
+                    <div class="text-caption text-medium-emphasis mt-1">Observaciones o detalles que quieras registrar</div>
+                  </v-card-title>
+                  
+                  <v-textarea
+                    v-model="medicionForm.notas"
+                    :rules="rules.notas"
+                    label="Notas"
+                    rows="4"
+                    variant="outlined"
+                    counter="500"
+                    placeholder="Escribe aquí tus observaciones, sensaciones o detalles sobre esta medición..."
+                    prepend-inner-icon="mdi-note-text-outline"
+                    class="mt-4"
+                  ></v-textarea>
+                </v-card>
+              </v-window-item>
+            </v-window>
+
+            <!-- Mensaje informativo sobre campos opcionales -->
+            <div class="text-caption text-medium-emphasis mt-6 mb-4">
+              Todos los campos son opcionales excepto la fecha. Rellena los que conozcas.
+            </div>
+            
+            <!-- Información del IMC calculado (si ambos valores están presentes) -->
+            <v-card v-if="calculatedIMC" class="mb-4" color="primary" variant="tonal">
+              <v-card-text>
+                <div class="d-flex align-center">
+                  <v-icon start class="me-2">mdi-information</v-icon>
+                  <div>
+                    <div class="text-subtitle-2">IMC calculado: <strong>{{ calculatedIMC }}</strong></div>
+                    <div class="text-caption">{{ imcCategory }}</div>
+                  </div>
+                </div>
+              </v-card-text>
+            </v-card>
           </v-form>
         </v-card-text>
+
+        <!-- Botones de acción -->
+        <v-divider></v-divider>
         <v-card-actions class="pa-4">
-          <v-spacer></v-spacer>
           <v-btn
-            variant="outlined"
+            variant="text"
             @click="closeForm"
-            class="mr-2"
+            class="text-capitalize"
+            :disabled="loading"
           >
             Cancelar
           </v-btn>
+          <v-spacer></v-spacer>
           <v-btn
             color="primary"
+            variant="flat"
             @click="handleSubmitForm"
             :loading="loading"
+            class="text-capitalize"
           >
-            {{ formMode === 'create' ? 'Guardar' : 'Actualizar' }}
+            {{ formMode === 'create' ? 'Guardar Medición' : 'Actualizar Medición' }}
+            <v-icon end class="ms-1">{{ formMode === 'create' ? 'mdi-plus-circle' : 'mdi-check-circle' }}</v-icon>
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -757,19 +918,6 @@ const formatDate = (date: Date | string) => {
   }
 }
 
-.weight-sparkline {
-  width: 100%;
-  height: 100%;
-}
-
-.dialog-title {
-  background-color: $primary-color;
-  color: white;
-  display: flex;
-  align-items: center;
-  font-family: $font-family-base;
-}
-
 .circumference-item {
   padding: 1rem;
   min-width: 120px;
@@ -792,7 +940,18 @@ const formatDate = (date: Date | string) => {
   }
 }
 
-// Mobile-first responsive adjustments
+// Estilo para los campos con iconos prepend
+:deep(.v-field__prepend-inner) {
+  padding-inline-end: 8px !important;
+}
+
+// Estilo para los tabs con mayor separación
+:deep(.v-tab) {
+  margin: 0 12px !important;
+  min-width: 150px !important;
+}
+
+// Estilo para la versión móvil (fullscreen dialog)
 @media (max-width: 600px) {
   .measurement-value {
     font-size: 2rem;
@@ -809,6 +968,66 @@ const formatDate = (date: Date | string) => {
     .circ-value {
       font-size: 1.1rem;
     }
+  }
+  
+  :deep(.v-dialog--fullscreen) {
+    .v-card {
+      border-radius: 0;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .v-card-text {
+      flex: 1;
+      overflow-y: auto;
+      padding-bottom: 80px; // Espacio para el botón de guardar
+    }
+    
+    .v-card-actions {
+      position: sticky;
+      bottom: 0;
+      background-color: white;
+      box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+      z-index: 1;
+    }
+    
+    // Ajustar tamaño del datepicker en móvil
+    .v-date-picker {
+      width: 100%;
+    }
+  }
+  
+  // Tab seleccionado más visible en móvil
+  :deep(.v-tab--selected) {
+    background-color: rgba(226, 84, 1, 0.15);
+    font-weight: 700;
+    border-radius: $border-radius;
+  }
+  
+  // Tabs separados en móvil
+  :deep(.v-tab) {
+    margin: 0 4px !important;
+    min-width: auto !important;
+    padding: 0 8px !important;
+  }
+}
+
+// Estilos para desktop
+@media (min-width: 601px) {
+  .v-card-text {
+    padding: 24px 32px;
+  }
+  
+  // Animación suave en las pestañas
+  :deep(.v-window__container) {
+    transition: all 0.3s ease;
+  }
+  
+  :deep(.v-window-item) {
+    padding: 16px;
+    background-color: #fafafa;
+    border-radius: 0 0 $border-radius $border-radius;
   }
 }
 </style>
