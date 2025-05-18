@@ -1,13 +1,17 @@
 <!-- src/views/MedicionView.vue -->
 <script setup lang="ts">
-import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { useMedicionStore } from '@/stores/medicion';
 import { useAuthStore } from '@/stores/auth';
 import { storeToRefs } from 'pinia';
 import type { Medicion, MedicionCreateDTO } from '@/types/Medicion';
 import PageHeader from '@/components/PageHeader.vue';
 import SectionContainer from '@/components/SectionContainer.vue';
+// Import progress image properly
 //import progressImage from '@/assets/images/progress.jpg';
+// Import Chart.js con anotación para TypeScript
+// @ts-ignore
+import Chart from 'chart.js/auto';
 
 // Stores
 const medicionStore = useMedicionStore();
@@ -22,16 +26,6 @@ const showDeleteDialog = ref(false);
 const medicionToDelete = ref<number | null>(null);
 const formRef = ref<any>(null);
 const successMessage = ref('');
-
-// Referencias para los gráficos
-const chartRef = ref(null);
-const chart = ref(null);
-
-// Estado para controlar qué series mostrar en la gráfica comparativa
-const showWeight = ref(true);
-const showBMI = ref(true);
-const showBodyFat = ref(true);
-const showWaist = ref(false);
 
 // Table headers
 const tableHeaders = ref([
@@ -65,13 +59,89 @@ onMounted(async () => {
   try {
     await medicionStore.fetchMediciones();
     await medicionStore.fetchMedicionesResumen();
-    
-    // Inicializar el gráfico comparativo después de cargar los datos
-    setTimeout(initComparisonChart, 300);
+    // Renderizar el gráfico después de que los datos estén disponibles
+    nextTick(() => {
+      renderWeightChart();
+    });
   } catch (err) {
     console.error('Error loading measurements:', err);
   }
 });
+
+// Referencia al elemento canvas para el gráfico
+const weightChart = ref<HTMLCanvasElement | null>(null);
+// Definir el tipo para la instancia de Chart
+let weightChartInstance: any = null;
+
+// Función para renderizar el gráfico de peso
+const renderWeightChart = () => {
+  if (!weightChart.value || !mediciones.value || mediciones.value.length === 0) return;
+
+  // Datos para el gráfico
+  const data = mediciones.value
+    .slice(0, 10)
+    .map(m => ({ peso: m.peso || 0, fecha: formatDate(m.fecha) }))
+    .reverse();
+
+  // Destruir gráfico existente si hay uno
+  if (weightChartInstance) {
+    weightChartInstance.destroy();
+  }
+
+  // Crear nuevo gráfico
+  const ctx = weightChart.value.getContext('2d');
+  if (!ctx) return;
+
+  weightChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: data.map(item => item.fecha),
+      datasets: [{
+        label: 'Peso (kg)',
+        data: data.map(item => item.peso),
+        borderColor: '#e25401',
+        backgroundColor: 'rgba(226, 84, 1, 0.1)',
+        borderWidth: 3,
+        tension: 0.2,
+        fill: true,
+        pointBackgroundColor: '#e25401',
+        pointRadius: 4,
+        pointHoverRadius: 6,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+        },
+        tooltip: {
+          enabled: true,
+          mode: 'index',
+          intersect: false,
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: false,
+          grid: {
+            color: 'rgba(0, 0, 0, 0.05)',
+          },
+          ticks: {
+            precision: 1
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          }
+        }
+      }
+    }
+  });
+};
 
 // Computed properties for data visualization
 const mostRecentMedicion = computed(() => {
@@ -120,167 +190,6 @@ const weightHistoryLabels = computed(() => {
     .map(m => formatDate(m.fecha))
     .reverse();
 });
-
-// Datos para el gráfico comparativo
-const comparisonChartData = computed(() => {
-  if (!mediciones.value || mediciones.value.length === 0) return { labels: [], datasets: [] };
-  
-  // Usar hasta las últimas 10 mediciones ordenadas cronológicamente
-  const chartData = [...mediciones.value]
-    .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime())
-    .slice(-10);
-  
-  // Preparar etiquetas de fechas
-  const labels = chartData.map(m => new Date(m.fecha).toLocaleDateString(undefined, { 
-    day: '2-digit', 
-    month: 'short' 
-  }));
-  
-  // Preparar datasets
-  const datasets = [];
-  
-  // Dataset para peso
-  if (showWeight.value) {
-    datasets.push({
-      label: 'Peso (kg)',
-      data: chartData.map(m => m.peso),
-      borderColor: '#e25401',
-      backgroundColor: 'rgba(226, 84, 1, 0.1)',
-      yAxisID: 'y',
-      tension: 0.4,
-      fill: true
-    });
-  }
-  
-  // Dataset para IMC
-  if (showBMI.value) {
-    datasets.push({
-      label: 'IMC',
-      data: chartData.map(m => m.imc),
-      borderColor: '#2e7d32',
-      backgroundColor: 'rgba(46, 125, 50, 0.1)',
-      yAxisID: 'y1',
-      tension: 0.4,
-      fill: true
-    });
-  }
-  
-  // Dataset para % grasa
-  if (showBodyFat.value) {
-    datasets.push({
-      label: '% Grasa',
-      data: chartData.map(m => m.porcentajeGrasa),
-      borderColor: '#1976d2',
-      backgroundColor: 'rgba(25, 118, 210, 0.1)',
-      yAxisID: 'y1',
-      tension: 0.4,
-      fill: true
-    });
-  }
-  
-  // Dataset para cintura
-  if (showWaist.value) {
-    datasets.push({
-      label: 'Cintura (cm)',
-      data: chartData.map(m => m.circunferenciaCintura),
-      borderColor: '#ed6c02',
-      backgroundColor: 'rgba(237, 108, 2, 0.1)',
-      yAxisID: 'y2',
-      tension: 0.4,
-      fill: true
-    });
-  }
-  
-  return { labels, datasets };
-});
-
-// Función para inicializar el gráfico comparativo
-const initComparisonChart = () => {
-  if (!chartRef.value) return;
-  
-  const ctx = chartRef.value.getContext('2d');
-  
-  // Destruir gráfico existente si lo hay
-  if (chart.value) {
-    chart.value.destroy();
-  }
-  
-  // Comprobar si hay datos para mostrar
-  if (!mediciones.value || mediciones.value.length < 2) return;
-  
-  const data = comparisonChartData.value;
-  
-  // Configuración del gráfico
-  chart.value = new Chart(ctx, {
-    type: 'line',
-    data: data,
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false,
-      },
-      plugins: {
-        legend: {
-          position: 'top',
-          labels: {
-            boxWidth: 12,
-            usePointStyle: true
-          }
-        },
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.7)',
-          padding: 10,
-          cornerRadius: 6
-        }
-      },
-      scales: {
-        x: {
-          grid: {
-            display: false
-          }
-        },
-        y: {
-          type: 'linear',
-          display: true,
-          position: 'left',
-          title: {
-            display: true,
-            text: 'Peso (kg)'
-          },
-          grid: {
-            color: 'rgba(0, 0, 0, 0.05)'
-          }
-        },
-        y1: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          grid: {
-            drawOnChartArea: false
-          },
-          title: {
-            display: true,
-            text: 'IMC / % Grasa'
-          }
-        },
-        y2: {
-          type: 'linear',
-          display: showWaist.value,
-          position: 'right',
-          grid: {
-            drawOnChartArea: false
-          },
-          title: {
-            display: true,
-            text: 'Medidas (cm)'
-          }
-        }
-      }
-    }
-  });
-};
 
 // Form validation rules
 const rules = {
@@ -366,9 +275,6 @@ const handleSubmitForm = async () => {
     // Close form
     showForm.value = false;
     
-    // Actualizar el gráfico comparativo
-    setTimeout(initComparisonChart, 300);
-    
     // Auto-hide success message after 3 seconds
     setTimeout(() => {
       successMessage.value = '';
@@ -395,9 +301,6 @@ const handleDelete = async () => {
     await medicionStore.fetchMediciones();
     await medicionStore.fetchMedicionesResumen();
     
-    // Actualizar el gráfico comparativo
-    setTimeout(initComparisonChart, 300);
-    
     successMessage.value = 'Medición eliminada correctamente';
     
     // Auto-hide success message after 3 seconds
@@ -413,23 +316,6 @@ const handleDelete = async () => {
 const formatDate = (date: Date | string) => {
   return new Date(date).toLocaleDateString();
 };
-
-// Monitorizar cambios en las preferencias de visualización
-watch([showWeight, showBMI, showBodyFat, showWaist], () => {
-  initComparisonChart();
-});
-
-// Monitorizar cambios en mediciones
-watch(() => mediciones.value, () => {
-  initComparisonChart();
-}, { deep: true });
-
-// Limpiar al desmontar
-onBeforeUnmount(() => {
-  if (chart.value) {
-    chart.value.destroy();
-  }
-});
 </script>
 
 <template>
@@ -581,37 +467,7 @@ onBeforeUnmount(() => {
         </v-row>
       </SectionContainer>
 
-      <!-- Gráfico comparativo - NUEVA SECCIÓN -->
-      <SectionContainer title="Comparativa de Mediciones" v-if="mediciones.length > 1">
-        <v-card>
-          <v-card-text>
-            <v-row>
-              <v-col cols="12">
-                <h4 class="text-subtitle-1 mb-4">Evolución comparativa de tus mediciones</h4>
-                
-                <!-- Controles para seleccionar métricas -->
-                <div class="d-flex flex-wrap align-center mb-4">
-                  <v-checkbox v-model="showWeight" label="Peso" color="primary" hide-details class="mr-4 metric-checkbox"></v-checkbox>
-                  <v-checkbox v-model="showBMI" label="IMC" color="success" hide-details class="mr-4 metric-checkbox"></v-checkbox>
-                  <v-checkbox v-model="showBodyFat" label="% Grasa" color="info" hide-details class="mr-4 metric-checkbox"></v-checkbox>
-                  <v-checkbox v-model="showWaist" label="Cintura" color="warning" hide-details class="metric-checkbox"></v-checkbox>
-                </div>
-                
-                <!-- Contenedor del gráfico -->
-                <div class="comparison-chart-container">
-                  <canvas ref="chartRef"></canvas>
-                </div>
-                
-                <div class="text-caption text-center mt-3">
-                  Selecciona qué métricas quieres comparar para visualizar mejor tu progreso
-                </div>
-              </v-col>
-            </v-row>
-          </v-card-text>
-        </v-card>
-      </SectionContainer>
-
-      <!-- Progress Chart using Vuetify Sparkline -->
+      <!-- Progress Chart using Chart.js -->
       <SectionContainer title="Progreso de Peso" backgroundColor="#f8f8f8" v-if="mediciones.length > 1">
         <v-card>
           <v-card-text>
@@ -619,22 +475,9 @@ onBeforeUnmount(() => {
               <v-col cols="12">
                 <h4 class="text-subtitle-1 mb-4">Evolución del peso (en kg)</h4>
                 
-                <!-- Vuetify Sparkline component for visualizing weight trend -->
+                <!-- Gráfico de evolución del peso usando Chart.js -->
                 <v-sheet height="200" class="d-flex align-center justify-center">
-                  <v-sparkline
-                    :value="weightHistoryData"
-                    :labels="weightHistoryLabels"
-                    :gradient="['#e25401', '#ff8c00']"
-                    :line-width="3"
-                    :padding="8"
-                    :smooth="10"
-                    :auto-draw="true"
-                    stroke-linecap="round"
-                    auto-draw-duration="2000"
-                    show-labels
-                    label-size="6"
-                    class="weight-sparkline"
-                  />
+                  <canvas ref="weightChart" width="400" height="200"></canvas>
                 </v-sheet>
                 
                 <div class="text-caption text-center mt-2">
@@ -949,19 +792,6 @@ onBeforeUnmount(() => {
   }
 }
 
-/* Estilos para el nuevo gráfico comparativo */
-.comparison-chart-container {
-  position: relative;
-  height: 350px;
-  width: 100%;
-  margin: 1.5rem 0;
-}
-
-.metric-checkbox {
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-}
-
 // Mobile-first responsive adjustments
 @media (max-width: 600px) {
   .measurement-value {
@@ -978,18 +808,6 @@ onBeforeUnmount(() => {
     
     .circ-value {
       font-size: 1.1rem;
-    }
-  }
-  
-  .comparison-chart-container {
-    height: 250px;
-  }
-  
-  .metric-checkbox {
-    margin-right: 0.3rem !important;
-    
-    :deep(.v-checkbox__label) {
-      font-size: 0.85rem;
     }
   }
 }
