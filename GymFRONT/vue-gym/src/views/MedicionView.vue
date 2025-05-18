@@ -8,7 +8,7 @@ import type { Medicion, MedicionCreateDTO } from '@/types/Medicion';
 import PageHeader from '@/components/PageHeader.vue';
 import SectionContainer from '@/components/SectionContainer.vue';
 // Import progress image properly
-//import progressImage from '@/assets/images/progress.jpg';
+//  import progressImage from '@/assets/images/progress.jpg';
 // Import Chart.js con anotación para TypeScript
 // @ts-ignore
 import Chart from 'chart.js/auto';
