@@ -14,17 +14,17 @@ const emit = defineEmits(['update:show', 'completada'])
 
 const rutinasCompletadasStore = useRutinasCompletadasStore()
 
-// Fecha con hora actual
-const fechaActual = new Date()
+// Fecha actual por defecto, pero ahora puede modificarse
+const fechaSeleccionada = ref(new Date())
 // Formateo para el datepicker de Vuetify
 const fechaFormateada = computed(() => {
-  return fechaActual.toISOString().split('T')[0]
+  return fechaSeleccionada.value.toISOString().split('T')[0]
 })
 
 // Formulario para la rutina completada
 const form = ref<RutinaCompletadaCreate>({
   entrenamientoID: props.entrenamientoID,
-  fechaCompletada: fechaActual,
+  fechaCompletada: fechaSeleccionada.value,
   duracionMinutos: props.duracionRecomendada || undefined,
   caloriasEstimadas: undefined,
   nivelEsfuerzoPercibido: 5,
@@ -41,9 +41,19 @@ const success = ref(false)
 
 // Formatear fecha para mostrar
 const formattedDate = computed(() => {
-  if (!form.value.fechaCompletada) return ''
-  return new Date(form.value.fechaCompletada).toLocaleDateString()
+  if (!fechaSeleccionada.value) return ''
+  
+  return new Intl.DateTimeFormat('es-ES', { 
+    day: '2-digit', 
+    month: 'long', 
+    year: 'numeric' 
+  }).format(fechaSeleccionada.value)
 })
+
+// Actualizar la fecha en el formulario cuando cambia la fecha seleccionada
+const updateFormDate = () => {
+  form.value.fechaCompletada = fechaSeleccionada.value
+}
 
 // Enviar el formulario
 const handleSubmit = async () => {
@@ -56,6 +66,9 @@ const handleSubmit = async () => {
     loading.value = true
     error.value = ''
     success.value = false
+    
+    // Asegurar que la fecha está actualizada
+    form.value.fechaCompletada = fechaSeleccionada.value
     
     // Completar la rutina
     const resultado = await rutinasCompletadasStore.completarRutina(form.value)
@@ -81,6 +94,15 @@ const handleSubmit = async () => {
 const closeDialog = () => {
   emit('update:show', false)
 }
+
+// Verificar si la fecha seleccionada es futura
+const isFutureDate = computed(() => {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const selectedDate = new Date(fechaSeleccionada.value)
+  selectedDate.setHours(0, 0, 0, 0)
+  return selectedDate > today
+})
 </script>
 
 <template>
@@ -139,6 +161,7 @@ const closeDialog = () => {
 
           <v-row dense>
             <v-col cols="12">
+              <div class="text-subtitle-2 mb-2">¿Qué día completaste este entrenamiento?</div>
               <v-menu
                 v-model="dateMenu"
                 :close-on-content-click="false"
@@ -154,13 +177,27 @@ const closeDialog = () => {
                     v-bind="props"
                     variant="outlined"
                     density="comfortable"
+                    hint="Selecciona la fecha en que realizaste este entrenamiento"
+                    persistent-hint
+                    class="date-field"
                   ></v-text-field>
                 </template>
                 <v-date-picker
                   v-model="fechaFormateada"
-                  @update:model-value="form.fechaCompletada = new Date($event); dateMenu = false"
+                  @update:model-value="fechaSeleccionada = new Date($event); updateFormDate()"
+                  :max="new Date().toISOString().split('T')[0]"
                 ></v-date-picker>
               </v-menu>
+              
+              <v-alert 
+                v-if="isFutureDate" 
+                type="warning" 
+                class="mt-2" 
+                density="compact" 
+                variant="tonal"
+              >
+                No puedes seleccionar una fecha futura
+              </v-alert>
             </v-col>
 
             <v-col cols="12" sm="6">
@@ -237,7 +274,7 @@ const closeDialog = () => {
               color="success"
               type="submit"
               :loading="loading"
-              :disabled="loading"
+              :disabled="loading || isFutureDate"
             >
               Completar
             </v-btn>
@@ -270,6 +307,10 @@ const closeDialog = () => {
   border-radius: $border-radius;
   background-color: rgba(226, 84, 1, 0.05);
   border-color: rgba(226, 84, 1, 0.2) !important;
+}
+
+.date-field {
+  margin-bottom: 8px;
 }
 
 :deep(.v-field) {
