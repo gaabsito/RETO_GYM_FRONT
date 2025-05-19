@@ -1,12 +1,17 @@
-<!-- src/components/UserRole.vue -->
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue';
+import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue';
 import { useRolesStore } from '@/stores/roles';
 import { useAuthStore } from '@/stores/auth';
-import type { Role } from '@/types/Role';
+import type { Role, UsuarioRol } from '@/types/Role';
 
+// Props y Emits
 const props = defineProps<{
   showNextRole?: boolean;
+  forceReload?: boolean; // Nueva prop para forzar recarga
+}>();
+
+const emit = defineEmits<{
+  (e: 'role-updated', rol: UsuarioRol | null): void
 }>();
 
 const rolesStore = useRolesStore();
@@ -16,8 +21,9 @@ const authStore = useAuthStore();
 const loading = ref(false);
 const error = ref('');
 const showRoleInfo = ref(false);
+const lastUpdate = ref(new Date());
 
-// Cargar el rol del usuario
+// Cargar el rol del usuario con indicadores de carga
 const loadUserRole = async () => {
   try {
     loading.value = true;
@@ -27,8 +33,16 @@ const loadUserRole = async () => {
       return;
     }
     
+    console.log('Actualizando información de rol de usuario...');
     await rolesStore.getUserRole();
     
+    // Actualizar marca de tiempo de última actualización
+    lastUpdate.value = new Date();
+    
+    // Emitir evento de rol actualizado
+    emit('role-updated', rolesStore.currentRole);
+    
+    console.log('Rol actualizado:', rolesStore.currentRole);
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Error al cargar el rol del usuario';
   } finally {
@@ -46,14 +60,23 @@ const currentRole = computed(() => {
   return rolesStore.currentRole;
 });
 
-// Progreso hacia el siguiente rol
+// Progreso hacia el siguiente rol (basado en días entrenados esta semana)
 const roleProgress = computed(() => {
-  return rolesStore.progressToNextRole;
+  if (!currentRole.value) return 0;
+  
+  // Calcular progreso basado en días entrenados de la semana actual
+  // Cada nivel requiere un día más
+  return Math.min(100, (currentRole.value.diasEntrenadosSemanales / 7) * 100);
 });
 
 // Días restantes para el siguiente rol
 const daysToNextRole = computed(() => {
-  return rolesStore.daysToNextRole;
+  if (!currentRole.value) return 0;
+  // Si ya está en nivel máximo (7 días a la semana)
+  if (currentRole.value.rolID === 7) return 0;
+  
+  // El siguiente rol requiere un día más que el actual
+  return 7 - currentRole.value.diasEntrenadosSemanales;
 });
 
 // Siguiente rol (si existe)
@@ -71,15 +94,22 @@ const progressColor = computed(() => {
 
 // Formatear el texto de días restantes
 const daysRemainingText = computed(() => {
-  if (!nextRole.value) return '';
+  if (!currentRole.value || !nextRole.value) return '';
   if (daysToNextRole.value === 0) return '¡Ya puedes subir de nivel!';
   
   return `${daysToNextRole.value} día${daysToNextRole.value !== 1 ? 's' : ''} más esta semana para subir a ${nextRole.value.nombre}`;
 });
 
-// Cargar el rol al montar el componente
-onMounted(() => {
-  loadUserRole();
+// Obtener la semana actual del año
+const currentWeek = computed(() => {
+  return currentRole.value?.semanaActual || 0;
+});
+
+// Observar props.forceReload para forzar actualización
+watch(() => props.forceReload, (newValue, oldValue) => {
+  if (newValue !== oldValue && newValue === true) {
+    loadUserRole();
+  }
 });
 
 // Observar cambios en la autenticación
@@ -87,6 +117,27 @@ watch(() => authStore.isAuthenticated, (isAuth) => {
   if (isAuth) {
     loadUserRole();
   }
+});
+
+// Actualización automática cada minuto
+onMounted(() => {
+  loadUserRole();
+  
+  // Configurar intervalo para actualizar el rol periódicamente
+  const interval = setInterval(() => {
+    // Solo actualizar si pasaron más de 30 segundos desde la última actualización
+    const now = new Date();
+    const diffSeconds = (now.getTime() - lastUpdate.value.getTime()) / 1000;
+    
+    if (diffSeconds > 30) {
+      loadUserRole();
+    }
+  }, 60000); // comprobar cada minuto
+  
+  // Limpiar intervalo al desmontar
+  onBeforeUnmount(() => {
+    clearInterval(interval);
+  });
 });
 
 // Abrir diálogo de información
@@ -122,8 +173,8 @@ const toggleRoleInfo = () => {
         <div class="role-header" :style="{ backgroundColor: currentRole.color + '22' }">
           <v-icon :color="currentRole.color" size="32" class="role-icon">{{ currentRole.icono }}</v-icon>
           <div class="role-title">
-            <div class="role-name" :style="{ color: currentRole.color }">{{ currentRole.nombre }}</div>
-            <div class="role-level">Nivel {{ currentRole.id }} de 7</div>
+            <div class="role-name" :style="{ color: currentRole.color }">{{ currentRole.nombreRol }}</div>
+            <div class="role-level">Nivel {{ currentRole.rolID }} de 7</div>
           </div>
           <v-btn 
             icon 
@@ -138,32 +189,38 @@ const toggleRoleInfo = () => {
         </div>
         
         <v-card-text class="px-3 py-2">
-          <p class="role-description text-body-2">{{ currentRole.descripcion }}</p>
+          <p class="role-description text-body-2">{{ currentRole.descripcion || 'Entrena de forma regular para mantener tu nivel.' }}</p>
           
-          <!-- Mostrar progreso al siguiente rol si no es el máximo -->
-          <div v-if="nextRole && props.showNextRole" class="role-progress">
+          <!-- Mostrar la semana actual -->
+          <div class="week-info text-caption text-center mb-2">
+            <v-chip size="small" color="primary" variant="outlined" class="week-chip">
+              <v-icon start size="x-small">mdi-calendar-week</v-icon>
+              Semana {{ currentWeek }}
+            </v-chip>
+          </div>
+          
+          <!-- Mostrar progreso al siguiente rol -->
+          <div class="role-progress">
             <div class="d-flex justify-space-between align-center mb-1">
-              <div class="text-caption">Progreso hacia {{ nextRole.nombre }}</div>
-              <div class="text-caption font-weight-medium">{{ Math.round(roleProgress) }}%</div>
+              <div class="text-caption">Progreso semanal</div>
+              <div class="text-caption font-weight-medium">{{ currentRole.diasEntrenadosSemanales }}/7 días</div>
             </div>
             
             <v-progress-linear
               :model-value="roleProgress"
               height="8"
               rounded
-              :color="nextRole.color"
+              :color="currentRole.color"
               bg-color="grey-lighten-3"
             ></v-progress-linear>
             
-            <div class="text-caption mt-2 text-center text-primary">
-              {{ daysRemainingText }}
+            <div v-if="props.showNextRole && daysToNextRole > 0" class="text-caption mt-2 text-center" :style="{ color: currentRole.color }">
+              {{ daysToNextRole }} día{{ daysToNextRole !== 1 ? 's' : '' }} más para completar la semana
             </div>
-          </div>
-          
-          <!-- Mostrar mensaje de nivel máximo si es Élite -->
-          <div v-else-if="currentRole.id === 7" class="max-level-message">
-            <v-icon color="amber-darken-2" class="mr-1">mdi-crown</v-icon>
-            <span class="text-caption">¡Has alcanzado el nivel máximo!</span>
+            
+            <div v-else-if="props.showNextRole && daysToNextRole === 0" class="text-caption mt-2 text-center text-success">
+              ¡Has completado todos los días de la semana!
+            </div>
           </div>
         </v-card-text>
       </v-card>
@@ -182,14 +239,14 @@ const toggleRoleInfo = () => {
         <v-card-text class="pa-4">
           <p class="text-body-2 mb-4">
             Tu nivel se determina según la cantidad de días que entrenas cada semana. 
-            ¡Completa más entrenamientos para subir de nivel!
+            ¡Completa más entrenamientos en diferentes días para subir de nivel!
           </p>
           
           <v-list>
             <v-list-item
               v-for="role in allRoles"
               :key="role.id"
-              :class="{ 'current-role': currentRole && role.id === currentRole.id }"
+              :class="{ 'current-role': currentRole && role.id === currentRole.rolID }"
             >
               <template v-slot:prepend>
                 <v-avatar :color="role.color + '22'" size="40" class="me-3">
@@ -197,7 +254,7 @@ const toggleRoleInfo = () => {
                 </v-avatar>
               </template>
               
-              <v-list-item-title :style="currentRole && role.id === currentRole.id ? { color: role.color, fontWeight: 'bold' } : {}">
+              <v-list-item-title :style="currentRole && role.id === currentRole.rolID ? { color: role.color, fontWeight: 'bold' } : {}">
                 {{ role.nombre }}
               </v-list-item-title>
               
@@ -213,7 +270,8 @@ const toggleRoleInfo = () => {
           <v-divider class="my-4"></v-divider>
           
           <div class="text-caption text-center">
-            Tu nivel se actualiza automáticamente según tus entrenamientos recientes.
+            <p>Tu nivel se actualiza basado en días únicos entrenados en la semana actual.</p>
+            <p class="mt-1"><strong>Nota:</strong> Al comenzar una nueva semana, deberás volver a entrenar para mantener o mejorar tu nivel.</p>
           </div>
         </v-card-text>
       </v-card>
@@ -278,22 +336,22 @@ const toggleRoleInfo = () => {
   color: rgba(0, 0, 0, 0.7);
 }
 
+.week-info {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+  
+  .week-chip {
+    font-family: $font-family-base;
+  }
+}
+
 .role-progress {
   margin-top: 12px;
   
   .text-caption {
     color: rgba(0, 0, 0, 0.6);
   }
-}
-
-.max-level-message {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 12px;
-  background-color: rgba(255, 193, 7, 0.1);
-  border-radius: $border-radius;
-  margin-top: 12px;
 }
 
 .current-role {

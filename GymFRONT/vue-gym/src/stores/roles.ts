@@ -1,7 +1,7 @@
 // src/stores/roles.ts
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import type { Role } from '@/types/Role';
+import type { Role, UsuarioRol } from '@/types/Role';
 import { useRutinasCompletadasStore } from './rutinasCompletadas';
 import { useAuthStore } from './auth';
 
@@ -73,60 +73,72 @@ export const useRolesStore = defineStore('roles', () => {
     }
   ]);
 
-  const currentRole = ref<Role | null>(null);
+  const currentRole = ref<UsuarioRol | null>(null);
   const userCurrentRole = ref<number | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
-  // Obtener el rol actual del usuario
-  const getUserRole = async () => {
+  // Obtener el rol actual del usuario - con reintento
+  const getUserRole = async (retryOnFailure = true) => {
     try {
       loading.value = true;
       error.value = null;
       
-      const rutinasStore = useRutinasCompletadasStore();
       const authStore = useAuthStore();
       
       if (!authStore.isAuthenticated) {
         return null;
       }
       
-      // Cargar el resumen de rutinas
-      await rutinasStore.fetchResumen();
-      const resumen = rutinasStore.resumen;
+      // Corregimos la URL para evitar la duplicación de 'api'
+      const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087';
+      const baseUrl = API_URL.endsWith('/api') ? API_URL : `${API_URL}`;
+      const token = authStore.token;
       
-      if (!resumen) {
-        userCurrentRole.value = 1; // Principiante por defecto
-        currentRole.value = roles.value.find(r => r.id === 1) || null;
-        return currentRole.value;
-      }
+      console.log('Obteniendo rol de usuario actual...');
+      console.log('URL de la API:', `${baseUrl}/Rol/usuario`);
       
-      // Calcular promedio de entrenamientos por semana
-      const entrenasPorSemana = resumen.rutinasUltimaSemana || 0;
+      // Realizar petición al backend para obtener el rol actual
+      const response = await fetch(`${baseUrl}/Rol/usuario`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        // Añadimos cache: 'no-cache' para forzar una petición fresca cada vez
+        cache: 'no-cache'
+      });
       
-      // Determinar el rol basado en entrenamientos por semana
-      let newRoleId = 1; // Valor por defecto
-      
-      for (const role of roles.value) {
-        if (entrenasPorSemana >= role.diasPorSemanaMinimo && 
-            entrenasPorSemana <= role.diasPorSemanaMaximo) {
-          newRoleId = role.id;
-          break;
+      if (!response.ok) {
+        console.error('Error en la respuesta:', response.status, response.statusText);
+        
+        if (response.status === 404 && retryOnFailure) {
+          // Si es 404, puede ser porque el usuario es nuevo o porque el rol aún no se ha calculado
+          console.log('Rol no encontrado, esperando 1 segundo y reintentando...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          return getUserRole(false); // Reintentar una vez más sin más reintentos
         }
+        throw new Error(`Error al obtener información del rol: ${response.status} ${response.statusText}`);
       }
       
-      // Si entrena todos los días, asignar el rol élite
-      if (entrenasPorSemana >= 7) {
-        newRoleId = 7;
+      const data = await response.json();
+      
+      if (!data.success) {
+        throw new Error(data.message || 'Error al obtener información del rol');
       }
       
-      userCurrentRole.value = newRoleId;
-      currentRole.value = roles.value.find(r => r.id === newRoleId) || null;
+      const usuarioRol: UsuarioRol = data.data;
+      
+      console.log('Rol obtenido:', usuarioRol);
+      
+      // Guardar en el estado
+      currentRole.value = usuarioRol;
+      userCurrentRole.value = usuarioRol.rolID;
       
       return currentRole.value;
       
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Error desconocido';
+      console.error('Error al obtener rol:', e);
       return null;
     } finally {
       loading.value = false;
@@ -143,51 +155,6 @@ export const useRolesStore = defineStore('roles', () => {
     return roles.value.find(r => r.id === id) || null;
   };
 
-  // Calcular el progreso hacia el siguiente rol
-  const progressToNextRole = computed(() => {
-    if (!currentRole.value || !userCurrentRole.value) return 0;
-    
-    // Si ya es élite, el progreso está completo
-    if (userCurrentRole.value === 7) return 100;
-    
-    const rutinasStore = useRutinasCompletadasStore();
-    if (!rutinasStore.resumen) return 0;
-    
-    const entrenasPorSemana = rutinasStore.resumen.rutinasUltimaSemana || 0;
-    const currentRoleObj = getRoleById(userCurrentRole.value);
-    
-    if (!currentRoleObj) return 0;
-    
-    // Si está en el límite superior de su rol actual, está al 100% de progreso
-    if (entrenasPorSemana >= currentRoleObj.diasPorSemanaMaximo) return 100;
-    
-    // Calcular el progreso dentro del rango del rol actual
-    const rangoRol = currentRoleObj.diasPorSemanaMaximo - currentRoleObj.diasPorSemanaMinimo;
-    if (rangoRol === 0) return 100; // Si el rango es 0, está completo
-    
-    const progresoActual = entrenasPorSemana - currentRoleObj.diasPorSemanaMinimo;
-    return Math.min(100, Math.max(0, (progresoActual / rangoRol) * 100));
-  });
-
-  // Calcular cuántos días faltan para el siguiente rol
-  const daysToNextRole = computed(() => {
-    if (!currentRole.value || !userCurrentRole.value) return 0;
-    
-    // Si ya es élite, no hay siguiente rol
-    if (userCurrentRole.value === 7) return 0;
-    
-    const rutinasStore = useRutinasCompletadasStore();
-    if (!rutinasStore.resumen) return 0;
-    
-    const entrenasPorSemana = rutinasStore.resumen.rutinasUltimaSemana || 0;
-    const nextRoleId = userCurrentRole.value + 1;
-    const nextRoleObj = getRoleById(nextRoleId);
-    
-    if (!nextRoleObj) return 0;
-    
-    return Math.max(0, nextRoleObj.diasPorSemanaMinimo - entrenasPorSemana);
-  });
-
   return {
     roles,
     currentRole,
@@ -196,8 +163,6 @@ export const useRolesStore = defineStore('roles', () => {
     error,
     getUserRole,
     getAllRoles,
-    getRoleById,
-    progressToNextRole,
-    daysToNextRole
+    getRoleById
   };
 });

@@ -73,6 +73,22 @@ const handleSubmit = async () => {
     // Completar la rutina
     const resultado = await rutinasCompletadasStore.completarRutina(form.value)
     
+    // Importante: Forzar actualización del rol del usuario después de completar entrenamiento
+    try {
+      // Usamos un pequeño timeout para asegurar que el backend haya procesado el nuevo entrenamiento
+      setTimeout(async () => {
+        // Actualizar las estadísticas y el rol del usuario
+        await rutinasCompletadasStore.fetchResumen()
+        // Importación dinámica para evitar importación circular
+        const { useRolesStore } = await import('@/stores/roles')
+        const rolesStore = useRolesStore()
+        await rolesStore.getUserRole()
+        console.log('Rol de usuario actualizado después de completar entrenamiento')
+      }, 500)
+    } catch (roleError) {
+      console.error('Error al actualizar el rol después de completar entrenamiento:', roleError)
+    }
+    
     success.value = true
     
     // Emitir evento completado

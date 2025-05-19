@@ -9,9 +9,15 @@ export interface Role {
   diasPorSemanaMaximo: number;
 }
 
-export interface UserRole {
-  roleId: number;
-  usuarioId: number;
+export interface UsuarioRol {
+  usuarioID: number;
+  rolID: number;
+  nombreRol: string;
+  color: string;
+  icono: string;
   fechaAsignacion: Date;
-  roleActual: boolean;
+  diasEntrenadosSemanales: number; // Días únicos entrenados esta semana
+  diasParaSiguienteRol: number;    // Días restantes para siguiente nivel
+  progresoSiguienteRol: number;    // Porcentaje de progreso hacia siguiente nivel
+  semanaActual: number;            // Número de la semana actual
 }

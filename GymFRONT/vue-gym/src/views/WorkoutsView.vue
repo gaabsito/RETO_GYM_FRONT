@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useWorkoutStore } from '@/stores/workouts'
 import { useAuthStore } from '@/stores/auth'
+import { useRolesStore } from '@/stores/roles'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import WorkoutCard from '@/components/WorkoutCard.vue'
@@ -11,6 +12,7 @@ import heroImage from '@/assets/images/ejercicios.jpg'
 
 const workoutStore = useWorkoutStore()
 const authStore = useAuthStore()
+const rolesStore = useRolesStore()
 const router = useRouter()
 const { workouts, loading, error } = storeToRefs(workoutStore)
 const initialized = ref(false)
@@ -39,6 +41,11 @@ onMounted(async () => {
   try {
     await workoutStore.fetchWorkouts()
     initialized.value = true
+    
+    // Cargar el rol del usuario si está autenticado
+    if (authStore.isAuthenticated) {
+      await rolesStore.getUserRole()
+    }
   } catch (err) {
     // El error ya se maneja en el store
   }
@@ -79,9 +86,16 @@ const openCompletarModal = (workout) => {
 }
 
 // Manejar el evento de rutina completada
-const handleRutinaCompletada = () => {
-  // Se podría mostrar una notificación de éxito
-  // o realizar alguna actualización en la UI
+const handleRutinaCompletada = async () => {
+  try {
+    // Actualizar el rol después de completar un entrenamiento
+    await rolesStore.getUserRole()
+    
+    // Opcional: Mostrar una notificación de éxito
+    // Aquí podrías implementar un sistema de notificaciones si lo deseas
+  } catch (error) {
+    console.error('Error al actualizar el rol después de completar rutina:', error)
+  }
 }
 
 // Limpiar filtros

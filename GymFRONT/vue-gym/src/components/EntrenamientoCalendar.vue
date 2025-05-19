@@ -1,15 +1,17 @@
-<!-- src/components/EntrenamientoCalendar.vue -->
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRutinasCompletadasStore } from '@/stores/rutinasCompletadas';
+import { useRolesStore } from '@/stores/roles';
 import type { RutinaCompletada } from '@/types/RutinaCompletada';
 
 const props = defineProps<{
   month?: number; // Mes actual (1-12)
   year?: number;  // Año actual
-}>();
+  showWeekProgress?: boolean; // Mostrar progreso semanal
+}>()
 
 const rutinasCompletadasStore = useRutinasCompletadasStore();
+const rolesStore = useRolesStore();
 
 // Estado local
 const loading = ref(false);
@@ -17,6 +19,7 @@ const error = ref('');
 const rutinasCompletadas = ref<RutinaCompletada[]>([]);
 const currentMonth = ref(props.month || new Date().getMonth() + 1);
 const currentYear = ref(props.year || new Date().getFullYear());
+const diasUnicosEntrenados = ref(0);
 
 // Nombres de los meses
 const monthNames = [
@@ -33,15 +36,37 @@ const loadData = async () => {
     loading.value = true;
     error.value = '';
     
+    // Obtener el número de la semana actual
+    const today = new Date();
+    const weekNumber = getWeekNumber(today);
+    
     // Cargar todas las rutinas completadas
     await rutinasCompletadasStore.fetchRutinasCompletadas();
     rutinasCompletadas.value = rutinasCompletadasStore.rutinasCompletadas;
     
+    // Cargar días únicos entrenados esta semana para la barra de progreso
+    if (props.showWeekProgress) {
+      await rolesStore.getUserRole();
+      diasUnicosEntrenados.value = rolesStore.currentRole?.diasEntrenadosSemanales || 0;
+    }
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Error al cargar datos de entrenos';
   } finally {
     loading.value = false;
   }
+};
+
+// Función para obtener el número de semana del año
+const getWeekNumber = (date: Date) => {
+  const target = new Date(date.valueOf());
+  const dayNr = (date.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNr + 3);
+  const firstThursday = target.valueOf();
+  target.setMonth(0, 1);
+  if (target.getDay() !== 4) {
+    target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
+  }
+  return 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
 };
 
 // Cambiar al mes anterior
@@ -93,28 +118,40 @@ const calendarDays = computed(() => {
       prevMonthDays.push({
         day: prevMonthLastDay - firstDayOfWeek + i + 1,
         current: false,
-        trained: false
+        trained: false,
+        isCurrentWeek: false,
+        isToday: false
       });
     }
   }
   
+  // Crear conjunto de fechas entrenadas en formato 'YYYY-MM-DD'
+  const trainedDatesSet = new Set(
+    rutinasCompletadas.value
+      .map(rutina => {
+        const date = new Date(rutina.fechaCompletada);
+        return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+      })
+  );
+
+  // Obtener la semana actual
+  const today = new Date();
+  const currentWeek = getWeekNumber(today);
+  
   // Días del mes actual con información de entrenamientos
   const currentMonthDays = [];
-  const trainedDaysSet = new Set(
-    rutinasCompletadas.value
-      .filter(rutina => {
-        const rutinaDate = new Date(rutina.fechaCompletada);
-        return rutinaDate.getMonth() + 1 === currentMonth.value && 
-               rutinaDate.getFullYear() === currentYear.value;
-      })
-      .map(rutina => new Date(rutina.fechaCompletada).getDate())
-  );
-  
   for (let i = 1; i <= totalDays; i++) {
+    const currentDate = new Date(currentYear.value, currentMonth.value - 1, i);
+    const dateStr = `${currentYear.value}-${currentMonth.value.toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
+    const isTrained = trainedDatesSet.has(dateStr);
+    const isThisWeek = getWeekNumber(currentDate) === currentWeek && 
+                       currentDate.getFullYear() === today.getFullYear();
+    
     currentMonthDays.push({
       day: i,
       current: true,
-      trained: trainedDaysSet.has(i),
+      trained: isTrained,
+      isCurrentWeek: isThisWeek,
       isToday: isToday(i)
     });
   }
@@ -128,7 +165,9 @@ const calendarDays = computed(() => {
     nextMonthDays.push({
       day: i,
       current: false,
-      trained: false
+      trained: false,
+      isCurrentWeek: false,
+      isToday: false
     });
   }
   
@@ -144,19 +183,16 @@ const isToday = (day: number) => {
          currentYear.value === today.getFullYear();
 };
 
-// Cargar datos al montar el componente
-onMounted(() => {
-  loadData();
-});
-
-// Observar cambios en el mes o año para actualizar el calendario
-watch([() => currentMonth.value, () => currentYear.value], () => {
-  // Si se necesita recargar datos específicos del mes, activar aquí
-});
-
-// Formato para representar el mes y año actual
-const currentMonthYear = computed(() => {
-  return `${monthNames[currentMonth.value - 1]} ${currentYear.value}`;
+// Agrupar los días en semanas
+const calendarWeeks = computed(() => {
+  const weeks = [];
+  const days = [...calendarDays.value];
+  
+  while (days.length) {
+    weeks.push(days.splice(0, 7));
+  }
+  
+  return weeks;
 });
 
 // Calcular estadísticas del mes actual
@@ -172,6 +208,40 @@ const monthStats = computed(() => {
   };
 });
 
+// Calcular el progreso de la semana actual
+const weeklyProgressPercentage = computed(() => {
+  // La semana tiene 7 días, por lo que cada día representa aproximadamente un 14.29% del progreso
+  return Math.min(100, (diasUnicosEntrenados.value / 7) * 100);
+});
+
+// Calcular color del progreso basado en la cantidad de días
+const progressColor = computed(() => {
+  if (diasUnicosEntrenados.value <= 2) return 'success'; // Verde para principiante/constante
+  if (diasUnicosEntrenados.value <= 4) return 'info';    // Azul para comprometido/dedicado
+  if (diasUnicosEntrenados.value <= 6) return 'warning'; // Naranja para disciplinado/atleta
+  return 'error';                                        // Rojo para élite
+});
+
+// Formato para representar el mes y año actual
+const currentMonthYear = computed(() => {
+  return `${monthNames[currentMonth.value - 1]} ${currentYear.value}`;
+});
+
+// Verificar si estamos visualizando el mes actual
+const isCurrentMonth = computed(() => {
+  const today = new Date();
+  return currentMonth.value === today.getMonth() + 1 && currentYear.value === today.getFullYear();
+});
+
+// Cargar datos al montar el componente
+onMounted(() => {
+  loadData();
+});
+
+// Observar cambios en el mes o año para actualizar el calendario
+watch([() => currentMonth.value, () => currentYear.value], () => {
+  // Si se necesita recargar datos específicos del mes, activar aquí
+});
 </script>
 
 <template>
@@ -188,6 +258,29 @@ const monthStats = computed(() => {
     
     <!-- Calendario -->
     <div v-else class="calendar-container">
+      <!-- Barra de progreso semanal (opcional) -->
+      <div v-if="props.showWeekProgress" class="weekly-progress mb-4">
+        <div class="d-flex justify-space-between align-center mb-1">
+          <div class="text-body-2 font-weight-medium">Progreso semanal</div>
+          <div class="text-caption">{{ diasUnicosEntrenados }}/7 días</div>
+        </div>
+        
+        <v-progress-linear
+          :model-value="weeklyProgressPercentage"
+          height="10"
+          rounded
+          :color="progressColor"
+          bg-color="grey-lighten-3"
+          class="weekly-progress-bar"
+        ></v-progress-linear>
+        
+        <div class="text-caption mt-1 text-center">
+          {{ diasUnicosEntrenados < 7 
+            ? `${7 - diasUnicosEntrenados} días más para completar la semana` 
+            : '¡Semana completa!' }}
+        </div>
+      </div>
+      
       <!-- Cabecera del calendario -->
       <div class="calendar-header">
         <v-btn 
@@ -206,7 +299,7 @@ const monthStats = computed(() => {
             variant="text"
             @click="goToCurrentMonth"
             class="today-btn"
-            v-if="currentMonth !== new Date().getMonth() + 1 || currentYear !== new Date().getFullYear()"
+            v-if="!isCurrentMonth"
           >
             Hoy
           </v-btn>
@@ -229,21 +322,24 @@ const monthStats = computed(() => {
         </div>
       </div>
       
-      <!-- Días del mes -->
-      <div class="days">
-        <div
-          v-for="(day, index) in calendarDays"
-          :key="index"
-          class="day"
-          :class="{
-            'current-month': day.current,
-            'other-month': !day.current,
-            'trained-day': day.trained,
-            'today': day.isToday
-          }"
-        >
-          <span class="day-number">{{ day.day }}</span>
-          <div v-if="day.trained" class="trained-indicator"></div>
+      <!-- Semanas del mes -->
+      <div class="calendar-grid">
+        <div v-for="(week, weekIndex) in calendarWeeks" :key="'week-' + weekIndex" class="week-row">
+          <div
+            v-for="(day, dayIndex) in week"
+            :key="'day-' + weekIndex + '-' + dayIndex"
+            class="day"
+            :class="{
+              'current-month': day.current,
+              'other-month': !day.current,
+              'trained-day': day.trained,
+              'current-week': day.isCurrentWeek,
+              'today': day.isToday
+            }"
+          >
+            <span class="day-number">{{ day.day }}</span>
+            <div v-if="day.trained" class="trained-indicator"></div>
+          </div>
         </div>
       </div>
       
@@ -267,16 +363,30 @@ const monthStats = computed(() => {
 @import '@/assets/styles/main.scss';
 
 .entrenamiento-calendar {
-  margin: 0 auto;
-  max-width: 100%;
+  width: 100%;
   background-color: white;
   border-radius: $border-radius;
   box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  
+  @media (max-width: 599px) {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
 }
 
 .calendar-container {
   padding: 16px;
+}
+
+.weekly-progress {
+  background-color: $light-gray;
+  padding: 12px;
+  border-radius: $border-radius;
+  
+  .weekly-progress-bar {
+    border-radius: $border-radius;
+  }
 }
 
 .calendar-header {
@@ -325,10 +435,16 @@ const monthStats = computed(() => {
   }
 }
 
-.days {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
+.calendar-grid {
+  display: flex;
+  flex-direction: column;
   gap: 4px;
+  
+  .week-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+  }
   
   .day {
     position: relative;
@@ -351,6 +467,10 @@ const monthStats = computed(() => {
     
     &.other-month {
       color: rgba(0, 0, 0, 0.3);
+    }
+    
+    &.current-week {
+      background-color: rgba($primary-color, 0.05);
     }
     
     &.trained-day {
@@ -421,8 +541,10 @@ const monthStats = computed(() => {
     padding: 12px;
   }
   
-  .days .day .day-number {
-    font-size: 0.8rem;
+  .day {
+    .day-number {
+      font-size: 0.8rem !important;
+    }
   }
 }
 </style>

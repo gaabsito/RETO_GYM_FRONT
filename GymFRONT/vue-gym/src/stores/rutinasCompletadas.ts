@@ -197,6 +197,8 @@ export const useRutinasCompletadasStore = defineStore('rutinasCompletadas', () =
                 throw new Error('No autorizado')
             }
 
+            console.log('Completando rutina:', rutinaCompletada)
+
             const response = await fetch(`${API_URL}/RutinaCompletada`, {
                 method: 'POST',
                 headers: {
@@ -225,6 +227,14 @@ export const useRutinasCompletadasStore = defineStore('rutinasCompletadas', () =
             
             // Añadir a la lista local
             rutinasCompletadas.value.unshift(nuevaRutinaCompletada)
+            
+            // Obtener el resumen actualizado inmediatamente
+            try {
+                await fetchResumen()
+                console.log('Resumen actualizado después de completar rutina')
+            } catch (resumenError) {
+                console.error('Error al actualizar resumen después de completar rutina:', resumenError)
+            }
             
             return nuevaRutinaCompletada
         } catch (e) {
@@ -277,6 +287,9 @@ export const useRutinasCompletadasStore = defineStore('rutinasCompletadas', () =
                 rutinasCompletadas.value[index] = rutinaActualizada
             }
             
+            // Actualizar resumen
+            await fetchResumen()
+            
             return rutinaActualizada
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
@@ -317,6 +330,9 @@ export const useRutinasCompletadasStore = defineStore('rutinasCompletadas', () =
 
             // Eliminar de la lista local
             rutinasCompletadas.value = rutinasCompletadas.value.filter(rc => rc.rutinaCompletadaID !== id)
+            
+            // Actualizar resumen
+            await fetchResumen()
             
             return true
         } catch (e) {
