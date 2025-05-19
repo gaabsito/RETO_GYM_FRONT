@@ -29,9 +29,9 @@
             
             <template v-else>
               <!-- Menu de usuario simple -->
-              <v-menu v-model="menuOpen" location="bottom">
+              <v-menu v-model="menuOpen" location="bottom" @click:outside="menuOpen = false">
                 <template v-slot:activator="{ props }">
-                  <div v-bind="props" style="cursor: pointer;">
+                  <div v-bind="props" style="cursor: pointer;" @click="handleMenuOpen">
                     <UserAvatar
                       :nombre="authStore.user?.nombre"
                       :apellido="authStore.user?.apellido"
@@ -60,6 +60,22 @@
                     <v-list-item-subtitle class="text-caption">
                       {{ authStore.user?.email }}
                     </v-list-item-subtitle>
+                    
+                    <!-- Mostrar el rol del usuario -->
+                    <div v-if="userRole" class="user-role mt-2">
+                      <v-chip
+                        :color="userRole.color"
+                        size="small"
+                        class="role-chip"
+                      >
+                        <v-icon start size="x-small">{{ userRole.icono }}</v-icon>
+                        {{ userRole.nombreRol }}
+                      </v-chip>
+                    </div>
+                    <div v-else-if="loadingRole" class="user-role mt-2">
+                      <v-progress-circular indeterminate color="primary" size="16" width="2"></v-progress-circular>
+                      <span class="ml-2 text-caption">Cargando nivel...</span>
+                    </div>
                   </v-list-item>
                   
                   <v-divider></v-divider>
@@ -117,6 +133,18 @@
             </template>
             <v-list-item-title>{{ authStore.user.nombre }}</v-list-item-title>
             <v-list-item-subtitle class="text-caption">{{ authStore.user.email }}</v-list-item-subtitle>
+            
+            <!-- Mostrar rol del usuario en el drawer -->
+            <div v-if="userRole" class="user-role mt-2">
+              <v-chip
+                :color="userRole.color"
+                size="small"
+                class="role-chip"
+              >
+                <v-icon start size="x-small">{{ userRole.icono }}</v-icon>
+                {{ userRole.nombreRol }}
+              </v-chip>
+            </div>
           </v-list-item>
           
           <!-- Iteramos sobre authMenuItems proporcionados por props -->
@@ -139,6 +167,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
+import { useRolesStore } from '@/stores/roles'
 import { useRouter } from 'vue-router'
 import LogoCanvas from '@/components/LogoCanvas.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
@@ -159,11 +188,13 @@ const props = defineProps<{
 const emit = defineEmits(['toggle-drawer', 'update:drawer'])
 
 const authStore = useAuthStore()
+const rolesStore = useRolesStore()
 const router = useRouter()
 
 // Estado para el menú desplegable del avatar
 const menuOpen = ref(false)
 const avatarSize = 40 // Tamaño del avatar en el header
+const loadingRole = ref(false)
 
 // Variable local para el drawer
 const localDrawer = ref(props.drawer)
@@ -180,6 +211,30 @@ watch(localDrawer, (newVal) => {
 
 // Computed para obtener la URL de la foto o null
 const photoUrl = computed(() => authStore.user?.fotoPerfilURL || null)
+
+// Computed para obtener el rol del usuario
+const userRole = computed(() => rolesStore.currentRole)
+
+// Cargar el rol del usuario cuando se abre el menú
+const loadUserRole = async () => {
+  if (authStore.isAuthenticated && !rolesStore.currentRole) {
+    loadingRole.value = true
+    try {
+      await rolesStore.getUserRole()
+    } catch (error) {
+      console.error('Error al cargar el rol del usuario:', error)
+    } finally {
+      loadingRole.value = false
+    }
+  }
+}
+
+// Observar cambios en la autenticación para cargar el rol
+watch(() => authStore.isAuthenticated, (isAuth) => {
+  if (isAuth) {
+    loadUserRole()
+  }
+})
 
 // Método para cerrar el drawer
 const closeDrawer = () => {
@@ -202,6 +257,13 @@ const closeDrawerAndLogout = () => {
 // Método para abrir/cerrar drawer
 const toggleDrawer = () => {
   localDrawer.value = !localDrawer.value
+}
+
+// Método para manejar la apertura del menú de usuario
+const handleMenuOpen = () => {
+  if (authStore.isAuthenticated) {
+    loadUserRole()
+  }
 }
 </script>
 
@@ -258,11 +320,35 @@ const toggleDrawer = () => {
 
 .user-info {
   background-color: $light-gray;
+  
+  .user-role {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+    
+    .role-chip {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+  }
 }
 
 .user-drawer-info {
   padding: 16px;
   background-color: rgba(0, 0, 0, 0.03);
+  
+  .user-role {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+    
+    .role-chip {
+      font-size: 0.7rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+  }
 }
 
 .logo-container {

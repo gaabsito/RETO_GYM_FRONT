@@ -103,7 +103,7 @@ watch(activeTab, async () => {
         <v-card class="mt-4" variant="outlined" color="primary">
           <v-card-text class="text-center">
             <p class="text-h6 white--text mb-2">Consejo para mejorar</p>
-            <p class="text-body-2 text-white">
+            <p class="text-body-2 text-black">
               Intenta distribuir tus entrenamientos a lo largo de la semana en lugar de acumularlos en pocos días. ¡La consistencia diaria es la clave para alcanzar el nivel Élite!
             </p>
           </v-card-text>

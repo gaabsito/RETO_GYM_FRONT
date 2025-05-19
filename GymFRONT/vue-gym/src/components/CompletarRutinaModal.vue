@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRutinasCompletadasStore } from '@/stores/rutinasCompletadas'
 import type { RutinaCompletadaCreate } from '@/types/RutinaCompletada'
 
@@ -14,45 +14,116 @@ const emit = defineEmits(['update:show', 'completada'])
 
 const rutinasCompletadasStore = useRutinasCompletadasStore()
 
-// Fecha actual por defecto, pero ahora puede modificarse
-const fechaSeleccionada = ref(new Date())
-// Formateo para el datepicker de Vuetify
-const fechaFormateada = computed(() => {
-  return fechaSeleccionada.value.toISOString().split('T')[0]
-})
+// Obtener la fecha actual en formato YYYY-MM-DD
+const today = new Date()
+const formattedToday = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`
+
+// Calcular fecha una semana más adelante para permitir planificación
+const nextWeek = new Date(today)
+nextWeek.setDate(today.getDate() + 7)
+const formattedNextWeek = `${nextWeek.getFullYear()}-${(nextWeek.getMonth() + 1).toString().padStart(2, '0')}-${nextWeek.getDate().toString().padStart(2, '0')}`
+
+// Fecha directamente como string en formato YYYY-MM-DD
+const fechaSeleccionada = ref(formattedToday)
 
 // Formulario para la rutina completada
 const form = ref<RutinaCompletadaCreate>({
   entrenamientoID: props.entrenamientoID,
-  fechaCompletada: fechaSeleccionada.value,
+  fechaCompletada: today,
   duracionMinutos: props.duracionRecomendada || undefined,
   caloriasEstimadas: undefined,
   nivelEsfuerzoPercibido: 5,
   notas: ''
 })
 
-// Estado del datepicker
-const dateMenu = ref(false)
-
 // Estados de UI
 const loading = ref(false)
 const error = ref('')
 const success = ref(false)
 
-// Formatear fecha para mostrar
-const formattedDate = computed(() => {
-  if (!fechaSeleccionada.value) return ''
-  
-  return new Intl.DateTimeFormat('es-ES', { 
-    day: '2-digit', 
-    month: 'long', 
-    year: 'numeric' 
-  }).format(fechaSeleccionada.value)
+// Observar cambios en el prop show
+watch(() => props.show, (newVal) => {
+  if (newVal) {
+    // Si se abre el diálogo, resetear el estado y el formulario
+    resetForm()
+    success.value = false
+    error.value = ''
+  }
 })
 
-// Actualizar la fecha en el formulario cuando cambia la fecha seleccionada
+// Verificar si la fecha seleccionada es inválida (permitimos fechas futuras hasta una semana adelante)
+const fechaInvalida = computed(() => {
+  // Intentar convertir la fecha a un objeto Date
+  try {
+    const selectedDate = new Date(fechaSeleccionada.value)
+    const todayDate = new Date()
+    const maxFutureDate = new Date(todayDate)
+    maxFutureDate.setDate(todayDate.getDate() + 7) // Permitir hasta 7 días en el futuro
+    
+    // Resetear las horas para comparar solo las fechas
+    selectedDate.setHours(0, 0, 0, 0)
+    todayDate.setHours(0, 0, 0, 0)
+    maxFutureDate.setHours(0, 0, 0, 0)
+    
+    // Verificar si es una fecha válida
+    if (isNaN(selectedDate.getTime())) {
+      return 'Fecha inválida'
+    }
+    
+    // Verificar si la fecha está más de una semana en el futuro
+    if (selectedDate > maxFutureDate) {
+      return 'No puedes planificar entrenamientos más allá de una semana'
+    }
+    
+    return null
+  } catch (e) {
+    return 'Formato de fecha inválido'
+  }
+})
+
+// Cada vez que se abre el modal, restablecer los valores
+const resetForm = () => {
+  const today = new Date()
+  fechaSeleccionada.value = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`
+  
+  form.value = {
+    entrenamientoID: props.entrenamientoID,
+    fechaCompletada: today,
+    duracionMinutos: props.duracionRecomendada || undefined,
+    caloriasEstimadas: undefined,
+    nivelEsfuerzoPercibido: 5,
+    notas: ''
+  }
+
+  // Resetear estados
+  loading.value = false
+  error.value = ''
+  success.value = false
+}
+
+// Actualizar la fecha en el formulario cuando cambia fechaSeleccionada
 const updateFormDate = () => {
-  form.value.fechaCompletada = fechaSeleccionada.value
+  try {
+    console.log('Actualizando fecha desde:', fechaSeleccionada.value)
+    const date = new Date(fechaSeleccionada.value + 'T12:00:00') // Añadimos la hora para evitar problemas de zona horaria
+    if (!isNaN(date.getTime())) {
+      form.value.fechaCompletada = date
+      console.log('Fecha actualizada en el formulario:', form.value.fechaCompletada)
+    } else {
+      console.error('La fecha seleccionada no es válida:', fechaSeleccionada.value)
+    }
+  } catch (e) {
+    console.error('Error al actualizar la fecha en el formulario:', e)
+  }
+}
+
+// Actualizar fechaSeleccionada cuando cambia el valor en el input
+const handleDateInput = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input && input.value) {
+    fechaSeleccionada.value = input.value
+    updateFormDate()
+  }
 }
 
 // Enviar el formulario
@@ -62,13 +133,21 @@ const handleSubmit = async () => {
     return
   }
 
+  // Validar la fecha
+  if (fechaInvalida.value) {
+    error.value = fechaInvalida.value
+    return
+  }
+
   try {
     loading.value = true
     error.value = ''
-    success.value = false
     
-    // Asegurar que la fecha está actualizada
-    form.value.fechaCompletada = fechaSeleccionada.value
+    // Actualizar la fecha en el formulario
+    updateFormDate()
+    
+    console.log('Enviando formulario con fecha:', form.value.fechaCompletada)
+    console.log('String de fecha seleccionada:', fechaSeleccionada.value)
     
     // Completar la rutina
     const resultado = await rutinasCompletadasStore.completarRutina(form.value)
@@ -77,27 +156,36 @@ const handleSubmit = async () => {
     try {
       // Usamos un pequeño timeout para asegurar que el backend haya procesado el nuevo entrenamiento
       setTimeout(async () => {
-        // Actualizar las estadísticas y el rol del usuario
+        // Actualizar las estadísticas
         await rutinasCompletadasStore.fetchResumen()
+        
         // Importación dinámica para evitar importación circular
         const { useRolesStore } = await import('@/stores/roles')
         const rolesStore = useRolesStore()
         await rolesStore.getUserRole()
+        
         console.log('Rol de usuario actualizado después de completar entrenamiento')
       }, 500)
     } catch (roleError) {
       console.error('Error al actualizar el rol después de completar entrenamiento:', roleError)
     }
     
+    // Mostrar mensaje de éxito
     success.value = true
     
     // Emitir evento completado
     emit('completada', resultado)
     
-    // Cerrar el diálogo después de un breve tiempo
+    // Cerrar el diálogo después de un breve tiempo y resetear estado
     setTimeout(() => {
+      // Cerrar el diálogo
       emit('update:show', false)
-    }, 1500)
+      
+      // IMPORTANTE: Resetear success a false después de cerrar para que el próximo diálogo muestre el formulario
+      setTimeout(() => {
+        success.value = false
+      }, 100)
+    }, 1200)
     
   } catch (e) {
     error.value = e instanceof Error ? e.message : 'Error al registrar la rutina'
@@ -109,15 +197,16 @@ const handleSubmit = async () => {
 // Cerrar el diálogo
 const closeDialog = () => {
   emit('update:show', false)
+  
+  // IMPORTANTE: Resetear success a false después de cerrar para el próximo diálogo
+  setTimeout(() => {
+    success.value = false
+  }, 100)
 }
 
-// Verificar si la fecha seleccionada es futura
-const isFutureDate = computed(() => {
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  const selectedDate = new Date(fechaSeleccionada.value)
-  selectedDate.setHours(0, 0, 0, 0)
-  return selectedDate > today
+// Al montar el componente, asegurarnos que la fecha esté en el formato correcto
+onMounted(() => {
+  resetForm()
 })
 </script>
 
@@ -127,10 +216,11 @@ const isFutureDate = computed(() => {
     max-width="500" 
     persistent
     transition="dialog-bottom-transition"
+    @update:model-value="(val) => !val && closeDialog()"
   >
     <v-card class="rutina-completada-dialog">
       <v-card-title class="dialog-title">
-        Marcar como completado
+        {{ success ? 'Entrenamiento Registrado' : 'Marcar como completado' }}
         <v-btn 
           icon 
           @click="closeDialog" 
@@ -148,11 +238,12 @@ const isFutureDate = computed(() => {
           {{ error }}
         </v-alert>
 
-        <v-alert v-if="success" type="success" class="mb-4" density="compact" variant="tonal">
-          ¡Genial! Entrenamiento registrado como completado.
+        <v-alert v-if="success" type="success" class="mb-4 success-alert" density="compact" variant="tonal">
+          <v-icon start color="success" class="mr-2">mdi-check-circle</v-icon>
+          ¡Genial! Entrenamiento registrado correctamente.
         </v-alert>
 
-        <v-form @submit.prevent="handleSubmit" v-if="!success">
+        <v-form v-if="!success" @submit.prevent="handleSubmit">
           <div class="text-subtitle-1 font-weight-medium mb-4">
             Estás marcando como completado:
           </div>
@@ -177,43 +268,31 @@ const isFutureDate = computed(() => {
 
           <v-row dense>
             <v-col cols="12">
-              <div class="text-subtitle-2 mb-2">¿Qué día completaste este entrenamiento?</div>
-              <v-menu
-                v-model="dateMenu"
-                :close-on-content-click="false"
-                transition="scale-transition"
-                min-width="auto"
-              >
-                <template v-slot:activator="{ props }">
-                  <v-text-field
-                    v-model="formattedDate"
-                    label="Fecha de completado"
-                    prepend-inner-icon="mdi-calendar"
-                    readonly
-                    v-bind="props"
-                    variant="outlined"
-                    density="comfortable"
-                    hint="Selecciona la fecha en que realizaste este entrenamiento"
-                    persistent-hint
-                    class="date-field"
-                  ></v-text-field>
-                </template>
-                <v-date-picker
-                  v-model="fechaFormateada"
-                  @update:model-value="fechaSeleccionada = new Date($event); updateFormDate()"
-                  :max="new Date().toISOString().split('T')[0]"
-                ></v-date-picker>
-              </v-menu>
+              <div class="text-subtitle-2 mb-2">¿Qué día planeas completar este entrenamiento?</div>
               
-              <v-alert 
-                v-if="isFutureDate" 
-                type="warning" 
-                class="mt-2" 
-                density="compact" 
-                variant="tonal"
-              >
-                No puedes seleccionar una fecha futura
-              </v-alert>
+              <!-- Input de fecha con enfoque directo -->
+              <div class="date-input-container">
+                <label class="text-subtitle-2 mb-2">Fecha del entrenamiento</label>
+                <input 
+                  type="date" 
+                  v-model="fechaSeleccionada"
+                  class="date-native-input"
+                  :min="formattedToday"
+                  :max="formattedNextWeek"
+                  @input="handleDateInput"
+                />
+                <div class="text-caption mt-1">Puedes seleccionar cualquier fecha hasta una semana en el futuro</div>
+                
+                <v-alert 
+                  v-if="fechaInvalida" 
+                  type="warning" 
+                  class="mt-2 mb-0" 
+                  density="compact" 
+                  variant="tonal"
+                >
+                  {{ fechaInvalida }}
+                </v-alert>
+              </div>
             </v-col>
 
             <v-col cols="12" sm="6">
@@ -290,12 +369,22 @@ const isFutureDate = computed(() => {
               color="success"
               type="submit"
               :loading="loading"
-              :disabled="loading || isFutureDate"
+              :disabled="loading || !!fechaInvalida"
             >
-              Completar
+              Guardar
             </v-btn>
           </v-card-actions>
         </v-form>
+        
+        <!-- Mensaje de éxito centrado cuando success es true -->
+        <div v-if="success" class="text-center py-4">
+          <v-icon color="success" size="64" class="mb-4 success-icon">mdi-check-circle</v-icon>
+          <h3 class="text-h5 success-title mb-2">¡Entrenamiento Registrado!</h3>
+          <p class="text-body-1">El entrenamiento ha sido guardado correctamente.</p>
+          <v-btn color="primary" @click="closeDialog" class="mt-4">
+            Cerrar
+          </v-btn>
+        </div>
       </v-card-text>
     </v-card>
   </v-dialog>
@@ -325,8 +414,26 @@ const isFutureDate = computed(() => {
   border-color: rgba(226, 84, 1, 0.2) !important;
 }
 
-.date-field {
-  margin-bottom: 8px;
+.date-input-container {
+  margin-bottom: 1.5rem;
+}
+
+.date-native-input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: $border-radius;
+  font-family: $font-family-base;
+  font-size: 1rem;
+  color: #333;
+  background-color: #fff;
+  transition: border-color 0.2s;
+  
+  &:focus {
+    border-color: $primary-color;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba($primary-color, 0.25);
+  }
 }
 
 :deep(.v-field) {
@@ -340,6 +447,36 @@ const isFutureDate = computed(() => {
   
   &:hover {
     transform: translateY(-2px);
+  }
+}
+
+.success-icon {
+  animation: pulse 1.5s infinite;
+  animation-iteration-count: 1;
+}
+
+.success-title {
+  color: $primary-color;
+  font-weight: 600;
+}
+
+.success-alert {
+  background-color: #e8f5e9 !important;
+  border-left: 4px solid #4caf50 !important;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
