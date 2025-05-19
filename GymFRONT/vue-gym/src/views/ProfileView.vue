@@ -7,6 +7,7 @@
       </v-card-title>
     </v-card>
 
+        
     <!-- Content Section -->
     <v-card class="content-card mx-auto" elevation="0" max-width="1400">
       <!-- Tabs -->
@@ -168,10 +169,16 @@
                     GUARDAR CAMBIOS
                   </v-btn>
                 </div>
+                <!-- Progreso y Calendario de entrenamientos -->
+            <div class="progreso-section">
+              <UserProgress />
+            </div>
+
               </div>
             </v-form>
           </v-card>
         </v-window-item>
+        
 
         <!-- Tab de Mis Entrenamientos -->
         <v-window-item :value="1">
@@ -351,6 +358,7 @@ import WorkoutCard from '@/components/WorkoutCard.vue'
 import ProgresoEstadisticas from '@/components/ProgresoEstadisticas.vue'
 import HistorialRutinas from '@/components/HistorialRutinas.vue'
 import UserAvatar from '@/components/UserAvatar.vue' // Importar el componente de avatar
+import UserProgress from '@/components/UserProgress.vue' // Importar el nuevo componente de progreso
 
 // Store Initialization
 const authStore = useAuthStore()
