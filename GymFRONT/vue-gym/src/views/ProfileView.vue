@@ -169,11 +169,25 @@
                     GUARDAR CAMBIOS
                   </v-btn>
                 </div>
+                
                 <!-- Progreso y Calendario de entrenamientos -->
-            <div class="progreso-section">
-              <UserProgress />
-            </div>
-
+                <div class="progreso-section mt-6">
+                  <UserProgress />
+                </div>
+            
+              </div>
+              
+              <!-- Añadir sección de logros -->
+              <div class="progreso-section mt-6">
+                <h2 class="section-title">MIS LOGROS</h2>
+                
+                <LogrosSummaryCard :show-latest-only="true" :max-logros="3" />
+                
+                <div class="text-center mt-4">
+                  <v-btn color="primary" to="/logros" prepend-icon="mdi-trophy">
+                    Ver todos mis logros
+                  </v-btn>
+                </div>
               </div>
             </v-form>
           </v-card>
@@ -351,36 +365,41 @@
 import { ref, onMounted, computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useWorkoutStore } from '@/stores/workouts'
+import { useLogrosStore } from '@/stores/logros' // Importar store de logros
 import type { VForm } from 'vuetify/components'
 import type { User } from '@/types/User'
 import type { Workout } from '@/types/Workout'
 import WorkoutCard from '@/components/WorkoutCard.vue'
 import ProgresoEstadisticas from '@/components/ProgresoEstadisticas.vue'
 import HistorialRutinas from '@/components/HistorialRutinas.vue'
-import UserAvatar from '@/components/UserAvatar.vue' // Importar el componente de avatar
-import UserProgress from '@/components/UserProgress.vue' // Importar el nuevo componente de progreso
+import UserAvatar from '@/components/UserAvatar.vue'
+import UserProgress from '@/components/UserProgress.vue'
+import LogrosSummaryCard from '@/components/LogrosSummaryCard.vue' // Importar componente de logros
 
 // Store Initialization
 const authStore = useAuthStore()
 const workoutStore = useWorkoutStore()
+const logrosStore = useLogrosStore() // Inicializar store de logros
 
 // Form References and State
 const formRef = ref<VForm | null>(null)
 const loading = ref({
   profile: false,
   workouts: false,
-  photo: false // Nuevo estado para carga de foto
+  photo: false,
+  logros: false // Nuevo estado para carga de logros
 })
 const error = ref({
   profile: '',
   workouts: '',
   progreso: '',
-  photo: '' // Nuevo estado para errores de foto
+  photo: '',
+  logros: '' // Nuevo estado para errores de logros
 })
 const success = ref({
   profile: '',
   workouts: '',
-  photo: '' // Nuevo estado para éxito de foto
+  photo: ''
 })
 
 // Personal Information Form
@@ -441,6 +460,7 @@ onMounted(async () => {
   try {
     loading.value.profile = true
     loading.value.workouts = true
+    loading.value.logros = true // Iniciar carga de logros
 
     // Fetch User Profile
     const userData = await authStore.fetchUser()
@@ -462,6 +482,19 @@ onMounted(async () => {
     workoutsFilter.value.userWorkouts = workoutStore.workouts.filter(
       workout => workout.autorID === userData?.usuarioID
     )
+    
+    // Cargar logros del usuario y verificar logros pendientes
+    if (authStore.isAuthenticated) {
+      try {
+        await logrosStore.fetchLogrosUsuario()
+        await logrosStore.verificarLogros()
+      } catch (logroErr) {
+        error.value.logros = logroErr instanceof Error ? logroErr.message : 'Error al cargar logros'
+        console.error('Error al cargar logros:', logroErr)
+      } finally {
+        loading.value.logros = false
+      }
+    }
 
     // Registrar en la consola para debug
     console.log('Is Google Account:', isGoogleAccount.value)
@@ -557,6 +590,9 @@ const updateProfile = async () => {
         loading.value.photo = false
       }
     }
+    
+    // Verificar logros después de actualizar el perfil
+    await logrosStore.verificarLogros()
   } catch (err: any) {
     error.value.profile = err.message || 'Error al actualizar el perfil'
   } finally {
@@ -815,6 +851,7 @@ const clearWorkoutFilters = () => {
   background-color: rgba(0, 0, 0, 0.02);
   font-weight: 500;
 }
+
 .progreso-section {
   margin-bottom: 2rem;
 }
@@ -828,6 +865,7 @@ const clearWorkoutFilters = () => {
   border-left: 5px solid $primary-color;
   font-family: $font-family-base;
 }
+
 .workout-text {
   padding: 1rem;
 }

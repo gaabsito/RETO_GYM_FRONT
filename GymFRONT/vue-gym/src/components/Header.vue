@@ -29,9 +29,9 @@
             
             <template v-else>
               <!-- Menu de usuario simple -->
-              <v-menu v-model="menuOpen" location="bottom" @click:outside="menuOpen = false">
+              <v-menu v-model="menuOpen" location="bottom">
                 <template v-slot:activator="{ props }">
-                  <div v-bind="props" style="cursor: pointer;" @click="handleMenuOpen">
+                  <div v-bind="props" style="cursor: pointer;">
                     <UserAvatar
                       :nombre="authStore.user?.nombre"
                       :apellido="authStore.user?.apellido"
@@ -60,22 +60,6 @@
                     <v-list-item-subtitle class="text-caption">
                       {{ authStore.user?.email }}
                     </v-list-item-subtitle>
-                    
-                    <!-- Mostrar el rol del usuario -->
-                    <div v-if="userRole" class="user-role mt-2">
-                      <v-chip
-                        :color="userRole.color"
-                        size="small"
-                        class="role-chip"
-                      >
-                        <v-icon start size="x-small">{{ userRole.icono }}</v-icon>
-                        {{ userRole.nombreRol }}
-                      </v-chip>
-                    </div>
-                    <div v-else-if="loadingRole" class="user-role mt-2">
-                      <v-progress-circular indeterminate color="primary" size="16" width="2"></v-progress-circular>
-                      <span class="ml-2 text-caption">Cargando nivel...</span>
-                    </div>
                   </v-list-item>
                   
                   <v-divider></v-divider>
@@ -83,6 +67,17 @@
                   <v-list-item to="/profile" prepend-icon="mdi-account">
                     <v-list-item-title>Mi Perfil</v-list-item-title>
                   </v-list-item>
+
+                  <v-list-item to="/mis-entrenamientos" prepend-icon="mdi-notebook">
+                    <v-list-item-title>Mis Entrenamientos</v-list-item-title>
+                  </v-list-item>
+
+                  <!-- Nueva opción para Logros -->
+                  <v-list-item to="/logros" prepend-icon="mdi-trophy">
+                    <v-list-item-title>Mis Logros</v-list-item-title>
+                  </v-list-item>
+                  
+                  <v-divider></v-divider>
                   
                   <v-list-item @click="handleLogout" prepend-icon="mdi-logout" color="error">
                     <v-list-item-title>Cerrar Sesión</v-list-item-title>
@@ -133,21 +128,9 @@
             </template>
             <v-list-item-title>{{ authStore.user.nombre }}</v-list-item-title>
             <v-list-item-subtitle class="text-caption">{{ authStore.user.email }}</v-list-item-subtitle>
-            
-            <!-- Mostrar rol del usuario en el drawer -->
-            <div v-if="userRole" class="user-role mt-2">
-              <v-chip
-                :color="userRole.color"
-                size="small"
-                class="role-chip"
-              >
-                <v-icon start size="x-small">{{ userRole.icono }}</v-icon>
-                {{ userRole.nombreRol }}
-              </v-chip>
-            </div>
           </v-list-item>
           
-          <!-- Iteramos sobre authMenuItems proporcionados por props -->
+          <!-- Iteramos sobre authMenuItems -->
           <v-list-item v-for="item in authMenuItems" :key="item.title"
                       :to="item.route" :prepend-icon="item.icon"
                       :title="item.title" @click="closeDrawer"></v-list-item>
@@ -167,7 +150,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '@/stores/auth'
-import { useRolesStore } from '@/stores/roles'
 import { useRouter } from 'vue-router'
 import LogoCanvas from '@/components/LogoCanvas.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
@@ -180,21 +162,17 @@ interface MenuItem {
 }
 
 const props = defineProps<{
-  menuItems: MenuItem[];
-  authMenuItems: MenuItem[];
   drawer: boolean;
 }>();
 
 const emit = defineEmits(['toggle-drawer', 'update:drawer'])
 
 const authStore = useAuthStore()
-const rolesStore = useRolesStore()
 const router = useRouter()
 
 // Estado para el menú desplegable del avatar
 const menuOpen = ref(false)
 const avatarSize = 40 // Tamaño del avatar en el header
-const loadingRole = ref(false)
 
 // Variable local para el drawer
 const localDrawer = ref(props.drawer)
@@ -212,31 +190,24 @@ watch(localDrawer, (newVal) => {
 // Computed para obtener la URL de la foto o null
 const photoUrl = computed(() => authStore.user?.fotoPerfilURL || null)
 
-// Computed para obtener el rol del usuario
-const userRole = computed(() => rolesStore.currentRole)
+// Items de menú principal
+const menuItems = [
+  { title: 'Inicio', icon: 'mdi-home', route: '/' },
+  { title: 'Entrenamientos', icon: 'mdi-dumbbell', route: '/workouts' },
+  { title: 'Ejercicios', icon: 'mdi-arm-flex', route: '/exercises' },
+  { title: 'Sobre nosotros', icon: 'mdi-information', route: '/about' },
+  { title: 'Contacto', icon: 'mdi-email', route: '/contact' }
+]
 
-// Cargar el rol del usuario cuando se abre el menú
-const loadUserRole = async () => {
-  if (authStore.isAuthenticated && !rolesStore.currentRole) {
-    loadingRole.value = true
-    try {
-      await rolesStore.getUserRole()
-    } catch (error) {
-      console.error('Error al cargar el rol del usuario:', error)
-    } finally {
-      loadingRole.value = false
-    }
-  }
-}
+// Items del menú disponibles solo para usuarios autenticados
+const authMenuItems = [
+  { title: 'Mi Perfil', icon: 'mdi-account', route: '/profile' },
+  { title: 'Mis Entrenamientos', icon: 'mdi-notebook', route: '/mis-entrenamientos' },
+  { title: 'Mis Mediciones', icon: 'mdi-tape-measure', route: '/mediciones' },
+  { title: 'Mis Logros', icon: 'mdi-trophy', route: '/logros' }, // Nuevo ítem para logros
+]
 
-// Observar cambios en la autenticación para cargar el rol
-watch(() => authStore.isAuthenticated, (isAuth) => {
-  if (isAuth) {
-    loadUserRole()
-  }
-})
-
-// Método para cerrar el drawer
+// Método para cerrar drawer
 const closeDrawer = () => {
   localDrawer.value = false
 }
@@ -257,13 +228,6 @@ const closeDrawerAndLogout = () => {
 // Método para abrir/cerrar drawer
 const toggleDrawer = () => {
   localDrawer.value = !localDrawer.value
-}
-
-// Método para manejar la apertura del menú de usuario
-const handleMenuOpen = () => {
-  if (authStore.isAuthenticated) {
-    loadUserRole()
-  }
 }
 </script>
 
@@ -320,35 +284,11 @@ const handleMenuOpen = () => {
 
 .user-info {
   background-color: $light-gray;
-  
-  .user-role {
-    display: flex;
-    align-items: center;
-    margin-top: 8px;
-    
-    .role-chip {
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-  }
 }
 
 .user-drawer-info {
   padding: 16px;
   background-color: rgba(0, 0, 0, 0.03);
-  
-  .user-role {
-    display: flex;
-    align-items: center;
-    margin-top: 8px;
-    
-    .role-chip {
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-  }
 }
 
 .logo-container {
@@ -379,6 +319,30 @@ const handleMenuOpen = () => {
   font-size: 1.5rem !important; /* Aumentar tamaño para compensar falta de logo */
 }
 
+.custom-drawer {
+  .drawer-header {
+    background-color: $primary-color;
+    color: white;
+    padding: 1rem;
+  }
+  
+  .drawer-title {
+    font-weight: bold;
+    text-align: center;
+    font-size: 1.5rem;
+    font-family: $font-family-base;
+  }
+  
+  .menu-item {
+    font-family: $font-family-base;
+    transition: background-color 0.2s ease;
+    
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+  }
+}
+
 /* Mobile adjustments - Logo más grande en móvil */
 @media (max-width: 600px) {
   .logo-container {
@@ -388,6 +352,14 @@ const handleMenuOpen = () => {
   
   :deep(canvas) {
     transform: scale(1.1); /* Aumentado de 0.9 a 1.1 para hacer el logo más grande */
+  }
+  
+  .drawer-title {
+    font-size: 1.3rem !important;
+  }
+  
+  .user-drawer-info {
+    padding: 12px;
   }
 }
 </style>
