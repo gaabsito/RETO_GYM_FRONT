@@ -31,7 +31,7 @@
               <!-- Menu de usuario simple -->
               <v-menu v-model="menuOpen" location="bottom">
                 <template v-slot:activator="{ props }">
-                  <div v-bind="props" style="cursor: pointer;">
+                  <div v-bind="props" class="avatar-wrapper">
                     <UserAvatar
                       :nombre="authStore.user?.nombre"
                       :apellido="authStore.user?.apellido"
@@ -237,7 +237,7 @@ const toggleDrawer = () => {
 .app-bar {
   background-color: $primary-color !important;
   padding: 0;
-  height: 64px !important; /* Reducido de 80px a un valor más estándar */
+  height: 64px !important;
 }
 
 .app-bar__logo {
@@ -263,6 +263,17 @@ const toggleDrawer = () => {
 /* Sección de autenticación movida más a la izquierda */
 .auth-section {
   margin-right: 24px; /* Aumentado para mover el botón/avatar más a la izquierda */
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* Contenedor para alinear verticalmente el avatar */
+.avatar-wrapper {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  padding-bottom: 3px; /* Pequeño ajuste para compensar la diferencia visual */
 }
 
 /* Button styles */
@@ -343,15 +354,31 @@ const toggleDrawer = () => {
   }
 }
 
-/* Mobile adjustments - Logo más grande en móvil */
+/* Mobile adjustments - Solo añadimos alineación vertical para móvil */
 @media (max-width: 600px) {
-  .logo-container {
-    width: 58px;   /* Aumentado de 55px a 65px */
-    height: 58px;  /* Manteniendo proporción cuadrada */
+  .app-bar {
+    display: flex;
+    align-items: center;
   }
   
-  :deep(canvas) {
-    transform: scale(1.1); /* Aumentado de 0.9 a 1.1 para hacer el logo más grande */
+  .logo-container {
+    width: 55px;  /* Ligeramente ajustado para móvil */
+    height: 55px;
+  }
+  
+  /* Centramos la sección de usuario - Ajustamos el avatar en móvil */
+  .auth-section {
+    display: flex;
+    align-items: center;
+    height: 100%;
+  }
+  
+  /* Ajustamos la alineación vertical en móvil */
+  .avatar-wrapper {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    padding-bottom: 5px;
   }
   
   .drawer-title {
