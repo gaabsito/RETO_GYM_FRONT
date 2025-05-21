@@ -21,13 +21,18 @@ const success = ref(false)
 const exercises = ref<Exercise[]>([])
 const selectedExercises = ref<number[]>([])
 
+// Variables para la imagen
+const workoutImageFile = ref<File | null>(null)
+const workoutImagePreview = ref<string | null>(null)
+const imageLoading = ref(false)
+const imageError = ref('')
+
 // Formulario del entrenamiento
 const form = ref({
   titulo: '',
   descripcion: '',
   duracionMinutos: 30,
   dificultad: 'Media',
-  imagenURL: '',
   publico: true
 })
 
@@ -70,7 +75,10 @@ const rules = {
   ],
   notas: [
     (v: string) => v.length <= 100 || 'Las notas no pueden superar los 100 caracteres'
-  ]
+  ],
+  // Reglas para la imagen
+  imageSize: (v: File) => !v || v.size <= 5 * 1024 * 1024 || 'La imagen no debe exceder 5MB',
+  imageType: (v: File) => !v || ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(v.type) || 'Formato no soportado. Use JPG, PNG, GIF o WEBP'
 }
 
 // Cargar ejercicios disponibles
@@ -90,6 +98,38 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+// Manejar la carga de imagen
+const handleImageUpload = (file: File | null) => {
+  workoutImageFile.value = file
+  
+  if (file) {
+    // Validar el archivo
+    if (file.size > 5 * 1024 * 1024) {
+      imageError.value = 'La imagen no debe exceder 5MB'
+      workoutImageFile.value = null
+      return
+    }
+    
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      imageError.value = 'Formato no soportado. Use JPG, PNG, GIF o WEBP'
+      workoutImageFile.value = null
+      return
+    }
+    
+    // Crear preview de la imagen
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      workoutImagePreview.value = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+    
+    imageError.value = ''
+  } else {
+    workoutImagePreview.value = null
+  }
+}
 
 // Añadir ejercicio seleccionado a la lista
 const addExercise = (ejercicioID: number) => {
@@ -166,30 +206,60 @@ const handleSubmit = async () => {
     loading.value = true
     error.value = ''
     
-    // Preparar el DTO para crear el entrenamiento
-    const workoutDTO: CreateWorkoutDTO = {
-      titulo: form.value.titulo,
-      descripcion: form.value.descripcion,
-      duracionMinutos: form.value.duracionMinutos,
-      dificultad: form.value.dificultad as 'Fácil' | 'Media' | 'Difícil',
-      imagenURL: form.value.imagenURL || undefined,
-      publico: form.value.publico,
-      ejercicios: selectedExercises.value.map(ejercicioID => ({
-        ejercicioID,
-        series: exerciseDetails.value[ejercicioID].series,
-        repeticiones: exerciseDetails.value[ejercicioID].repeticiones,
-        descansoSegundos: exerciseDetails.value[ejercicioID].descansoSegundos,
-        notas: exerciseDetails.value[ejercicioID].notas || undefined
-      }))
+    // Crear FormData para enviar datos e imagen
+    const formData = new FormData()
+    
+    // Agregar datos del entrenamiento
+    formData.append('titulo', form.value.titulo)
+    formData.append('descripcion', form.value.descripcion || '')
+    formData.append('duracionMinutos', form.value.duracionMinutos.toString())
+    formData.append('dificultad', form.value.dificultad)
+    formData.append('publico', form.value.publico.toString())
+    
+    // Agregar imagen si existe
+    if (workoutImageFile.value) {
+      formData.append('imagen', workoutImageFile.value)
     }
     
-    await workoutStore.createWorkout(workoutDTO)
-    success.value = true
+    // Agregar ejercicios como JSON string en un campo de FormData
+    const ejerciciosData = selectedExercises.value.map(ejercicioID => ({
+      ejercicioID,
+      series: exerciseDetails.value[ejercicioID].series,
+      repeticiones: exerciseDetails.value[ejercicioID].repeticiones,
+      descansoSegundos: exerciseDetails.value[ejercicioID].descansoSegundos,
+      notas: exerciseDetails.value[ejercicioID].notas || undefined
+    }))
     
-    // Redirigir a "Mis Entrenamientos" después de unos segundos
-    setTimeout(() => {
-      router.push('/mis-entrenamientos')
-    }, 2000)
+    formData.append('ejercicios', JSON.stringify(ejerciciosData))
+    
+    // Usar el metodo directo de fetch en lugar del metodo del store
+    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/Entrenamiento`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: formData
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || 'Error al crear entrenamiento')
+    }
+    
+    const data = await response.json()
+    
+    if (data.success) {
+      // Actualizar la tienda después de crear
+      await workoutStore.fetchWorkouts()
+      success.value = true
+      
+      // Redirigir a "Mis Entrenamientos" después de unos segundos
+      setTimeout(() => {
+        router.push('/mis-entrenamientos')
+      }, 2000)
+    } else {
+      throw new Error(data.message || 'Error al crear entrenamiento')
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Error al crear el entrenamiento'
   } finally {
@@ -262,16 +332,6 @@ const handleSubmit = async () => {
               </v-col>
 
               <v-col cols="12">
-                <v-text-field
-                  v-model="form.imagenURL"
-                  label="URL de imagen (opcional)"
-                  variant="outlined"
-                  hint="Ingresa la URL de una imagen representativa"
-                  persistent-hint
-                ></v-text-field>
-              </v-col>
-
-              <v-col cols="12">
                 <v-switch
                   v-model="form.publico"
                   color="primary"
@@ -279,6 +339,47 @@ const handleSubmit = async () => {
                   hint="Los entrenamientos públicos pueden ser vistos por todos los usuarios"
                   persistent-hint
                 ></v-switch>
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
+
+        <!-- Sección para subir imagen -->
+        <v-card class="mb-6 workout-card">
+          <v-card-title class="workout-title">
+            Imagen del Entrenamiento
+          </v-card-title>
+          <v-card-text>
+            <v-row>
+              <v-col cols="12" md="6" class="preview-container">
+                <div class="text-center">
+                  <v-img
+                    v-if="workoutImagePreview"
+                    :src="workoutImagePreview"
+                    max-height="300"
+                    contain
+                    class="mb-2 workout-preview"
+                  ></v-img>
+                  <div v-else class="empty-image-placeholder">
+                    <v-icon size="64" class="mb-2">mdi-image-outline</v-icon>
+                    <div>Imagen de Entrenamiento</div>
+                  </div>
+                </div>
+              </v-col>
+              
+              <v-col cols="12" md="6">
+                <v-file-input
+                  v-model="workoutImageFile"
+                  accept="image/*"
+                  label="Seleccionar imagen del entrenamiento"
+                  prepend-icon="mdi-image"
+                  show-size
+                  variant="outlined"
+                  @update:model-value="handleImageUpload"
+                  :error-messages="imageError"
+                  hint="La imagen ayudará a los usuarios a identificar tu entrenamiento. Máximo 5MB."
+                  persistent-hint
+                ></v-file-input>
               </v-col>
             </v-row>
           </v-card-text>
@@ -523,11 +624,39 @@ const handleSubmit = async () => {
   padding: 16px;
 }
 
+.preview-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.workout-preview {
+  border-radius: $border-radius;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.empty-image-placeholder {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #f5f5f5;
+  border-radius: $border-radius;
+  color: #757575;
+}
+
 // Responsive adjustments
 @media (max-width: 600px) {
   .workout-title {
     font-size: 1.1rem;
     padding: 12px 16px;
+  }
+  
+  .empty-image-placeholder {
+    height: 150px;
   }
 }
 </style>

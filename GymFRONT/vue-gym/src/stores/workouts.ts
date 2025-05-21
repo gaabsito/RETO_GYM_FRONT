@@ -1,379 +1,296 @@
-// src/stores/workouts.ts
+// src/stores/auth.ts
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
-import type { Workout, CreateWorkoutDTO, EntrenamientoEjercicio } from '@/types/Workout'
+import { ref, computed } from 'vue'
+import type { User, LoginCredentials, RegisterData, UsuarioDTO} from '@/types/User'
 import type { ApiResponse } from '@/types/ApiResponse'
-import { useAuthStore } from './auth'
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087/api'
+const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087'
 
-export const useWorkoutStore = defineStore('workouts', () => {
-    const workouts = ref<Workout[]>([])
+export const useAuthStore = defineStore('auth', () => {
+    const user = ref<User | null>(null)
+    const token = ref<string | null>(null)
     const loading = ref(false)
     const error = ref<string | null>(null)
-
-    /**
-     * Fetches all workouts from the API
-     * @returns Promise with workouts array
-     */
-    async function fetchWorkouts() {
-        loading.value = true;
-        error.value = null;
-        try {
-            const authStore = useAuthStore();
-            const headers: Record<string, string> = {
-                'Content-Type': 'application/json'
-            };
-
-            // Include auth token if available for proper filtering
-            if (authStore.token) {
-                headers['Authorization'] = `Bearer ${authStore.token}`;
-            }
-
-            const response = await fetch(`${API_URL}/Entrenamiento`, { headers });
-            console.log('Fetch workouts response status:', response.status);
-
-            // Handle empty response
-            const text = await response.text();
-            if (!text) {
-                console.warn('API returned empty response');
-                workouts.value = [];
-                return [];
-            }
-
-            // Parse JSON response
-            let data: Workout[];
-            try {
-                data = JSON.parse(text);
-            } catch (e) {
-                console.error('Error parsing workouts JSON:', e);
-                throw new Error('Error en el formato de respuesta del servidor');
-            }
-
-            if (!response.ok) {
-                throw new Error('Error al cargar los entrenamientos');
-            }
-
-            console.log(`Fetched ${data.length} workouts`);
-            workouts.value = data;
-            return data;
-        } catch (e) {
-            console.error('Error in fetchWorkouts:', e);
-            error.value = e instanceof Error ? e.message : 'Error desconocido';
-            workouts.value = [];
-            throw e;
-        } finally {
-            loading.value = false;
-        }
-    }
-
-    /**
-     * Get a specific workout by ID
-     * @param id Workout ID to fetch
-     * @returns Promise with workout data
-     */
-    async function getWorkoutById(id: number) {
-        loading.value = true;
-        error.value = null;
-        try {
-            const authStore = useAuthStore();
-            const headers: Record<string, string> = {
-                'Content-Type': 'application/json'
-            };
-
-            if (authStore.token) {
-                headers['Authorization'] = `Bearer ${authStore.token}`;
-            }
-
-            console.log(`Fetching workout ID: ${id}`);
-            const response = await fetch(`${API_URL}/Entrenamiento/${id}`, { headers });
-            console.log('Fetch workout by ID response status:', response.status);
-            
-            // Handle permission errors
-            if (response.status === 403) {
-                throw new Error('No tienes permiso para ver este entrenamiento');
-            }
-            
-            if (!response.ok) {
-                throw new Error('Error al cargar el entrenamiento');
-            }
-
-            const text = await response.text();
-            if (!text) {
-                throw new Error('La API devolvió una respuesta vacía');
-            }
-
-            // Parse JSON response
-            let data: Workout;
-            try {
-                data = JSON.parse(text);
-                console.log('Workout data fetched:', data);
-                return data;
-            } catch (e) {
-                console.error('Error parsing workout JSON:', e);
-                throw new Error('Error en el formato de respuesta del servidor');
-            }
-        } catch (e) {
-            console.error('Error in getWorkoutById:', e);
-            error.value = e instanceof Error ? e.message : 'Error desconocido';
-            throw e;
-        } finally {
-            loading.value = false;
-        }
-    }
-
-    /**
-     * Create a new workout
-     * @param workout Workout data to create
-     * @returns Promise with created workout
-     */
-    async function createWorkout(workout: CreateWorkoutDTO) {
-        loading.value = true;
-        error.value = null;
-        try {
-            const authStore = useAuthStore();
-            if (!authStore.token || !authStore.user) {
-                throw new Error('No autorizado');
-            }
-            
-            // 1. Create workout base data with defaults for optional fields
-            const workoutBase = {
-                titulo: workout.titulo,
-                descripcion: workout.descripcion || "",
-                duracionMinutos: workout.duracionMinutos,
-                dificultad: workout.dificultad,
-                imagenURL: workout.imagenURL || "",
-                publico: workout.publico,
-                autorID: authStore.user.usuarioID
-            };
+    
+    // Verificar si la cuenta es de Google basado ÚNICAMENTE en el método de autenticación guardado
+    const isGoogleAccount = computed(() => {
+        // Verificar solamente si hay un método de autenticación 'google' guardado
+        const authMethod = localStorage.getItem('authMethod') || sessionStorage.getItem('authMethod')
+        return authMethod === 'google';
         
-            console.log('Creating workout with data:', JSON.stringify(workoutBase));
+        // Eliminar la verificación basada en características del email
+        // Esta parte causaba problemas con cuentas normales que usaban correos de Gmail
+    })
+    
+    const isAuthenticated = computed(() => !!token.value)
+    
+    async function init() {
+        const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token')
+        const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user')
+        
+        if (storedToken && storedUser) {
+            token.value = storedToken
+            user.value = JSON.parse(storedUser)
             
-            const response = await fetch(`${API_URL}/Entrenamiento`, {
+            // Verificar que el token sea válido con el backend
+            try {
+                await checkAuth()
+            } catch (error) {
+                // Si hay error, limpiar el storage
+                logout()
+            }
+        }
+    }
+    
+    async function login(credentials: LoginCredentials & { remember?: boolean }) {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await fetch(`${API_URL}/auth/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authStore.token}`
                 },
-                body: JSON.stringify(workoutBase)
-            });
-        
-            console.log('Create workout response status:', response.status);
-            
-            // Get response text for debugging
-            const responseText = await response.text();
-            console.log('Create workout response text:', responseText);
-            
-            // Handle error responses
+                body: JSON.stringify(credentials),
+            })
+    
+            const data = await response.json()
+    
             if (!response.ok) {
-                let errorMessage = 'Error creando entrenamiento';
-                try {
-                    const errorData = JSON.parse(responseText);
-                    errorMessage = errorData.message || errorMessage;
-                } catch (e) {
-                    if (responseText) errorMessage += ': ' + responseText;
-                }
-                throw new Error(errorMessage);
+                throw new Error(data.message || 'Error en la autenticación')
             }
+    
+            user.value = data.user
+            token.value = data.token
             
-            // Try to extract workout ID from response
-            let workoutId: number | null = null;
-            try {
-                const data = JSON.parse(responseText);
-                console.log('Created workout response data:', data);
-                
-                // Handle different response formats
-                if (data.entrenamientoID) {
-                    workoutId = data.entrenamientoID;
-                } else if (data.id) {
-                    workoutId = data.id;
-                }
-            } catch (e) {
-                console.error('Error parsing workout response:', e);
+            // Si remember está activo, guardar en localStorage, si no en sessionStorage
+            if (credentials.remember) {
+                localStorage.setItem('token', data.token)
+                localStorage.setItem('user', JSON.stringify(data.user))
+                // Guardar el método de autenticación como 'credentials'
+                localStorage.setItem('authMethod', 'credentials')
+            } else {
+                sessionStorage.setItem('token', data.token)
+                sessionStorage.setItem('user', JSON.stringify(data.user))
+                // Guardar el método de autenticación como 'credentials'
+                sessionStorage.setItem('authMethod', 'credentials')
             }
-            
-            // If we couldn't get workout ID from response, find the newest workout
-            if (!workoutId) {
-                console.log('No workout ID in response, searching for newest workout...');
-                
-                // Get all workouts to find the one we just created
-                await fetchWorkouts();
-                
-                // Find workout by title and author ID
-                const createdWorkout = workouts.value.find(w => 
-                    w.autorID === authStore.user?.usuarioID && 
-                    w.titulo === workout.titulo
-                );
-                
-                if (createdWorkout) {
-                    workoutId = createdWorkout.entrenamientoID;
-                    console.log(`Found created workout with ID: ${workoutId}`);
-                } else {
-                    console.error('Could not find created workout in workouts list');
-                }
-            }
-            
-            // If we have workout ID and exercises to add, associate them
-            if (workoutId && workout.ejercicios && workout.ejercicios.length > 0) {
-                console.log(`Associating ${workout.ejercicios.length} exercises with workout ID ${workoutId}`);
-                
-                const exercisePromises = workout.ejercicios.map(async (ejercicio) => {
-                    try {
-                        const ejercicioData = {
-                            entrenamientoID: workoutId,
-                            ejercicioID: ejercicio.ejercicioID,
-                            series: ejercicio.series,
-                            repeticiones: ejercicio.repeticiones,
-                            descansoSegundos: ejercicio.descansoSegundos,
-                            notas: ejercicio.notas || ""
-                        };
-                        
-                        console.log(`Associating exercise:`, ejercicioData);
-                        
-                        const ejercicioResponse = await fetch(`${API_URL}/EntrenamientoEjercicio`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${authStore.token}`
-                            },
-                            body: JSON.stringify(ejercicioData)
-                        });
-                        
-                        if (!ejercicioResponse.ok) {
-                            const errorText = await ejercicioResponse.text();
-                            console.warn(`Error associating exercise ID ${ejercicio.ejercicioID}:`, errorText);
-                        } else {
-                            console.log(`✅ Exercise ID ${ejercicio.ejercicioID} associated successfully`);
-                        }
-                        
-                        return ejercicioResponse.ok;
-                    } catch (e) {
-                        console.error(`Error associating exercise:`, e);
-                        return false;
-                    }
-                });
-                
-                // Wait for all exercise associations to complete
-                await Promise.allSettled(exercisePromises);
-            }
-            
-            // Get the full workout data to return
-            if (workoutId) {
-                const createdWorkout = await getWorkoutById(workoutId);
-                return createdWorkout;
-            }
-            
-            // If we get here, we couldn't get the workout ID
-            console.warn('Creating workout succeeded but could not get workout details');
-            return null;
+    
+            return data.user
         } catch (e) {
-            console.error('Error in createWorkout:', e);
-            error.value = e instanceof Error ? e.message : 'Error desconocido';
-            throw e;
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
         } finally {
-            loading.value = false;
+            loading.value = false
         }
     }
-
-    /**
-     * Get exercises associated with a workout
-     * @param workoutId Workout ID to get exercises for
-     * @returns Promise with workout exercises data
-     */
-    async function getWorkoutExercises(workoutId: number) {
-        loading.value = true;
-        error.value = null;
+    
+    async function register(userData: RegisterData) {
+        loading.value = true
+        error.value = null
         try {
-            const authStore = useAuthStore();
-            const headers: Record<string, string> = {
-                'Content-Type': 'application/json'
-            };
-
-            if (authStore.token) {
-                headers['Authorization'] = `Bearer ${authStore.token}`;
-            }
-
-            console.log(`Fetching exercises for workout ID: ${workoutId}`);
-            const response = await fetch(`${API_URL}/EntrenamientoEjercicio/${workoutId}`, { headers });
-            console.log('Fetch workout exercises response status:', response.status);
-
-            if (!response.ok) {
-                throw new Error(`Error al cargar ejercicios. Código: ${response.status}`);
-            }
-
-            const text = await response.text();
-            if (!text) {
-                console.warn("API returned empty response for exercises");
-                return [];
-            }
-
-            // Parse the JSON response carefully
-            try {
-                const data = JSON.parse(text);
-                console.log("Workout exercises response:", data);
-                
-                // Handle both response formats (with data property or direct array)
-                const exercises = data.data || data;
-                
-                if (!exercises || !Array.isArray(exercises) || exercises.length === 0) {
-                    console.warn("No exercises found for this workout");
-                    return [];
-                }
-                
-                return exercises;
-            } catch (e) {
-                console.error("Error parsing exercises JSON:", e);
-                throw new Error("Error al procesar la respuesta de ejercicios");
-            }
-        } catch (e) {
-            console.error("Error in getWorkoutExercises:", e);
-            error.value = e instanceof Error ? e.message : 'Error desconocido';
-            throw e;
-        } finally {
-            loading.value = false;
-        }
-    }
-
-    /**
-     * Delete a workout
-     * @param id Workout ID to delete
-     * @returns Promise with success status
-     */
-    async function deleteWorkout(id: number) {
-        loading.value = true;
-        error.value = null;
-        try {
-            const authStore = useAuthStore();
-            if (!authStore.token) {
-                throw new Error('No autorizado');
-            }
-            
-            console.log(`Deleting workout ID: ${id}`);
-            const response = await fetch(`${API_URL}/Entrenamiento/${id}`, {
-                method: 'DELETE',
+            const response = await fetch(`${API_URL}/auth/register`, {
+                method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authStore.token}`
-                }
-            });
-            
-            console.log('Delete workout response status:', response.status);
-            
-            if (response.status === 403) {
-                throw new Error('No tienes permiso para eliminar este entrenamiento');
-            }
-            
+                },
+                body: JSON.stringify(userData),
+            })
+    
+            const data = await response.json()
+    
             if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || 'Error eliminando entrenamiento');
+                throw new Error(data.message || 'Error en el registro')
+            }
+    
+            user.value = data.user
+            token.value = data.token
+            
+            sessionStorage.setItem('token', data.token)
+            sessionStorage.setItem('user', JSON.stringify(data.user))
+            // Guardar el método de autenticación como 'credentials'
+            sessionStorage.setItem('authMethod', 'credentials')
+    
+            return data.user
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+    
+    async function requestPasswordReset(email: string) {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await fetch(`${API_URL}/auth/request-reset`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            })
+    
+            const data = await response.json()
+    
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al solicitar recuperación de contraseña')
+            }
+    
+            return data
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+    
+    async function resetPassword(resetData: { token: string; password: string; confirmPassword: string }) {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await fetch(`${API_URL}/auth/reset-password`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(resetData),
+            })
+    
+            const data = await response.json()
+    
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al restablecer la contraseña')
+            }
+    
+            return data
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+    
+    async function updateProfile(updateData: Partial<User> & { currentPassword?: string, newPassword?: string }) {
+        loading.value = true;
+        error.value = null;
+        try {
+            // Verificar si es una cuenta de Google
+            if (isGoogleAccount.value) {
+                // No permitir cambios de email ni contraseña para cuentas de Google
+                if (updateData.email) {
+                    throw new Error("Las cuentas vinculadas a Google no pueden cambiar su correo electrónico directamente");
+                }
+                
+                if (updateData.currentPassword || updateData.newPassword) {
+                    throw new Error("Las cuentas vinculadas a Google no pueden cambiar su contraseña directamente");
+                }
             }
             
-            // Remove the workout from the local state
-            workouts.value = workouts.value.filter(w => w.entrenamientoID !== id);
-            console.log(`Workout ID ${id} deleted successfully`);
-            return true;
+            const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+            if (!storedToken) throw new Error("No hay token disponible");
+    
+            const response = await fetch(`${API_URL}/usuario/${user.value?.usuarioID}`, {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${storedToken}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify(updateData),
+            });
+    
+            const data = await response.json();
+    
+            if (!response.ok) {
+                throw new Error(data.message || "Error al actualizar el perfil");
+            }
+    
+            // Actualizar el usuario en el store
+            if (updateData.nombre) user.value!.nombre = updateData.nombre;
+            if (updateData.apellido) user.value!.apellido = updateData.apellido;
+            // Solo actualizar el email si no es una cuenta de Google
+            if (updateData.email && !isGoogleAccount.value) {
+                user.value!.email = updateData.email;
+            }
+            
+            // Actualizar el usuario en el almacenamiento
+            if (localStorage.getItem('user')) {
+                localStorage.setItem('user', JSON.stringify(user.value));
+            } else if (sessionStorage.getItem('user')) {
+                sessionStorage.setItem('user', JSON.stringify(user.value));
+            }
+    
+            return user.value;
         } catch (e) {
-            console.error('Error in deleteWorkout:', e);
+            error.value = e instanceof Error ? e.message : "Error desconocido";
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
+
+    /**
+     * Actualiza la foto de perfil del usuario usando Cloudinary
+     * @param file Archivo de imagen a subir
+     * @returns Promise con datos de respuesta de la API
+     */
+    async function updateProfilePhoto(file: File) {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (!token.value || !user.value) {
+                throw new Error('No autorizado');
+            }
+
+            // Validar el archivo
+            if (file.size > 5 * 1024 * 1024) {
+                throw new Error('La imagen no debe exceder 5MB');
+            }
+            
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                throw new Error('Formato no soportado. Use JPG, PNG, GIF o WEBP');
+            }
+
+            // Crear un FormData para enviar el archivo
+            const formData = new FormData();
+            formData.append('file', file);
+
+            console.log('Uploading profile photo for user:', user.value.usuarioID);
+            const response = await fetch(`${API_URL}/usuario/${user.value.usuarioID}/foto`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token.value}`
+                },
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.message || 'Error al actualizar la foto de perfil');
+            }
+
+            const data = await response.json();
+            console.log('Profile photo upload response:', data);
+            
+            // Actualizar el URL de la foto en el usuario
+            if (user.value) {
+                user.value.fotoPerfilURL = data.data; // Asumiendo que data.data contiene el URL
+                
+                // Actualizar el usuario en el almacenamiento
+                if (localStorage.getItem('user')) {
+                    localStorage.setItem('user', JSON.stringify(user.value));
+                } else if (sessionStorage.getItem('user')) {
+                    sessionStorage.setItem('user', JSON.stringify(user.value));
+                }
+            }
+
+            return data;
+        } catch (e) {
+            console.error('Error uploading profile photo:', e);
             error.value = e instanceof Error ? e.message : 'Error desconocido';
             throw e;
         } finally {
@@ -381,14 +298,191 @@ export const useWorkoutStore = defineStore('workouts', () => {
         }
     }
 
+    /**
+     * Elimina la foto de perfil del usuario
+     * @returns Promise con estado de éxito
+     */
+    async function removeProfilePhoto() {
+        loading.value = true;
+        error.value = null;
+        try {
+            if (!token.value || !user.value) {
+                throw new Error('No autorizado');
+            }
+
+            console.log('Removing profile photo for user:', user.value.usuarioID);
+            const response = await fetch(`${API_URL}/usuario/${user.value.usuarioID}/foto`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token.value}`
+                }
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.message || 'Error al eliminar la foto de perfil');
+            }
+
+            const data = await response.json();
+            console.log('Profile photo removal response:', data);
+
+            // Actualizar el URL de la foto en el usuario
+            if (user.value) {
+                user.value.fotoPerfilURL = null;
+                
+                // Actualizar el usuario en el almacenamiento
+                if (localStorage.getItem('user')) {
+                    localStorage.setItem('user', JSON.stringify(user.value));
+                } else if (sessionStorage.getItem('user')) {
+                    sessionStorage.setItem('user', JSON.stringify(user.value));
+                }
+            }
+
+            return true;
+        } catch (e) {
+            console.error('Error removing profile photo:', e);
+            error.value = e instanceof Error ? e.message : 'Error desconocido';
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
+    
+    async function fetchUser() {
+        loading.value = true;
+        error.value = null;
+        try {
+            const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+            if (!storedToken) throw new Error("No hay token disponible");
+    
+            const response = await fetch(`${API_URL}/Usuario/profile`, { 
+                method: "GET",
+                headers: {
+                    'Authorization': `Bearer ${storedToken}`,
+                    'Content-Type': 'application/json',
+                },
+            });
+    
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => null);
+                throw new Error(errorData?.message || 'Error al obtener el perfil');
+            }
+    
+            const data: ApiResponse<UsuarioDTO> = await response.json();
+            user.value = data.data;
+            
+            // Actualizar el usuario en el almacenamiento
+            if (localStorage.getItem('user')) {
+                localStorage.setItem('user', JSON.stringify(user.value));
+            } else if (sessionStorage.getItem('user')) {
+                sessionStorage.setItem('user', JSON.stringify(user.value));
+            }
+            
+            return data.data;
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : "Error desconocido";
+            throw e;
+        } finally {
+            loading.value = false;
+        }
+    }
+    
+    function logout() {
+        // Limpiar el estado
+        user.value = null
+        token.value = null
+        error.value = null
+        
+        // Limpiar el almacenamiento
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        localStorage.removeItem('authMethod')
+        sessionStorage.removeItem('token')
+        sessionStorage.removeItem('user')
+        sessionStorage.removeItem('authMethod')
+    }
+    
+    async function googleLogin(idToken: string) {
+        loading.value = true
+        error.value = null
+        try {
+            const response = await fetch(`${API_URL}/auth/google`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ idToken }),
+            })
+    
+            const data = await response.json()
+    
+            if (!response.ok) {
+                throw new Error(data.message || 'Error en la autenticación con Google')
+            }
+    
+            user.value = data.user
+            token.value = data.token
+            
+            // Guardar en sessionStorage y marcar como autenticación de Google
+            sessionStorage.setItem('token', data.token)
+            sessionStorage.setItem('user', JSON.stringify(data.user))
+            sessionStorage.setItem('authMethod', 'google')
+            
+            // Registrar para debug
+            console.log('Inicio de sesión con Google exitoso')
+            console.log('AuthMethod guardado:', sessionStorage.getItem('authMethod'))
+            
+            return data.user
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+    
+    async function checkAuth() {
+        const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token')
+        if (!storedToken) return
+    
+        try {
+            const response = await fetch(`${API_URL}/auth/verify`, {
+                headers: {
+                    'Authorization': `Bearer ${storedToken}`
+                }
+            })
+    
+            const data: ApiResponse<UsuarioDTO> = await response.json()
+    
+            if (response.ok && data.success) {
+                user.value = data.data
+                token.value = storedToken
+            } else {
+                logout()
+            }
+        } catch {
+            logout()
+        }
+    }
+    
     return {
-        workouts,
+        user,
+        token,
         loading,
         error,
-        fetchWorkouts,
-        getWorkoutById,
-        createWorkout,
-        getWorkoutExercises,
-        deleteWorkout
+        isAuthenticated,
+        isGoogleAccount,
+        init,
+        login,
+        register,
+        logout,
+        checkAuth,
+        requestPasswordReset,
+        resetPassword,
+        updateProfile,
+        fetchUser,
+        googleLogin,
+        updateProfilePhoto,
+        removeProfilePhoto
     }
 })

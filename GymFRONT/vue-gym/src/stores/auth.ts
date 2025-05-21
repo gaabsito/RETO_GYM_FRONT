@@ -232,6 +232,11 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    /**
+     * Actualiza la foto de perfil del usuario usando Cloudinary
+     * @param file Archivo de imagen a subir
+     * @returns Promise con datos de respuesta de la API
+     */
     async function updateProfilePhoto(file: File) {
         loading.value = true;
         error.value = null;
@@ -240,10 +245,21 @@ export const useAuthStore = defineStore('auth', () => {
                 throw new Error('No autorizado');
             }
 
+            // Validar el archivo
+            if (file.size > 5 * 1024 * 1024) {
+                throw new Error('La imagen no debe exceder 5MB');
+            }
+            
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+                throw new Error('Formato no soportado. Use JPG, PNG, GIF o WEBP');
+            }
+
             // Crear un FormData para enviar el archivo
             const formData = new FormData();
             formData.append('file', file);
 
+            console.log('Uploading profile photo for user:', user.value.usuarioID);
             const response = await fetch(`${API_URL}/usuario/${user.value.usuarioID}/foto`, {
                 method: 'POST',
                 headers: {
@@ -258,6 +274,7 @@ export const useAuthStore = defineStore('auth', () => {
             }
 
             const data = await response.json();
+            console.log('Profile photo upload response:', data);
             
             // Actualizar el URL de la foto en el usuario
             if (user.value) {
@@ -273,6 +290,7 @@ export const useAuthStore = defineStore('auth', () => {
 
             return data;
         } catch (e) {
+            console.error('Error uploading profile photo:', e);
             error.value = e instanceof Error ? e.message : 'Error desconocido';
             throw e;
         } finally {
@@ -280,6 +298,10 @@ export const useAuthStore = defineStore('auth', () => {
         }
     }
 
+    /**
+     * Elimina la foto de perfil del usuario
+     * @returns Promise con estado de éxito
+     */
     async function removeProfilePhoto() {
         loading.value = true;
         error.value = null;
@@ -288,6 +310,7 @@ export const useAuthStore = defineStore('auth', () => {
                 throw new Error('No autorizado');
             }
 
+            console.log('Removing profile photo for user:', user.value.usuarioID);
             const response = await fetch(`${API_URL}/usuario/${user.value.usuarioID}/foto`, {
                 method: 'DELETE',
                 headers: {
@@ -299,6 +322,9 @@ export const useAuthStore = defineStore('auth', () => {
                 const errorData = await response.json().catch(() => null);
                 throw new Error(errorData?.message || 'Error al eliminar la foto de perfil');
             }
+
+            const data = await response.json();
+            console.log('Profile photo removal response:', data);
 
             // Actualizar el URL de la foto en el usuario
             if (user.value) {
@@ -314,6 +340,7 @@ export const useAuthStore = defineStore('auth', () => {
 
             return true;
         } catch (e) {
+            console.error('Error removing profile photo:', e);
             error.value = e instanceof Error ? e.message : 'Error desconocido';
             throw e;
         } finally {
