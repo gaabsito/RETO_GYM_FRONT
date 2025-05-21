@@ -116,14 +116,16 @@ const clearFilters = () => {
     >
       <!-- Botón para crear nuevo entrenamiento (solo para usuarios autenticados) -->
       <div v-if="isAuthenticated" class="mt-4">
-        <v-btn
-          color="primary"
-          size="large"
+        <v-btn 
+          color="#2d3a4e"
+          size="x-large" 
           to="/crear-entrenamiento"
-          prepend-icon="mdi-plus"
-          class="mr-2"
+          class="create-workout-btn"
+          rounded="pill"
+          elevation="5"
         >
-          Crear Entrenamiento
+          <v-icon start size="20" class="mr-1">mdi-plus </v-icon>
+          <span>CREAR ENTRENAMIENTO</span>
         </v-btn>
       </div>
     </PageHeader>
@@ -371,6 +373,48 @@ const clearFilters = () => {
   .v-img {
     border-radius: $border-radius $border-radius 0 0;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+}
+
+/* Estilos específicos para el botón de crear entrenamiento */
+.create-workout-btn {
+  background-color: #2d3a4e !important;
+  font-family: $font-family-base;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  padding: 0 1.5rem !important;
+  height: 45px;
+  min-width: 230px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4) !important;
+  transition: all 0.3s ease;
+  
+  .v-icon {
+    opacity: 0.9;
+  }
+  
+  span {
+    margin-left: 0.25rem;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.45) !important;
+    background-color: #384964 !important;
+  }
+  
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25) !important;
+    background-color: #263044 !important;
+  }
+  
+  @media (max-width: 600px) {
+    width: 85%;
+    margin: 0.5rem auto;
+    font-size: 0.8rem;
   }
 }
 

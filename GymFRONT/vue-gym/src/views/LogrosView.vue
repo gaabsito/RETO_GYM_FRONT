@@ -73,14 +73,17 @@ const closeNotificationModal = () => {
       :backgroundImage="heroImage"
     >
       <v-btn 
-        color="primary" 
-        size="large" 
+        color="#2d3a4e"
+        size="x-large" 
         prepend-icon="mdi-refresh" 
         @click="checkNewAchievements"
         :loading="loading"
-        class="mt-4"
+        class="mt-4 verify-logros-button"
+        rounded="pill"
+        elevation="5"
+        min-width="200"
       >
-        Verificar Logros
+        <span class="button-text">VERIFICAR LOGROS</span>
       </v-btn>
     </PageHeader>
     
@@ -157,6 +160,48 @@ const closeNotificationModal = () => {
 
 .tab-item {
   margin: 0 16px;
+}
+
+.verify-logros-button {
+  background-color: #2d3a4e !important;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 0.75rem 2rem !important;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+  
+  .v-icon {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+  }
+  
+  .button-text {
+    font-family: $font-family-base;
+    font-size: 0.95rem;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4) !important;
+    background-color: #37465e !important;
+  }
+  
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+    background-color: #263044 !important;
+  }
+  
+  @media (max-width: 600px) {
+    min-width: 180px;
+    margin: 1rem auto !important;
+    
+    .button-text {
+      font-size: 0.85rem;
+    }
+  }
 }
 
 @media (max-width: 600px) {

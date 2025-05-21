@@ -44,11 +44,13 @@ const exerciseStore = useExerciseStore()
 const authStore = useAuthStore()
 
 const formRef = ref<VForm | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
 const loading = ref(false)
 const error = ref('')
 const success = ref(false)
 const exercises = ref<Exercise[]>([])
 const selectedExercises = ref<number[]>([])
+const isDragging = ref(false)
 
 // Variables para la imagen
 const workoutImageFile = ref<File | null>(null)
@@ -127,6 +129,41 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+// Método para activar el input de archivo
+const triggerFileInput = () => {
+  if (fileInput.value) {
+    fileInput.value.click()
+  }
+}
+
+// Método para manejar archivos soltados
+const handleFileDrop = (event: DragEvent) => {
+  isDragging.value = false
+  if (event.dataTransfer && event.dataTransfer.files.length) {
+    const file = event.dataTransfer.files[0]
+    if (file && file.type.startsWith('image/')) {
+      handleImageUpload(file)
+    }
+  }
+}
+
+// Método para manejar cambios en el input
+const handleImageChange = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files && input.files[0]) {
+    handleImageUpload(input.files[0])
+  }
+}
+
+// Método para eliminar la imagen
+const removeImage = () => {
+  workoutImageFile.value = null
+  workoutImagePreview.value = null
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+}
 
 // Manejar la carga de imagen
 const handleImageUpload = (file: File | null) => {
@@ -377,42 +414,87 @@ const handleSubmit = async () => {
           </v-card-text>
         </v-card>
 
-        <!-- Sección para subir imagen -->
+        <!-- Sección para subir imagen - Diseño mejorado -->
         <v-card class="mb-6 workout-card">
-          <v-card-title class="workout-title">
+          <v-card-title class="workout-title d-flex align-center">
+            <v-icon class="mr-2">mdi-image</v-icon>
             Imagen del Entrenamiento
           </v-card-title>
           <v-card-text>
             <v-row>
-              <v-col cols="12" md="6" class="preview-container">
-                <div class="text-center">
-                  <v-img
-                    v-if="workoutImagePreview"
-                    :src="workoutImagePreview"
-                    max-height="300"
-                    contain
-                    class="mb-2 workout-preview"
-                  ></v-img>
-                  <div v-else class="empty-image-placeholder">
-                    <v-icon size="64" class="mb-2">mdi-image-outline</v-icon>
-                    <div>Imagen de Entrenamiento</div>
+              <v-col cols="12">
+                <div class="image-upload-container"
+                    :class="{'has-image': workoutImagePreview}"
+                    @click="triggerFileInput"
+                    @dragover.prevent="isDragging = true"
+                    @dragleave.prevent="isDragging = false"
+                    @drop.prevent="handleFileDrop">
+                  
+                  <!-- Previsualización de imagen -->
+                  <v-img v-if="workoutImagePreview"
+                        :src="workoutImagePreview"
+                        height="250"
+                        cover
+                        class="workout-preview">
+                    <template v-slot:placeholder>
+                      <v-row class="fill-height ma-0" align="center" justify="center">
+                        <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                      </v-row>
+                    </template>
+                    
+                    <!-- Overlay para cambiar la imagen -->
+                    <div class="image-overlay d-flex flex-column align-center justify-center">
+                      <v-btn icon="mdi-camera" variant="text" color="white" size="large"></v-btn>
+                      <span class="text-white mt-2">Cambiar imagen</span>
+                    </div>
+                  </v-img>
+                  
+                  <!-- Placeholder para estado sin imagen -->
+                  <div v-else class="empty-image-placeholder" :class="{'is-dragging': isDragging}">
+                    <v-icon size="64" color="grey-darken-1">mdi-image-plus</v-icon>
+                    <div class="upload-text mt-4">
+                      <span class="text-h6">Selecciona una imagen</span>
+                      <span class="text-body-2 d-block mt-2">o arrastra y suelta aquí</span>
+                    </div>
                   </div>
+                  
+                  <!-- Input oculto -->
+                  <input
+                    type="file"
+                    ref="fileInput"
+                    accept="image/*"
+                    class="hidden-input"
+                    @change="handleImageChange"
+                  >
                 </div>
-              </v-col>
-              
-              <v-col cols="12" md="6">
-                <v-file-input
-                  v-model="workoutImageFile"
-                  accept="image/*"
-                  label="Seleccionar imagen del entrenamiento"
-                  prepend-icon="mdi-image"
-                  show-size
-                  variant="outlined"
-                  @update:model-value="handleImageUpload"
-                  :error-messages="imageError"
-                  hint="La imagen ayudará a los usuarios a identificar tu entrenamiento. Máximo 5MB."
-                  persistent-hint
-                ></v-file-input>
+                
+                <!-- Mensaje de error -->
+                <div v-if="imageError" class="error-message mt-2 text-error text-caption">
+                  <v-icon size="small" start color="error">mdi-alert-circle</v-icon>
+                  {{ imageError }}
+                </div>
+                
+                <!-- Formato soportado e información de tamaño -->
+                <div class="image-info mt-3 d-flex align-center">
+                  <v-icon size="small" color="grey">mdi-information-outline</v-icon>
+                  <span class="text-caption ml-2 text-grey">
+                    Formatos soportados: JPG, PNG, GIF, WEBP. Tamaño máximo: 5MB
+                  </span>
+                </div>
+                
+                <!-- Botón para eliminar la imagen -->
+                <div v-if="workoutImagePreview" class="d-flex justify-end mt-3">
+                  <v-btn
+                    color="error"
+                    variant="text"
+                    density="comfortable"
+                    prepend-icon="mdi-delete"
+                    @click.stop="removeImage"
+                    size="small"
+                  >
+                    Eliminar imagen
+                  </v-btn>
+                </div>
               </v-col>
             </v-row>
           </v-card-text>
@@ -657,27 +739,81 @@ const handleSubmit = async () => {
   padding: 16px;
 }
 
-.preview-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.workout-preview {
+/* Estilos para la sección de carga de imágenes */
+.image-upload-container {
+  position: relative;
+  width: 100%;
   border-radius: $border-radius;
-  border: 1px solid #e0e0e0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+  border: 2px dashed rgba(0, 0, 0, 0.1);
+  
+  &:hover {
+    border-color: $primary-color;
+    
+    .empty-image-placeholder {
+      background-color: rgba(226, 84, 1, 0.05);
+    }
+    
+    .image-overlay {
+      opacity: 1;
+    }
+  }
+  
+  &.has-image {
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
 }
 
 .empty-image-placeholder {
   width: 100%;
-  height: 200px;
+  height: 250px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: #f5f5f5;
-  border-radius: $border-radius;
+  background-color: #f9f9f9;
+  color: #616161;
+  transition: all 0.3s ease;
+  
+  &.is-dragging {
+    background-color: rgba(226, 84, 1, 0.1);
+    border-color: $primary-color;
+  }
+  
+  .upload-text {
+    text-align: center;
+  }
+}
+
+.workout-preview {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+}
+
+.image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.image-info {
   color: #757575;
 }
 
@@ -688,8 +824,15 @@ const handleSubmit = async () => {
     padding: 12px 16px;
   }
   
-  .empty-image-placeholder {
-    height: 150px;
+  .empty-image-placeholder,
+  .workout-preview {
+    height: 200px;
+  }
+  
+  .upload-text {
+    .text-h6 {
+      font-size: 1rem !important;
+    }
   }
 }
 </style>

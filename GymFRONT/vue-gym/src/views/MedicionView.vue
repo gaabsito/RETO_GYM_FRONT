@@ -380,13 +380,16 @@ watch(() => mediciones.value, () => {
       :backgroundImage="progressImage"
     >
       <v-btn 
-        color="primary" 
+        color="#2d3a4e"
         size="x-large" 
-        prepend-icon="mdi-plus"
+        prepend-icon="mdi-plus" 
         @click="openCreateForm"
-        class="mt-4"
+        class="mt-4 register-button"
+        rounded="pill"
+        elevation="5"
+        min-width="200"
       >
-        Registrar Nueva Medición
+        <span class="button-text">REGISTRAR NUEVA MEDICIÓN</span>
       </v-btn>
     </PageHeader>
 
@@ -509,12 +512,16 @@ watch(() => mediciones.value, () => {
               Registra tu primera medición para comenzar a hacer seguimiento de tu progreso
             </p>
             <v-btn 
-              color="primary" 
+              color="#2d3a4e"
+              size="x-large" 
+              prepend-icon="mdi-plus" 
               @click="openCreateForm"
-              size="large"
-              prepend-icon="mdi-plus"
+              class="register-button"
+              rounded="pill"
+              elevation="5"
+              min-width="200"
             >
-              Registrar Primera Medición
+              <span class="button-text">REGISTRAR PRIMERA MEDICIÓN</span>
             </v-btn>
           </v-col>
         </v-row>
@@ -830,13 +837,16 @@ watch(() => mediciones.value, () => {
           </v-btn>
           <v-spacer></v-spacer>
           <v-btn
-            color="primary"
-            variant="flat"
+            color="#2d3a4e"
+            variant="elevated"
             @click="handleSubmitForm"
             :loading="loading"
-            class="text-capitalize"
+            class="save-button"
+            elevation="5"
+            rounded="pill"
+            size="large"
           >
-            {{ formMode === 'create' ? 'Guardar Medición' : 'Actualizar Medición' }}
+            <span class="button-text">{{ formMode === 'create' ? 'GUARDAR MEDICIÓN' : 'ACTUALIZAR MEDICIÓN' }}</span>
             <v-icon end class="ms-1">{{ formMode === 'create' ? 'mdi-plus-circle' : 'mdi-check-circle' }}</v-icon>
           </v-btn>
         </v-card-actions>
@@ -937,6 +947,90 @@ watch(() => mediciones.value, () => {
     font-weight: 600;
     color: $secondary-color;
     font-family: $font-family-base;
+  }
+}
+
+.register-button {
+  background-color: #2d3a4e !important;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 0.75rem 2rem !important;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+  
+  .v-icon {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+  }
+  
+  .button-text {
+    font-family: $font-family-base;
+    font-size: 0.95rem;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4) !important;
+    background-color: #37465e !important;
+  }
+  
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+    background-color: #263044 !important;
+  }
+  
+  @media (max-width: 600px) {
+    min-width: 180px;
+    margin: 1rem auto !important;
+    
+    .button-text {
+      font-size: 0.85rem;
+    }
+  }
+}
+
+.save-button {
+  background-color: #2d3a4e !important;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 0.75rem 2rem !important;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+  
+  .v-icon {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+  }
+  
+  .button-text {
+    font-family: $font-family-base;
+    font-size: 0.95rem;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4) !important;
+    background-color: #37465e !important;
+  }
+  
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+    background-color: #263044 !important;
+  }
+  
+  @media (max-width: 600px) {
+    width: 70%;
+    margin-left: 0;
+    
+    .button-text {
+      font-size: 0.85rem;
+    }
   }
 }
 

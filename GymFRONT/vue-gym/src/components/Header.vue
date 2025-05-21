@@ -47,17 +47,19 @@
                   <!-- Info del usuario -->
                   <v-list-item class="user-info pa-3">
                     <template v-slot:prepend>
-                      <UserAvatar
-                        :nombre="authStore.user?.nombre"
-                        :apellido="authStore.user?.apellido"
-                        :photoUrl="photoUrl"
-                        :size="40"
-                      />
+                      <div class="avatar-container">
+                        <UserAvatar
+                          :nombre="authStore.user?.nombre"
+                          :apellido="authStore.user?.apellido"
+                          :photoUrl="photoUrl"
+                          :size="40"
+                        />
+                      </div>
                     </template>
-                    <v-list-item-title class="text-subtitle-1 font-weight-medium">
+                    <v-list-item-title class="text-subtitle-1 font-weight-medium ml-3">
                       {{ authStore.user?.nombre }} {{ authStore.user?.apellido }}
                     </v-list-item-title>
-                    <v-list-item-subtitle class="text-caption">
+                    <v-list-item-subtitle class="text-caption ml-3">
                       {{ authStore.user?.email }}
                     </v-list-item-subtitle>
                   </v-list-item>
@@ -119,15 +121,17 @@
           <!-- Información del usuario -->
           <v-list-item class="user-drawer-info" v-if="authStore.user">
             <template v-slot:prepend>
-              <UserAvatar
-                :nombre="authStore.user?.nombre"
-                :apellido="authStore.user?.apellido"
-                :photoUrl="photoUrl"
-                :size="36"
-              />
+              <div class="drawer-avatar-container">
+                <UserAvatar
+                  :nombre="authStore.user?.nombre"
+                  :apellido="authStore.user?.apellido"
+                  :photoUrl="photoUrl"
+                  :size="36"
+                />
+              </div>
             </template>
-            <v-list-item-title>{{ authStore.user.nombre }}</v-list-item-title>
-            <v-list-item-subtitle class="text-caption">{{ authStore.user.email }}</v-list-item-subtitle>
+            <v-list-item-title class="ml-2">{{ authStore.user.nombre }}</v-list-item-title>
+            <v-list-item-subtitle class="text-caption ml-2">{{ authStore.user.email }}</v-list-item-subtitle>
           </v-list-item>
           
           <!-- Iteramos sobre authMenuItems -->
@@ -293,8 +297,26 @@ const toggleDrawer = () => {
   }
 }
 
+/* Contenedor para el avatar con espacio adecuado */
+.avatar-container {
+  margin-right: 12px;  /* Espacio entre avatar y texto */
+  min-width: 40px;     /* Ancho mínimo para evitar compresión */
+}
+
+.drawer-avatar-container {
+  margin-right: 12px;
+  min-width: 36px;
+}
+
+/* Ajuste para los textos del usuario */
+.v-list-item-title.ml-3, 
+.v-list-item-subtitle.ml-3 {
+  margin-left: 4px !important; /* Ajuste fino del margen izquierdo */
+}
+
 .user-info {
   background-color: $light-gray;
+  padding: 16px !important;  /* Aumentamos el padding general */
 }
 
 .user-drawer-info {
@@ -386,7 +408,19 @@ const toggleDrawer = () => {
   }
   
   .user-drawer-info {
-    padding: 12px;
+    padding: 14px;
+  }
+  
+  .user-info {
+    padding: 14px !important;
+  }
+  
+  .avatar-container {
+    margin-right: 16px; /* Más espacio en móviles */
+  }
+  
+  .drawer-avatar-container {
+    margin-right: 14px;
   }
 }
 </style>
