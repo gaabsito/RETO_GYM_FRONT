@@ -378,7 +378,7 @@ const toggleDrawer = () => {
     display: flex;
     align-items: center;
     height: 100%;
-    padding-bottom: 5px;
+    padding-bottom: 3px;
   }
   
   .drawer-title {
