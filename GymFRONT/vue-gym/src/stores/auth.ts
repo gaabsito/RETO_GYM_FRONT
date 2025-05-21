@@ -237,66 +237,105 @@ export const useAuthStore = defineStore('auth', () => {
      * @param file Archivo de imagen a subir
      * @returns Promise con datos de respuesta de la API
      */
-    async function updateProfilePhoto(file: File) {
-        loading.value = true;
-        error.value = null;
-        try {
-            if (!token.value || !user.value) {
-                throw new Error('No autorizado');
-            }
+  // Versión corregida para pegar en tu store auth.ts
 
-            // Validar el archivo
-            if (file.size > 5 * 1024 * 1024) {
-                throw new Error('La imagen no debe exceder 5MB');
-            }
-            
-            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-            if (!allowedTypes.includes(file.type)) {
-                throw new Error('Formato no soportado. Use JPG, PNG, GIF o WEBP');
-            }
-
-            // Crear un FormData para enviar el archivo
-            const formData = new FormData();
-            formData.append('file', file);
-
-            console.log('Uploading profile photo for user:', user.value.usuarioID);
-            const response = await fetch(`${API_URL}/usuario/${user.value.usuarioID}/foto`, {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Bearer ${token.value}`
-                },
-                body: formData
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
-                throw new Error(errorData?.message || 'Error al actualizar la foto de perfil');
-            }
-
-            const data = await response.json();
-            console.log('Profile photo upload response:', data);
-            
-            // Actualizar el URL de la foto en el usuario
-            if (user.value) {
-                user.value.fotoPerfilURL = data.data; // Asumiendo que data.data contiene el URL
-                
-                // Actualizar el usuario en el almacenamiento
-                if (localStorage.getItem('user')) {
-                    localStorage.setItem('user', JSON.stringify(user.value));
-                } else if (sessionStorage.getItem('user')) {
-                    sessionStorage.setItem('user', JSON.stringify(user.value));
-                }
-            }
-
-            return data;
-        } catch (e) {
-            console.error('Error uploading profile photo:', e);
-            error.value = e instanceof Error ? e.message : 'Error desconocido';
-            throw e;
-        } finally {
-            loading.value = false;
+async function updateProfilePhoto(file: File) {
+    loading.value = true;
+    error.value = null;
+    try {
+        if (!token.value || !user.value) {
+            throw new Error('No autorizado');
         }
+
+        // Validar el archivo
+        if (file.size > 5 * 1024 * 1024) {
+            throw new Error('La imagen no debe exceder 5MB');
+        }
+        
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            throw new Error('Formato no soportado. Use JPG, PNG, GIF o WEBP');
+        }
+
+        // Crear un FormData para enviar el archivo
+        const formData = new FormData();
+        formData.append('file', file);
+
+        // Construye la URL correcta basada en la estructura del API
+        // Aquí es donde está el problema - asegurémonos de que la ruta es correcta
+        const url = `${API_URL}/usuario/${user.value.usuarioID}/foto`;
+        
+        console.log('URL para subir foto:', url);
+        console.log('ID de usuario:', user.value.usuarioID);
+        console.log('Token disponible:', !!token.value);
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token.value}`
+            },
+            body: formData
+        });
+
+        console.log('Respuesta HTTP status:', response.status);
+        
+        // Para errores 404, mostrar información más detallada
+        if (response.status === 404) {
+            console.error('Error 404: Ruta no encontrada', url);
+            console.error('Verifica que el controlador tenga esta ruta implementada');
+            throw new Error('Ruta no encontrada en el servidor (404)');
+        }
+        
+        // Verificar si hay contenido en la respuesta antes de parsear
+        const responseText = await response.text();
+        console.log('Respuesta texto:', responseText);
+        
+        if (!responseText || responseText.trim() === '') {
+            throw new Error('El servidor devolvió una respuesta vacía');
+        }
+        
+        let data;
+        try {
+            data = JSON.parse(responseText);
+        } catch (jsonError) {
+            console.error('Error al parsear respuesta JSON:', jsonError);
+            throw new Error('Respuesta inválida del servidor: ' + responseText);
+        }
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Error al actualizar la foto de perfil');
+        }
+        
+        // Verificar la URL de la imagen
+        if (!data.data || typeof data.data !== 'string') {
+            console.error('La respuesta no contiene una URL de imagen válida:', data);
+            throw new Error('La respuesta del servidor no incluye una URL de imagen');
+        }
+
+        // Actualizar el URL de la foto en el usuario
+        if (user.value) {
+            user.value.fotoPerfilURL = data.data;
+            
+            // Actualizar en localStorage
+            if (localStorage.getItem('user')) {
+                localStorage.setItem('user', JSON.stringify(user.value));
+            }
+            
+            // Actualizar en sessionStorage
+            if (sessionStorage.getItem('user')) {
+                sessionStorage.setItem('user', JSON.stringify(user.value));
+            }
+        }
+
+        return data;
+    } catch (e) {
+        console.error('Error al subir foto de perfil:', e);
+        error.value = e instanceof Error ? e.message : 'Error desconocido';
+        throw e;
+    } finally {
+        loading.value = false;
     }
+}
 
     /**
      * Elimina la foto de perfil del usuario

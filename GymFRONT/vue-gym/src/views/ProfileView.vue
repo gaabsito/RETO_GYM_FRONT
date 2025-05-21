@@ -326,10 +326,37 @@ import HistorialRutinas from '@/components/HistorialRutinas.vue'
 import UserAvatar from '@/components/UserAvatar.vue'
 import UserProgress from '@/components/UserProgress.vue'
 import LogrosSummaryCard from '@/components/LogrosSummaryCard.vue' // Importar componente de logros
+
+// Función auxiliar para construir URLs correctas
+function buildApiUrl(path: string): string {
+  const baseUrl = import.meta.env.VITE_API_URL || 'https://localhost:7087';
+  
+  // Si la URL base ya termina con '/api', no añadirlo de nuevo
+  if (baseUrl.endsWith('/api')) {
+    // Asegurarse de que path no comience con '/'
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    return `${baseUrl}/${cleanPath}`;
+  }
+  
+  // Si path ya comienza con '/api', usarlo directamente
+  if (path.startsWith('/api/')) {
+    return `${baseUrl}${path}`;
+  }
+  
+  // Si path comienza con '/', añadir '/api'
+  if (path.startsWith('/')) {
+    return `${baseUrl}/api${path}`;
+  }
+  
+  // En cualquier otro caso, añadir '/api/'
+  return `${baseUrl}/api/${path}`;
+}
+
 // Store Initialization
 const authStore = useAuthStore()
 const workoutStore = useWorkoutStore()
 const logrosStore = useLogrosStore() // Inicializar store de logros
+
 // Form References and State
 const formRef = ref<VForm | null>(null)
 const loading = ref({
@@ -350,16 +377,19 @@ const success = ref({
   workouts: '',
   photo: ''
 })
+
 // Personal Information Form
 const personalForm = ref({
   nombre: '',
   apellido: '',
   email: ''
 })
+
 // Estado de la foto de perfil
 const photoPreview = ref<string | null>(null)
 const photoFile = ref<File | null>(null)
 const avatarSize = ref(120) // Tamaño del avatar
+
 // Password Change State
 const passwordState = ref({
   isChanging: false,
@@ -367,6 +397,7 @@ const passwordState = ref({
   newPassword: '',
   confirmPassword: ''
 })
+
 // Workouts Filtering
 const workoutsFilter = ref({
   searchQuery: '',
@@ -382,12 +413,14 @@ const tabs = [
   { title: 'MIS ENTRENAMIENTOS', icon: 'mdi-dumbbell' },
   { title: 'MI PROGRESO', icon: 'mdi-chart-line' }
 ]
+
 // Determinar si la cuenta es de Google basada en el método de autenticación
 const isGoogleAccount = computed(() => {
   // Verificar SOLO si el método de autenticación es 'google'
   const authMethod = localStorage.getItem('authMethod') || sessionStorage.getItem('authMethod')
   return authMethod === 'google';
 })
+
 // Validation Rules
 const rules = {
   required: (v: string) => !!v || 'Este campo es requerido',
@@ -398,12 +431,17 @@ const rules = {
   imageSize: (v: File) => !v || v.size <= 5 * 1024 * 1024 || 'La imagen no debe exceder 5MB',
   imageType: (v: File) => !v || ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(v.type) || 'Formato no soportado. Use JPG, PNG, GIF o WEBP'
 }
+
 // Lifecycle Hook: Load User Data and Workouts
 onMounted(async () => {
   try {
     loading.value.profile = true
     loading.value.workouts = true
     loading.value.logros = true // Iniciar carga de logros
+    
+    // Log para depuración
+    console.log("URL de la API:", import.meta.env.VITE_API_URL);
+    
     // Fetch User Profile
     const userData = await authStore.fetchUser()
     if (userData) {
@@ -447,6 +485,7 @@ onMounted(async () => {
     loading.value.workouts = false
   }
 })
+
 // Computed: Filtered Workouts
 const filteredWorkouts = computed(() =>
   workoutsFilter.value.userWorkouts.filter(workout => {
@@ -463,6 +502,7 @@ const filteredWorkouts = computed(() =>
     return matchesSearch && matchesDifficulty && matchesVisibility
   })
 )
+
 // Method: Update Profile
 const updateProfile = async () => {
   if (!formRef.value) return
@@ -511,7 +551,7 @@ const updateProfile = async () => {
   }
 }
 
-// Método para subir la foto a Cloudinary
+// Método para subir la foto a Cloudinary - CORREGIDO
 const uploadProfilePhoto = async () => {
   if (!photoFile.value) return;
   
@@ -537,8 +577,12 @@ const uploadProfilePhoto = async () => {
     const userID = authStore.user?.usuarioID;
     if (!userID) throw new Error('Usuario no autenticado');
     
-    // Enviar la imagen a la API
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/Usuario/${userID}/foto`, {
+    // CORRECCIÓN: Usar la función buildApiUrl para construir la URL correcta
+    const url = buildApiUrl(`Usuario/${userID}/foto`);
+    console.log('URL para subir foto:', url);
+    
+    // Enviar la imagen a la API 
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${authStore.token}`
@@ -546,8 +590,29 @@ const uploadProfilePhoto = async () => {
       body: formData
     });
     
-    // Procesar respuesta
-    const data = await response.json();
+    console.log('Estado de la respuesta:', response.status);
+    
+    // Si es un error 404, mostrar un mensaje específico
+    if (response.status === 404) {
+      throw new Error('La URL para subir fotos no existe (error 404). Verifica la configuración del backend.');
+    }
+    
+    // Leer el texto de la respuesta primero
+    const responseText = await response.text();
+    console.log('Texto de respuesta:', responseText);
+    
+    // Si la respuesta está vacía, lanzar un error
+    if (!responseText || responseText.trim() === '') {
+      throw new Error('El servidor devolvió una respuesta vacía');
+    }
+    
+    // Parsear el JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error(`Error al parsear la respuesta: ${responseText}`);
+    }
     
     if (!response.ok) {
       throw new Error(data.message || 'Error al subir la imagen');
@@ -611,12 +676,9 @@ const handlePhotoUpload = (file: File) => {
   
   // Mostrar mensaje
   success.value.photo = 'Foto seleccionada. Guarde cambios para actualizar.';
-  
-  // También podemos subir la foto inmediatamente si se desea
-  // uploadProfilePhoto();
 }
 
-// Método: Eliminar foto de perfil
+// Método: Eliminar foto de perfil - CORREGIDO
 const removeProfilePhoto = async () => {
   try {
     if (!confirm('¿Está seguro que desea eliminar su foto de perfil?')) {
@@ -630,8 +692,12 @@ const removeProfilePhoto = async () => {
     const userID = authStore.user?.usuarioID;
     if (!userID) throw new Error('Usuario no autenticado');
     
+    // CORRECCIÓN: Usar la función buildApiUrl para construir la URL correcta
+    const url = buildApiUrl(`Usuario/${userID}/foto`);
+    console.log('URL para eliminar foto:', url);
+    
     // Enviar solicitud para eliminar la foto
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/Usuario/${userID}/foto`, {
+    const response = await fetch(url, {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${authStore.token}`,
@@ -639,7 +705,27 @@ const removeProfilePhoto = async () => {
       }
     });
     
-    const data = await response.json();
+    // Si es un error 404, mostrar un mensaje específico
+    if (response.status === 404) {
+      throw new Error('La URL para eliminar fotos no existe (error 404). Verifica la configuración del backend.');
+    }
+    
+    // Leer el texto de la respuesta primero
+    const responseText = await response.text();
+    console.log('Texto de respuesta:', responseText);
+    
+    // Si la respuesta está vacía, lanzar un error
+    if (!responseText || responseText.trim() === '') {
+      throw new Error('El servidor devolvió una respuesta vacía');
+    }
+    
+    // Parsear el JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (e) {
+      throw new Error(`Error al parsear la respuesta: ${responseText}`);
+    }
     
     if (!response.ok) {
       throw new Error(data.message || 'Error al eliminar la foto');

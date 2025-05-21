@@ -9,6 +9,35 @@ import type { VForm } from 'vuetify/components'
 import type { CreateWorkoutDTO } from '@/types/Workout'
 import type { Exercise } from '@/types/Exercise'
 
+/**
+ * Construye una URL correcta para la API, evitando duplicación de '/api'
+ * @param path - Ruta de la API sin el prefijo '/api'
+ * @returns URL completa correcta
+ */
+function buildApiUrl(path: string): string {
+  const baseUrl = import.meta.env.VITE_API_URL || 'https://localhost:7087';
+  
+  // Si la URL base ya termina con '/api', no añadirlo de nuevo
+  if (baseUrl.endsWith('/api')) {
+    // Asegurarse de que path no comience con '/'
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    return `${baseUrl}/${cleanPath}`;
+  }
+  
+  // Si path ya comienza con '/api', usarlo directamente
+  if (path.startsWith('/api/')) {
+    return `${baseUrl}${path}`;
+  }
+  
+  // Si path comienza con '/', añadir '/api'
+  if (path.startsWith('/')) {
+    return `${baseUrl}/api${path}`;
+  }
+  
+  // En cualquier otro caso, añadir '/api/'
+  return `${baseUrl}/api/${path}`;
+}
+
 const router = useRouter()
 const workoutStore = useWorkoutStore()
 const exerciseStore = useExerciseStore()
@@ -232,8 +261,12 @@ const handleSubmit = async () => {
     
     formData.append('ejercicios', JSON.stringify(ejerciciosData))
     
-    // Usar el metodo directo de fetch en lugar del metodo del store
-    const response = await fetch(`${import.meta.env.VITE_API_URL}/api/Entrenamiento`, {
+    // Construir la URL correcta usando la función buildApiUrl
+    const url = buildApiUrl('Entrenamiento');
+    console.log('URL para crear entrenamiento:', url);
+    
+    // Usar el método directo de fetch con la URL correcta
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${authStore.token}`
