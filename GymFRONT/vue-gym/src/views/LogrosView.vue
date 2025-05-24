@@ -7,7 +7,7 @@ import { useRouter } from 'vue-router';
 import LogroPanel from '@/components/LogroPanel.vue';
 import LogroNotification from '@/components/LogroNotification.vue';
 import PageHeader from '@/components/PageHeader.vue';
-//import heroImage from '@/assets/images/logros.jpg'; // Imagen de fondo para la cabecera
+import heroImage from '@/assets/images/logros.jpg'; // Imagen de fondo para la cabecera
 
 const logrosStore = useLogrosStore();
 const authStore = useAuthStore();

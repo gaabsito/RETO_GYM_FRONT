@@ -7,8 +7,8 @@ import { storeToRefs } from 'pinia';
 import type { Medicion, MedicionCreateDTO } from '@/types/Medicion';
 import PageHeader from '@/components/PageHeader.vue';
 import SectionContainer from '@/components/SectionContainer.vue';
-//import progressImage from '@/assets/images/progress.jpg';
-// Import Chart.js
+import progressImage from '@/assets/images/progress.jpg';
+
 import Chart from 'chart.js/auto';
 
 // Stores
