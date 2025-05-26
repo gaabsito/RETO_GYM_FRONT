@@ -1,13 +1,27 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useWorkoutStore } from '@/stores/workouts'
 import { useAuthStore } from '@/stores/auth'
+import { useRolesStore } from '@/stores/roles'
+import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
+import WorkoutCard from '@/components/WorkoutCard.vue'
+import PageHeader from '@/components/PageHeader.vue'
+import CompletarRutinaModal from '@/components/CompletarRutinaModal.vue'
+import heroImage from '@/assets/images/ejercicios.jpg'
 
 const workoutStore = useWorkoutStore()
 const authStore = useAuthStore()
+const rolesStore = useRolesStore()
+const router = useRouter()
 const { workouts, loading, error } = storeToRefs(workoutStore)
 const initialized = ref(false)
+
+// Modal de completar rutina
+const showCompletarModal = ref(false)
+const selectedWorkoutForCompletion = ref<number | null>(null)
+const selectedWorkoutName = ref('')
+const selectedWorkoutDuration = ref<number | undefined>(undefined)
 
 // Filtros
 const searchQuery = ref('')
@@ -20,10 +34,18 @@ const difficulties = [
   'Difícil'
 ]
 
+// Verificar si el usuario está autenticado
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+
 onMounted(async () => {
   try {
     await workoutStore.fetchWorkouts()
     initialized.value = true
+    
+    // Cargar el rol del usuario si está autenticado
+    if (authStore.isAuthenticated) {
+      await rolesStore.getUserRole()
+    }
   } catch (err) {
     // El error ya se maneja en el store
   }
@@ -49,6 +71,33 @@ const filteredWorkouts = computed(() => {
   })
 })
 
+// Función para abrir modal de completar rutina
+const openCompletarModal = (workout) => {
+  if (!authStore.isAuthenticated) {
+    // Redirigir a login si no está autenticado
+    router.push(`/login?redirect=/workouts`)
+    return
+  }
+  
+  selectedWorkoutForCompletion.value = workout.entrenamientoID
+  selectedWorkoutName.value = workout.titulo
+  selectedWorkoutDuration.value = workout.duracionMinutos
+  showCompletarModal.value = true
+}
+
+// Manejar el evento de rutina completada
+const handleRutinaCompletada = async () => {
+  try {
+    // Actualizar el rol después de completar un entrenamiento
+    await rolesStore.getUserRole()
+    
+    // Opcional: Mostrar una notificación de éxito
+    // Aquí podrías implementar un sistema de notificaciones si lo deseas
+  } catch (error) {
+    console.error('Error al actualizar el rol después de completar rutina:', error)
+  }
+}
+
 // Limpiar filtros
 const clearFilters = () => {
   searchQuery.value = ''
@@ -60,29 +109,26 @@ const clearFilters = () => {
 <template>
   <v-container fluid>
     <!-- Hero Section -->
-    <v-row class="mb-8">
-      <v-col cols="12" class="d-flex flex-column flex-md-row justify-space-between align-center">
-        <div class="text-center text-md-left">
-          <h1 class="text-h3 mb-4">Entrenamientos</h1>
-          <p class="text-body-1">
-            Explora nuestra colección de entrenamientos para todos los niveles
-          </p>
-        </div>
-        
-        <!-- Botón para crear nuevo entrenamiento (solo para usuarios autenticados) -->
-        <div v-if="authStore.isAuthenticated" class="mt-4 mt-md-0">
-          <v-btn
-            color="primary"
-            size="large"
-            to="/crear-entrenamiento"
-            prepend-icon="mdi-plus"
-            class="boton-crear"
-          >
-            Crear Entrenamiento
-          </v-btn>
-        </div>
-      </v-col>
-    </v-row>
+    <PageHeader 
+      title="Entrenamientos"
+      subtitle="Explora nuestra colección de entrenamientos para todos los niveles"
+      :backgroundImage="heroImage"
+    >
+      <!-- Botón para crear nuevo entrenamiento (solo para usuarios autenticados) -->
+      <div v-if="isAuthenticated" class="mt-4">
+        <v-btn 
+          color="#2d3a4e"
+          size="x-large" 
+          to="/crear-entrenamiento"
+          class="create-workout-btn"
+          rounded="pill"
+          elevation="5"
+        >
+          <v-icon start size="20" class="mr-1">mdi-plus </v-icon>
+          <span>CREAR ENTRENAMIENTO</span>
+        </v-btn>
+      </div>
+    </PageHeader>
 
     <!-- Filtros -->
     <v-row class="filters-container">
@@ -201,6 +247,16 @@ const clearFilters = () => {
             </v-card-text>
 
             <v-card-actions>
+              <!-- Botón para marcar como completado (solo si está autenticado) -->
+              <v-btn
+                v-if="isAuthenticated"
+                variant="text"
+                color="success"
+                @click.stop="openCompletarModal(workout)"
+                prepend-icon="mdi-check-circle"
+              >
+                Completar
+              </v-btn>
               <v-spacer></v-spacer>
               <v-btn
                 variant="text"
@@ -244,6 +300,16 @@ const clearFilters = () => {
         </v-alert>
       </v-col>
     </v-row>
+    
+    <!-- Modal para marcar como completado -->
+    <CompletarRutinaModal
+      v-if="selectedWorkoutForCompletion"
+      v-model:show="showCompletarModal"
+      :entrenamientoID="selectedWorkoutForCompletion"
+      :entrenamientoNombre="selectedWorkoutName"
+      :duracionRecomendada="selectedWorkoutDuration"
+      @completada="handleRutinaCompletada"
+    />
   </v-container>
 </template>
 
@@ -307,6 +373,48 @@ const clearFilters = () => {
   .v-img {
     border-radius: $border-radius $border-radius 0 0;
     border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  }
+}
+
+/* Estilos específicos para el botón de crear entrenamiento */
+.create-workout-btn {
+  background-color: #2d3a4e !important;
+  font-family: $font-family-base;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-size: 0.875rem;
+  padding: 0 1.5rem !important;
+  height: 45px;
+  min-width: 230px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4) !important;
+  transition: all 0.3s ease;
+  
+  .v-icon {
+    opacity: 0.9;
+  }
+  
+  span {
+    margin-left: 0.25rem;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.45) !important;
+    background-color: #384964 !important;
+  }
+  
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25) !important;
+    background-color: #263044 !important;
+  }
+  
+  @media (max-width: 600px) {
+    width: 85%;
+    margin: 0.5rem auto;
+    font-size: 0.8rem;
   }
 }
 

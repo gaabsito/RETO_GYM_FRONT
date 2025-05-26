@@ -4,14 +4,13 @@ import { useWorkoutStore } from '@/stores/workouts'
 import type { Workout } from '@/types/Workout'
 import PageHeader from '@/components/PageHeader.vue'
 import SectionContainer from '@/components/SectionContainer.vue'
-import HoverCard from '@/components/HoverCard.vue'
 import WorkoutCard from '@/components/WorkoutCard.vue'
 import CallToAction from '@/components/CallToAction.vue'
 import SvgInter from '@/components/SvgInter.vue'
 import Carrusel from '@/components/Carrusel.vue'
 import CookieConsent from '@/components/CookieConsent.vue'
+import AchievementSection from '@/components/AchievementSection.vue'
 import heroImage from '@/assets/images/arnold.jpg'
-
 
 const workoutStore = useWorkoutStore()
 const featuredWorkouts = ref<Workout[]>([])
@@ -21,7 +20,8 @@ const loading = ref(true)
 onMounted(async () => {
   try {
     const workouts = await workoutStore.fetchWorkouts()
-    featuredWorkouts.value = workouts.slice(0, 6)
+    // Cambiamos de 6 a 4 entrenamientos destacados
+    featuredWorkouts.value = workouts.slice(0, 4)
   } catch (error) {
     console.error('Error cargando entrenamientos:', error)
   } finally {
@@ -33,7 +33,7 @@ onMounted(async () => {
 <template>
   <v-container fluid class="pa-0">
     <!-- Hero Section -->
-    <PageHeader 
+    <PageHeader
       title="TRANSFÓRMATE CON NOSOTROS"
       subtitle="Descubre entrenamientos personalizados y alcanza tus objetivos fitness"
       :backgroundImage="heroImage"
@@ -46,32 +46,60 @@ onMounted(async () => {
 
     <!-- Features Section -->
     <div class="feature-container">
-      <SvgInter icon="weight" title="ENTRENAMIENTOS PERSONALIZADOS"
-        text="Rutinas adaptadas a tu nivel y objetivos, diseñadas por expertos en fitness." />
-      <SvgInter icon="users" title="COMUNIDAD ACTIVA"
-        text="Únete a una comunidad de entusiastas del fitness y comparte tus experiencias." />
-      <SvgInter icon="chart" title="SEGUIMIENTO DE PROGRESO"
-        text="Monitorea tu evolución y mantén un registro detallado de tus logros." />
+      <SvgInter 
+        icon="weight" 
+        title="ENTRENAMIENTOS PERSONALIZADOS"
+        text="Rutinas adaptadas a tu nivel y objetivos, diseñadas por expertos en fitness." 
+      />
+      <SvgInter 
+        icon="users" 
+        title="COMUNIDAD ACTIVA"
+        text="Únete a una comunidad de entusiastas del fitness y comparte tus experiencias." 
+      />
+      <SvgInter 
+        icon="chart" 
+        title="SEGUIMIENTO DE PROGRESO"
+        text="Monitorea tu evolución y mantén un registro detallado de tus logros." 
+      />
     </div>
 
-   <!-- Featured Workouts -->
-<SectionContainer title="Entrenamientos Destacados" backgroundColor="#f8f8f8">
-  <template v-if="!loading">
-    <Carrusel v-if="$vuetify.display.xs" :workouts="featuredWorkouts" />
-    <v-row v-else justify="center">
-      <v-col v-for="workout in featuredWorkouts" :key="workout.entrenamientoID" cols="12" sm="6" md="4" lg="3">
-        <WorkoutCard :workout="workout" />
-      </v-col>
-    </v-row>
-  </template>
+    <!-- Featured Workouts -->
+    <SectionContainer title="Entrenamientos Destacados" backgroundColor="#f8f8f8">
+      <template v-if="!loading">
+        <Carrusel v-if="$vuetify.display.xs" :workouts="featuredWorkouts" />
+        <v-row v-else justify="center">
+          <v-col 
+            v-for="workout in featuredWorkouts" 
+            :key="workout.entrenamientoID" 
+            cols="12" sm="6" md="6" lg="3"
+          >
+            <WorkoutCard :workout="workout" />
+          </v-col>
+        </v-row>
+      </template>
+      <v-row v-else>
+        <v-col cols="12" class="text-center">
+          <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
+        </v-col>
+      </v-row>
+      
+      <!-- Botón para ver más entrenamientos -->
+      <div class="text-center mt-6">
+        <v-btn 
+          color="primary" 
+          size="large" 
+          to="/workouts" 
+          prepend-icon="mdi-dumbbell"
+        >
+          Ver todos los entrenamientos
+        </v-btn>
+      </div>
+    </SectionContainer>
 
-  <v-row v-else>
-    <v-col cols="12" class="text-center">
-      <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
-    </v-col>
-  </v-row>
-</SectionContainer>
-
+    <!-- Sistema de Logros Section -->
+    <SectionContainer backgroundColor="#f5f5f5">
+      <AchievementSection />
+    </SectionContainer>
 
     <!-- CTA Section -->
     <CallToAction
@@ -80,7 +108,7 @@ onMounted(async () => {
       buttonText="Empieza Gratis"
       buttonLink="/register"
     />
-    
+
     <!-- Cookie Consent Banner -->
     <CookieConsent :cookie-options="true" position="bottom" theme="dark" />
   </v-container>
@@ -88,6 +116,7 @@ onMounted(async () => {
 
 <style lang="scss">
 @import '@/assets/styles/main.scss';
+
 .feature-container {
   display: flex;
   justify-content: space-between;

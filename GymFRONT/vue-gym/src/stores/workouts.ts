@@ -1,53 +1,52 @@
+// src/stores/workouts.ts
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { useAuthStore } from './auth'
 import type { Workout, CreateWorkoutDTO, EntrenamientoEjercicio } from '@/types/Workout'
 import type { ApiResponse } from '@/types/ApiResponse'
-import { useAuthStore } from './auth'
 
+// IMPORTANTE: Asegúrate de que esta URL base sea correcta
+// Puede ser 'https://localhost:7087' (sin /api) 
+// O 'https://localhost:7087/api' (con /api)
 const API_URL = import.meta.env.VITE_API_URL || 'https://localhost:7087'
 
 export const useWorkoutStore = defineStore('workouts', () => {
     const workouts = ref<Workout[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
+    const authStore = useAuthStore()
 
     async function fetchWorkouts() {
-        loading.value = true;
-        error.value = null;
+        loading.value = true
+        error.value = null
         try {
-            const authStore = useAuthStore();
+            // No añadir "/api" - parece que ya está incluido en la URL base
+            const endpoint = authStore.isAuthenticated 
+                ? `${API_URL}/Entrenamiento` 
+                : `${API_URL}/Entrenamiento/public`
+            
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json'
-            };
+            }
 
-            // Siempre incluir el token de autenticación si está disponible
-            // para que el backend pueda identificar al usuario y filtrar correctamente
             if (authStore.token) {
-                headers['Authorization'] = `Bearer ${authStore.token}`;
+                headers['Authorization'] = `Bearer ${authStore.token}`
             }
 
-            const response = await fetch(`${API_URL}/Entrenamiento`, { headers });
-
-            // Verificar si la respuesta está vacía o no es JSON
-            const text = await response.text();
-            if (!text) {
-                throw new Error('La API devolvió una respuesta vacía');
-            }
-
-            const data: Workout[] = JSON.parse(text);
+            const response = await fetch(endpoint, { headers })
+            const data = await response.json()
 
             if (!response.ok) {
-                throw new Error('Error al cargar los entrenamientos');
+                throw new Error(data.message || 'Error cargando entrenamientos')
             }
 
-            workouts.value = data;
-            return data;
+            workouts.value = data
+            return workouts.value
         } catch (e) {
-            error.value = e instanceof Error ? e.message : 'Error desconocido';
-            workouts.value = [];
-            throw e;
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
         } finally {
-            loading.value = false;
+            loading.value = false
         }
     }
 
@@ -55,34 +54,21 @@ export const useWorkoutStore = defineStore('workouts', () => {
         loading.value = true
         error.value = null
         try {
-            const authStore = useAuthStore()
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json'
             }
 
-            // Importante incluir el token para acceder a entrenamientos privados
             if (authStore.token) {
                 headers['Authorization'] = `Bearer ${authStore.token}`
             }
 
-            // Corregimos la URL para que apunte al endpoint correcto
             const response = await fetch(`${API_URL}/Entrenamiento/${id}`, { headers })
-            
-            // Manejar errores de permisos (403 Forbidden)
-            if (response.status === 403) {
-                throw new Error('No tienes permiso para ver este entrenamiento')
-            }
-            
+            const data = await response.json()
+
             if (!response.ok) {
-                throw new Error('Error al cargar el entrenamiento')
+                throw new Error(data.message || 'Error cargando entrenamiento')
             }
 
-            const text = await response.text()
-            if (!text) {
-                throw new Error('La API devolvió una respuesta vacía')
-            }
-
-            const data = JSON.parse(text)
             return data
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Error desconocido'
@@ -92,215 +78,225 @@ export const useWorkoutStore = defineStore('workouts', () => {
         }
     }
 
-    async function createWorkout(workout: CreateWorkoutDTO) {
-        loading.value = true;
-        error.value = null;
+    async function getWorkoutExercises(id: number) {
+        loading.value = true
+        error.value = null
         try {
-            const authStore = useAuthStore();
-            if (!authStore.token) throw new Error('No autorizado');
-            
-            // 1. Extraer los ejercicios del DTO
-            const ejercicios = workout.ejercicios;
-            
-            // 2. Crear un nuevo DTO sin los ejercicios para el entrenamiento base
-            const workoutBase = {
-                titulo: workout.titulo,
-                descripcion: workout.descripcion,
-                duracionMinutos: workout.duracionMinutos,
-                dificultad: workout.dificultad,
-                imagenURL: workout.imagenURL,
-                publico: workout.publico,
-                autorID: authStore.user?.usuarioID
-            };
-    
-            console.log('Creando entrenamiento base:', workoutBase);
-            const response = await fetch(`${API_URL}/Entrenamiento`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authStore.token}`
-                },
-                body: JSON.stringify(workoutBase)
-            });
-    
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json'
+            }
+
+            if (authStore.token) {
+                headers['Authorization'] = `Bearer ${authStore.token}`
+            }
+
+            const response = await fetch(`${API_URL}/Entrenamiento/ejercicios/${id}`, { headers })
+            const data = await response.json()
+
             if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Error creando entrenamiento');
+                throw new Error(data.message || 'Error cargando ejercicios del entrenamiento')
             }
-    
-            const data = await response.json();
-            console.log('Entrenamiento creado - respuesta completa:', data);
-            
-            // 3. Como workaround, obtener el último entrenamiento creado por este usuario
-            console.log('Buscando el entrenamiento recién creado...');
-            
-            // Esperar un momento para asegurar que la BD ha procesado la inserción
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Obtener todos los entrenamientos y filtrar por usuario
-            const allWorkoutsResponse = await fetch(`${API_URL}/Entrenamiento`, {
-                headers: {
-                    'Authorization': `Bearer ${authStore.token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-            
-            if (!allWorkoutsResponse.ok) {
-                throw new Error('Error al recuperar entrenamientos');
-            }
-            
-            const allWorkouts = await allWorkoutsResponse.json();
-            console.log('Todos los entrenamientos:', allWorkouts);
-            
-            // Filtrar por usuario y ordenar por fecha de creación descendente
-            const userWorkouts = allWorkouts
-                .filter(w => w.autorID === authStore.user?.usuarioID)
-                .sort((a, b) => new Date(b.fechaCreacion).getTime() - new Date(a.fechaCreacion).getTime());
-            
-            console.log('Entrenamientos del usuario ordenados:', userWorkouts);
-            
-            // Obtener el entrenamiento más reciente que coincida con el título
-            const recentWorkout = userWorkouts.find(w => w.titulo === workout.titulo);
-            
-            if (!recentWorkout || !recentWorkout.entrenamientoID) {
-                throw new Error('No se pudo encontrar el ID del entrenamiento recién creado');
-            }
-            
-            const entrenamientoID = recentWorkout.entrenamientoID;
-            console.log(`Entrenamiento encontrado con ID: ${entrenamientoID}`);
-            
-            // 4. Asociar los ejercicios al entrenamiento
-            if (ejercicios && ejercicios.length > 0) {
-                console.log(`Asociando ${ejercicios.length} ejercicios al entrenamiento ID ${entrenamientoID}...`);
-                
-                // Asociar cada ejercicio al entrenamiento
-                for (const ejercicio of ejercicios) {
-                    console.log(`Asociando ejercicio ID ${ejercicio.ejercicioID} al entrenamiento ID ${entrenamientoID}`);
-                    
-                    const ejercicioData = {
-                        entrenamientoID: entrenamientoID,
-                        ejercicioID: ejercicio.ejercicioID,
-                        series: ejercicio.series,
-                        repeticiones: ejercicio.repeticiones,
-                        descansoSegundos: ejercicio.descansoSegundos,
-                        notas: ejercicio.notas || ""
-                    };
-                    
-                    const ejercicioResponse = await fetch(`${API_URL}/EntrenamientoEjercicio`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${authStore.token}`
-                        },
-                        body: JSON.stringify(ejercicioData)
-                    });
-                    
-                    if (!ejercicioResponse.ok) {
-                        console.error(`Error asociando ejercicio ID ${ejercicio.ejercicioID}:`, 
-                                      await ejercicioResponse.text());
-                    } else {
-                        console.log(`✅ Ejercicio ID ${ejercicio.ejercicioID} asociado correctamente`);
-                    }
-                }
-            }
-            
-            // 5. Actualizar la lista de entrenamientos
-            if (recentWorkout) {
-                workouts.value.push(recentWorkout);
-                return recentWorkout;
-            }
-            
-            return null;
+
+            return data.data || []
         } catch (e) {
-            console.error('Error en createWorkout:', e);
-            error.value = e instanceof Error ? e.message : 'Error desconocido';
-            throw e;
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
         } finally {
-            loading.value = false;
+            loading.value = false
         }
     }
 
-    async function getWorkoutExercises(workoutId: number) {
-        loading.value = true;
-        error.value = null;
+    async function createWorkout(workoutData: FormData) {
+        loading.value = true
+        error.value = null
         try {
-            const authStore = useAuthStore();
-            const headers: Record<string, string> = {
-                'Content-Type': 'application/json'
-            };
-
-            if (authStore.token) {
-                headers['Authorization'] = `Bearer ${authStore.token}`;
+            if (!authStore.token) {
+                throw new Error('No autorizado')
             }
 
-            console.log(`🟡 Solicitando ejercicios para el entrenamiento ID: ${workoutId}`);
+            const headers: Record<string, string> = {
+                'Authorization': `Bearer ${authStore.token}`
+            }
+            
+            // No añadir Content-Type porque FormData lo establece con el boundary correcto
 
-            const response = await fetch(`${API_URL}/EntrenamientoEjercicio/${workoutId}`, { headers });
+            const response = await fetch(`${API_URL}/Entrenamiento`, {
+                method: 'POST',
+                headers,
+                body: workoutData
+            })
+
+            const data = await response.json()
 
             if (!response.ok) {
-                throw new Error(`❌ Error al cargar ejercicios. Código: ${response.status}`);
+                throw new Error(data.message || 'Error al crear el entrenamiento')
             }
 
-            const text = await response.text();
-            if (!text) {
-                console.warn("⚠️ La API devolvió una respuesta vacía.");
-                return [];
-            }
-
-            const data: ApiResponse<EntrenamientoEjercicio[]> = JSON.parse(text);
-            console.log("🟢 Respuesta de la API:", data);
-
-            const exercises = data.data ?? data; // Si data.data no existe, usa data directamente
-            console.log("🟢 Ejercicios procesados:", exercises);
-
-            if (!exercises || exercises.length === 0) {
-                console.warn("⚠️ No se encontraron ejercicios para este entrenamiento.");
-                return [];
-            }
-
-            return exercises;
+            // Refrescar la lista de entrenamientos
+            await fetchWorkouts()
+            
+            return data
         } catch (e) {
-            console.error("🔴 Error en getWorkoutExercises:", e);
-            error.value = e instanceof Error ? e.message : 'Error desconocido';
-            throw e;
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
         } finally {
-            loading.value = false;
+            loading.value = false
+        }
+    }
+
+    async function updateWorkout(id: number, workoutData: Partial<Workout>) {
+        loading.value = true
+        error.value = null
+        try {
+            if (!authStore.token) {
+                throw new Error('No autorizado')
+            }
+
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authStore.token}`
+            }
+
+            const response = await fetch(`${API_URL}/Entrenamiento/${id}`, {
+                method: 'PUT',
+                headers,
+                body: JSON.stringify(workoutData)
+            })
+
+            const data = await response.json()
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Error al actualizar el entrenamiento')
+            }
+
+            // Actualizar el workout en el array local
+            const index = workouts.value.findIndex(w => w.entrenamientoID === id)
+            if (index !== -1) {
+                workouts.value[index] = { ...workouts.value[index], ...workoutData }
+            }
+
+            return data
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
         }
     }
 
     async function deleteWorkout(id: number) {
-        loading.value = true;
-        error.value = null;
+        loading.value = true
+        error.value = null
         try {
-            const authStore = useAuthStore();
-            if (!authStore.token) throw new Error('No autorizado');
-            
+            if (!authStore.token) {
+                throw new Error('No autorizado')
+            }
+
+            const headers: Record<string, string> = {
+                'Authorization': `Bearer ${authStore.token}`
+            }
+
             const response = await fetch(`${API_URL}/Entrenamiento/${id}`, {
                 method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authStore.token}`
-                }
-            });
-            
-            if (response.status === 403) {
-                throw new Error('No tienes permiso para eliminar este entrenamiento');
-            }
-            
+                headers
+            })
+
             if (!response.ok) {
-                const errorData = await response.text();
-                throw new Error(errorData || 'Error eliminando entrenamiento');
+                const errorData = await response.json()
+                throw new Error(errorData.message || 'Error al eliminar el entrenamiento')
             }
-            
-            // Remove the workout from the local state
-            workouts.value = workouts.value.filter(w => w.entrenamientoID !== id);
-            return true;
+
+            // Eliminar el workout del array local
+            workouts.value = workouts.value.filter(w => w.entrenamientoID !== id)
+
+            return true
         } catch (e) {
-            console.error('Error en deleteWorkout:', e);
-            error.value = e instanceof Error ? e.message : 'Error desconocido';
-            throw e;
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
         } finally {
-            loading.value = false;
+            loading.value = false
+        }
+    }
+
+    // Debug: Mostrar la URL base
+    console.log('API_URL usado en workouts store:', API_URL);
+
+    async function addExerciseToWorkout(workoutId: number, exerciseId: number, details: {
+        series: number;
+        repeticiones: number;
+        descansoSegundos: number;
+        notas?: string;
+    }) {
+        loading.value = true
+        error.value = null
+        try {
+            if (!authStore.token) {
+                throw new Error('No autorizado')
+            }
+
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authStore.token}`
+            }
+
+            const data = {
+                entrenamientoID: workoutId,
+                ejercicioID: exerciseId,
+                series: details.series,
+                repeticiones: details.repeticiones,
+                descansoSegundos: details.descansoSegundos,
+                notas: details.notas || ''
+            }
+
+            const response = await fetch(`${API_URL}/EntrenamientoEjercicio`, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(data)
+            })
+
+            const responseData = await response.json()
+
+            if (!response.ok) {
+                throw new Error(responseData.message || 'Error al añadir ejercicio al entrenamiento')
+            }
+
+            return responseData
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
+        }
+    }
+
+    async function removeExerciseFromWorkout(workoutId: number, exerciseId: number) {
+        loading.value = true
+        error.value = null
+        try {
+            if (!authStore.token) {
+                throw new Error('No autorizado')
+            }
+
+            const headers: Record<string, string> = {
+                'Authorization': `Bearer ${authStore.token}`
+            }
+
+            const response = await fetch(`${API_URL}/EntrenamientoEjercicio/${workoutId}/${exerciseId}`, {
+                method: 'DELETE',
+                headers
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.message || 'Error al eliminar el ejercicio del entrenamiento')
+            }
+
+            return true
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Error desconocido'
+            throw e
+        } finally {
+            loading.value = false
         }
     }
 
@@ -310,8 +306,11 @@ export const useWorkoutStore = defineStore('workouts', () => {
         error,
         fetchWorkouts,
         getWorkoutById,
-        createWorkout,
         getWorkoutExercises,
-        deleteWorkout
+        createWorkout,
+        updateWorkout,
+        deleteWorkout,
+        addExerciseToWorkout,
+        removeExerciseFromWorkout
     }
 })

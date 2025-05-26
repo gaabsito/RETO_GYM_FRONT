@@ -9,17 +9,54 @@ import type { VForm } from 'vuetify/components'
 import type { CreateWorkoutDTO } from '@/types/Workout'
 import type { Exercise } from '@/types/Exercise'
 
+/**
+ * Construye una URL correcta para la API, evitando duplicación de '/api'
+ * @param path - Ruta de la API sin el prefijo '/api'
+ * @returns URL completa correcta
+ */
+function buildApiUrl(path: string): string {
+  const baseUrl = import.meta.env.VITE_API_URL || 'https://localhost:7087';
+  
+  // Si la URL base ya termina con '/api', no añadirlo de nuevo
+  if (baseUrl.endsWith('/api')) {
+    // Asegurarse de que path no comience con '/'
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    return `${baseUrl}/${cleanPath}`;
+  }
+  
+  // Si path ya comienza con '/api', usarlo directamente
+  if (path.startsWith('/api/')) {
+    return `${baseUrl}${path}`;
+  }
+  
+  // Si path comienza con '/', añadir '/api'
+  if (path.startsWith('/')) {
+    return `${baseUrl}/api${path}`;
+  }
+  
+  // En cualquier otro caso, añadir '/api/'
+  return `${baseUrl}/api/${path}`;
+}
+
 const router = useRouter()
 const workoutStore = useWorkoutStore()
 const exerciseStore = useExerciseStore()
 const authStore = useAuthStore()
 
 const formRef = ref<VForm | null>(null)
+const fileInput = ref<HTMLInputElement | null>(null)
 const loading = ref(false)
 const error = ref('')
 const success = ref(false)
 const exercises = ref<Exercise[]>([])
 const selectedExercises = ref<number[]>([])
+const isDragging = ref(false)
+
+// Variables para la imagen
+const workoutImageFile = ref<File | null>(null)
+const workoutImagePreview = ref<string | null>(null)
+const imageLoading = ref(false)
+const imageError = ref('')
 
 // Formulario del entrenamiento
 const form = ref({
@@ -27,7 +64,6 @@ const form = ref({
   descripcion: '',
   duracionMinutos: 30,
   dificultad: 'Media',
-  imagenURL: '',
   publico: true
 })
 
@@ -70,7 +106,10 @@ const rules = {
   ],
   notas: [
     (v: string) => v.length <= 100 || 'Las notas no pueden superar los 100 caracteres'
-  ]
+  ],
+  // Reglas para la imagen
+  imageSize: (v: File) => !v || v.size <= 5 * 1024 * 1024 || 'La imagen no debe exceder 5MB',
+  imageType: (v: File) => !v || ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(v.type) || 'Formato no soportado. Use JPG, PNG, GIF o WEBP'
 }
 
 // Cargar ejercicios disponibles
@@ -90,6 +129,73 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+// Método para activar el input de archivo
+const triggerFileInput = () => {
+  if (fileInput.value) {
+    fileInput.value.click()
+  }
+}
+
+// Método para manejar archivos soltados
+const handleFileDrop = (event: DragEvent) => {
+  isDragging.value = false
+  if (event.dataTransfer && event.dataTransfer.files.length) {
+    const file = event.dataTransfer.files[0]
+    if (file && file.type.startsWith('image/')) {
+      handleImageUpload(file)
+    }
+  }
+}
+
+// Método para manejar cambios en el input
+const handleImageChange = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  if (input.files && input.files[0]) {
+    handleImageUpload(input.files[0])
+  }
+}
+
+// Método para eliminar la imagen
+const removeImage = () => {
+  workoutImageFile.value = null
+  workoutImagePreview.value = null
+  if (fileInput.value) {
+    fileInput.value.value = ''
+  }
+}
+
+// Manejar la carga de imagen
+const handleImageUpload = (file: File | null) => {
+  workoutImageFile.value = file
+  
+  if (file) {
+    // Validar el archivo
+    if (file.size > 5 * 1024 * 1024) {
+      imageError.value = 'La imagen no debe exceder 5MB'
+      workoutImageFile.value = null
+      return
+    }
+    
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      imageError.value = 'Formato no soportado. Use JPG, PNG, GIF o WEBP'
+      workoutImageFile.value = null
+      return
+    }
+    
+    // Crear preview de la imagen
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      workoutImagePreview.value = e.target?.result as string
+    }
+    reader.readAsDataURL(file)
+    
+    imageError.value = ''
+  } else {
+    workoutImagePreview.value = null
+  }
+}
 
 // Añadir ejercicio seleccionado a la lista
 const addExercise = (ejercicioID: number) => {
@@ -166,30 +272,64 @@ const handleSubmit = async () => {
     loading.value = true
     error.value = ''
     
-    // Preparar el DTO para crear el entrenamiento
-    const workoutDTO: CreateWorkoutDTO = {
-      titulo: form.value.titulo,
-      descripcion: form.value.descripcion,
-      duracionMinutos: form.value.duracionMinutos,
-      dificultad: form.value.dificultad as 'Fácil' | 'Media' | 'Difícil',
-      imagenURL: form.value.imagenURL || undefined,
-      publico: form.value.publico,
-      ejercicios: selectedExercises.value.map(ejercicioID => ({
-        ejercicioID,
-        series: exerciseDetails.value[ejercicioID].series,
-        repeticiones: exerciseDetails.value[ejercicioID].repeticiones,
-        descansoSegundos: exerciseDetails.value[ejercicioID].descansoSegundos,
-        notas: exerciseDetails.value[ejercicioID].notas || undefined
-      }))
+    // Crear FormData para enviar datos e imagen
+    const formData = new FormData()
+    
+    // Agregar datos del entrenamiento
+    formData.append('titulo', form.value.titulo)
+    formData.append('descripcion', form.value.descripcion || '')
+    formData.append('duracionMinutos', form.value.duracionMinutos.toString())
+    formData.append('dificultad', form.value.dificultad)
+    formData.append('publico', form.value.publico.toString())
+    
+    // Agregar imagen si existe
+    if (workoutImageFile.value) {
+      formData.append('imagen', workoutImageFile.value)
     }
     
-    await workoutStore.createWorkout(workoutDTO)
-    success.value = true
+    // Agregar ejercicios como JSON string en un campo de FormData
+    const ejerciciosData = selectedExercises.value.map(ejercicioID => ({
+      ejercicioID,
+      series: exerciseDetails.value[ejercicioID].series,
+      repeticiones: exerciseDetails.value[ejercicioID].repeticiones,
+      descansoSegundos: exerciseDetails.value[ejercicioID].descansoSegundos,
+      notas: exerciseDetails.value[ejercicioID].notas || undefined
+    }))
     
-    // Redirigir a "Mis Entrenamientos" después de unos segundos
-    setTimeout(() => {
-      router.push('/mis-entrenamientos')
-    }, 2000)
+    formData.append('ejercicios', JSON.stringify(ejerciciosData))
+    
+    // Construir la URL correcta usando la función buildApiUrl
+    const url = buildApiUrl('Entrenamiento');
+    console.log('URL para crear entrenamiento:', url);
+    
+    // Usar el método directo de fetch con la URL correcta
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authStore.token}`
+      },
+      body: formData
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.message || 'Error al crear entrenamiento')
+    }
+    
+    const data = await response.json()
+    
+    if (data.success) {
+      // Actualizar la tienda después de crear
+      await workoutStore.fetchWorkouts()
+      success.value = true
+      
+      // Redirigir a "Mis Entrenamientos" después de unos segundos
+      setTimeout(() => {
+        router.push('/mis-entrenamientos')
+      }, 2000)
+    } else {
+      throw new Error(data.message || 'Error al crear entrenamiento')
+    }
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Error al crear el entrenamiento'
   } finally {
@@ -262,16 +402,6 @@ const handleSubmit = async () => {
               </v-col>
 
               <v-col cols="12">
-                <v-text-field
-                  v-model="form.imagenURL"
-                  label="URL de imagen (opcional)"
-                  variant="outlined"
-                  hint="Ingresa la URL de una imagen representativa"
-                  persistent-hint
-                ></v-text-field>
-              </v-col>
-
-              <v-col cols="12">
                 <v-switch
                   v-model="form.publico"
                   color="primary"
@@ -279,6 +409,92 @@ const handleSubmit = async () => {
                   hint="Los entrenamientos públicos pueden ser vistos por todos los usuarios"
                   persistent-hint
                 ></v-switch>
+              </v-col>
+            </v-row>
+          </v-card-text>
+        </v-card>
+
+        <!-- Sección para subir imagen - Diseño mejorado -->
+        <v-card class="mb-6 workout-card">
+          <v-card-title class="workout-title d-flex align-center">
+            <v-icon class="mr-2">mdi-image</v-icon>
+            Imagen del Entrenamiento
+          </v-card-title>
+          <v-card-text>
+            <v-row>
+              <v-col cols="12">
+                <div class="image-upload-container"
+                    :class="{'has-image': workoutImagePreview}"
+                    @click="triggerFileInput"
+                    @dragover.prevent="isDragging = true"
+                    @dragleave.prevent="isDragging = false"
+                    @drop.prevent="handleFileDrop">
+                  
+                  <!-- Previsualización de imagen -->
+                  <v-img v-if="workoutImagePreview"
+                        :src="workoutImagePreview"
+                        height="250"
+                        cover
+                        class="workout-preview">
+                    <template v-slot:placeholder>
+                      <v-row class="fill-height ma-0" align="center" justify="center">
+                        <v-progress-circular indeterminate color="primary"></v-progress-circular>
+                      </v-row>
+                    </template>
+                    
+                    <!-- Overlay para cambiar la imagen -->
+                    <div class="image-overlay d-flex flex-column align-center justify-center">
+                      <v-btn icon="mdi-camera" variant="text" color="white" size="large"></v-btn>
+                      <span class="text-white mt-2">Cambiar imagen</span>
+                    </div>
+                  </v-img>
+                  
+                  <!-- Placeholder para estado sin imagen -->
+                  <div v-else class="empty-image-placeholder" :class="{'is-dragging': isDragging}">
+                    <v-icon size="64" color="grey-darken-1">mdi-image-plus</v-icon>
+                    <div class="upload-text mt-4">
+                      <span class="text-h6">Selecciona una imagen</span>
+                      <span class="text-body-2 d-block mt-2">o arrastra y suelta aquí</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Input oculto -->
+                  <input
+                    type="file"
+                    ref="fileInput"
+                    accept="image/*"
+                    class="hidden-input"
+                    @change="handleImageChange"
+                  >
+                </div>
+                
+                <!-- Mensaje de error -->
+                <div v-if="imageError" class="error-message mt-2 text-error text-caption">
+                  <v-icon size="small" start color="error">mdi-alert-circle</v-icon>
+                  {{ imageError }}
+                </div>
+                
+                <!-- Formato soportado e información de tamaño -->
+                <div class="image-info mt-3 d-flex align-center">
+                  <v-icon size="small" color="grey">mdi-information-outline</v-icon>
+                  <span class="text-caption ml-2 text-grey">
+                    Formatos soportados: JPG, PNG, GIF, WEBP. Tamaño máximo: 5MB
+                  </span>
+                </div>
+                
+                <!-- Botón para eliminar la imagen -->
+                <div v-if="workoutImagePreview" class="d-flex justify-end mt-3">
+                  <v-btn
+                    color="error"
+                    variant="text"
+                    density="comfortable"
+                    prepend-icon="mdi-delete"
+                    @click.stop="removeImage"
+                    size="small"
+                  >
+                    Eliminar imagen
+                  </v-btn>
+                </div>
               </v-col>
             </v-row>
           </v-card-text>
@@ -523,11 +739,100 @@ const handleSubmit = async () => {
   padding: 16px;
 }
 
+/* Estilos para la sección de carga de imágenes */
+.image-upload-container {
+  position: relative;
+  width: 100%;
+  border-radius: $border-radius;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 5px rgba(0, 0, 0, 0.05);
+  border: 2px dashed rgba(0, 0, 0, 0.1);
+  
+  &:hover {
+    border-color: $primary-color;
+    
+    .empty-image-placeholder {
+      background-color: rgba(226, 84, 1, 0.05);
+    }
+    
+    .image-overlay {
+      opacity: 1;
+    }
+  }
+  
+  &.has-image {
+    border: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.empty-image-placeholder {
+  width: 100%;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: #f9f9f9;
+  color: #616161;
+  transition: all 0.3s ease;
+  
+  &.is-dragging {
+    background-color: rgba(226, 84, 1, 0.1);
+    border-color: $primary-color;
+  }
+  
+  .upload-text {
+    text-align: center;
+  }
+}
+
+.workout-preview {
+  width: 100%;
+  height: 250px;
+  object-fit: cover;
+}
+
+.image-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.hidden-input {
+  display: none;
+}
+
+.image-info {
+  color: #757575;
+}
+
 // Responsive adjustments
 @media (max-width: 600px) {
   .workout-title {
     font-size: 1.1rem;
     padding: 12px 16px;
+  }
+  
+  .empty-image-placeholder,
+  .workout-preview {
+    height: 200px;
+  }
+  
+  .upload-text {
+    .text-h6 {
+      font-size: 1rem !important;
+    }
   }
 }
 </style>

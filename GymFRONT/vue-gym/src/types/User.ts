@@ -1,3 +1,4 @@
+// Actualización de src/types/User.ts
 export interface User {
     usuarioID: number;
     nombre: string;
@@ -5,6 +6,7 @@ export interface User {
     email: string;
     fechaRegistro: Date;
     estaActivo: boolean;
+    fotoPerfilURL?: string | null; // Nuevo campo para URL de la foto de perfil
 }
 
 export interface LoginCredentials {
@@ -29,4 +31,5 @@ export interface UsuarioDTO {
     email: string;
     fechaRegistro: Date;
     estaActivo: boolean;
+    fotoPerfilURL?: string | null; // Nuevo campo para URL de la foto de perfil
 }

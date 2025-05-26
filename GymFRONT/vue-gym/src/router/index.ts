@@ -15,6 +15,9 @@ import CreateWorkoutView from '@/views/CreateWorkoutView.vue'
 import MisEntrenamientosView from '@/views/MisEntrenamientosView.vue'
 import ContactView from '@/views/ContactView.vue'
 import TermsView from '@/views/TermsUseView.vue'
+import MedicionesView from '@/views/MedicionView.vue'
+import LogrosView from '@/views/LogrosView.vue'
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -96,6 +99,18 @@ const router = createRouter({
       path: '/terms',
       name: 'terms',
       component: TermsView,
+    },
+    {
+      path: '/mediciones',
+      name: 'mediciones',
+      component: MedicionesView,
+      meta: { requiresAuth: true },
+    },
+     {
+      path: '/logros',
+      name: 'logros',
+      component: LogrosView,
+      meta: { requiresAuth: true },
     },
   ],
 })
