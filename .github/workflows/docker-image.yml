@@ -31,7 +31,7 @@ jobs:
       id: docker_meta
       uses: docker/metadata-action@v5
       with:
-        images: santospardos/docker-frontend-car
+        images: gaabsito/tfg:gymweb
         flavor: |
           latest=false
         tags: |
