@@ -6,7 +6,10 @@ WORKDIR /app
 COPY GymFRONT/vue-gym/package*.json ./
 
 # Instalar dependencias
-RUN npm ci
+RUN npm install
+
+# Instalar chart.js específicamente (necesario para MedicionView.vue)
+RUN npm install chart.js
 
 # Copiar los archivos del proyecto
 COPY GymFRONT/vue-gym/ .
@@ -23,14 +26,15 @@ WORKDIR /usr/share/nginx/html
 COPY --from=build /app/dist .
 
 # Crear un archivo de configuración para permitir el enrutamiento de Vue Router en Nginx
-RUN echo 'server { \
-    listen 80; \
-    server_name _; \
-    root /usr/share/nginx/html; \
-    index index.html; \
-    location / { \
-        try_files $uri $uri/ /index.html; \
-    } \
+RUN echo -e 'server {\n\
+    listen 80;\n\
+    server_name _;\n\
+    root /usr/share/nginx/html;\n\
+    index index.html;\n\
+    \n\
+    location / {\n\
+        try_files $uri $uri/ /index.html;\n\
+    }\n\
 }' > /etc/nginx/conf.d/default.conf
 
 # Exponer puerto 80
