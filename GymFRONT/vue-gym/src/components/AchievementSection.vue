@@ -51,7 +51,7 @@ const achievements = [
       </v-col>
     </v-row>
     
-    <v-row justify="center">
+    <v-row justify="center" class="gy-3">
       <v-col v-for="(achievement, index) in achievements" :key="index" cols="12" sm="6" md="4" lg="3" xl="auto">
         <v-card class="achievement-card h-100" :class="{ 'elite-card': achievement.title === 'ÉLITE' }">
           <div class="achievement-icon-container" :class="{ 'elite-icon': achievement.title === 'ÉLITE' }">
@@ -82,7 +82,8 @@ const achievements = [
       <v-col cols="12" class="text-center mt-6">
         <v-btn size="large" color="primary" to="/register" class="register-btn">
           <v-icon start>mdi-trophy-award</v-icon>
-          Regístrate y comienza a subir de nivel
+          <span class="d-none d-sm-inline">Regístrate y comienza a subir de nivel</span>
+          <span class="d-sm-none">Regístrate y sube de nivel</span>
         </v-btn>
       </v-col>
     </v-row>
@@ -126,7 +127,7 @@ const achievements = [
   padding: 1.5rem 1rem;
   border-radius: $border-radius;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
   
   &:hover {
     transform: translateY(-5px);
@@ -211,7 +212,7 @@ const achievements = [
 // Responsive adjustments
 @media (max-width: 600px) {
   .achievement-card {
-    margin-bottom: 1rem;
+    margin-bottom: 1.25rem;
   }
   
   .achievement-icon-container {
@@ -229,6 +230,10 @@ const achievements = [
 
   .achievement-section-subtitle {
     font-size: 1rem;
+  }
+  
+  .register-btn {
+    font-size: 0.9rem !important;
   }
 }
 </style>

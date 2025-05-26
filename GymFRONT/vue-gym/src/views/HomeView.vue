@@ -90,8 +90,10 @@ onMounted(async () => {
           size="large" 
           to="/workouts" 
           prepend-icon="mdi-dumbbell"
+          class="workout-btn"
         >
-          Ver todos los entrenamientos
+          <span class="d-none d-sm-inline">Ver todos los entrenamientos</span>
+          <span class="d-sm-none">Ver entrenamientos</span>
         </v-btn>
       </div>
     </SectionContainer>
@@ -132,6 +134,11 @@ h2 {
 @media (max-width: 600px) {
   .v-container {
     padding: 0.5rem !important;
+  }
+  
+  .workout-btn,
+  .achievement-btn {
+    font-size: 0.9rem !important;
   }
 }
 

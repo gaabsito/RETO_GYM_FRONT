@@ -14,15 +14,14 @@
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
+    "echarts": "^5.4.3",
     "i": "^0.3.7",
     "pinia": "^2.3.1",
     "sass-embedded": "^1.83.4",
-    "vue": "^3.5.13",
+    "vue": "^3.5.15",
+    "vue-echarts": "^6.6.2",
     "vue-router": "^4.5.0",
-    "vuetify": "^3.7.11",
-    "echarts": "^5.4.3",
-    "vue-echarts": "^6.6.2"
-  
+    "vuetify": "^3.7.11"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.0",
