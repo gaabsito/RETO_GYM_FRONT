@@ -82,13 +82,16 @@ const clearFilters = () => {
       :backgroundImage="heroImage"
     >
       <v-btn 
-        color="primary" 
+        color="#2d3a4e"
         size="x-large" 
         to="/crear-entrenamiento" 
         prepend-icon="mdi-plus"
-        class="mt-4"
+        class="mt-4 create-workout-button"
+        rounded="pill"
+        elevation="5"
+        min-width="200"
       >
-        Crear Nuevo Entrenamiento
+        <span class="button-text">CREAR NUEVO ENTRENAMIENTO</span>
       </v-btn>
     </PageHeader>
 
@@ -158,12 +161,16 @@ const clearFilters = () => {
           </v-alert>
           <div class="text-center mt-6">
             <v-btn 
-              color="primary" 
+              color="#2d3a4e"
               size="large" 
               to="/crear-entrenamiento" 
               prepend-icon="mdi-plus"
+              class="create-workout-button-secondary"
+              rounded="pill"
+              elevation="3"
+              min-width="180"
             >
-              Crear Entrenamiento
+              <span class="button-text">CREAR ENTRENAMIENTO</span>
             </v-btn>
           </div>
         </v-col>
@@ -268,6 +275,91 @@ const clearFilters = () => {
 
   &:hover {
     transform: translateY(-1px);
+  }
+}
+
+// Estilo para el botón principal "Crear Nuevo Entrenamiento"
+.create-workout-button {
+  background-color: #2d3a4e !important;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 0.75rem 2rem !important;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+  
+  .v-icon {
+    font-size: 1.2rem;
+    margin-right: 0.5rem;
+  }
+  
+  .button-text {
+    font-family: $font-family-base;
+    font-size: 0.95rem;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4) !important;
+    background-color: #37465e !important;
+  }
+  
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+    background-color: #263044 !important;
+  }
+  
+  @media (max-width: 600px) {
+    min-width: 220px;
+    margin: 1rem auto !important;
+    
+    .button-text {
+      font-size: 0.8rem;
+    }
+  }
+}
+
+// Estilo para el botón secundario (cuando no hay entrenamientos)
+.create-workout-button-secondary {
+  background-color: #2d3a4e !important;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 0.75rem 1.5rem !important;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+  
+  .v-icon {
+    font-size: 1.1rem;
+    margin-right: 0.5rem;
+  }
+  
+  .button-text {
+    font-family: $font-family-base;
+    font-size: 0.9rem;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.4) !important;
+    background-color: #37465e !important;
+  }
+  
+  &:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2) !important;
+    background-color: #263044 !important;
+  }
+  
+  @media (max-width: 600px) {
+    min-width: 180px;
+    
+    .button-text {
+      font-size: 0.8rem;
+    }
   }
 }
 
