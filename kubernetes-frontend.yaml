@@ -25,7 +25,7 @@ data:
       }
     }
   env.js: |
-    window.VUE_APP_API_URL = 'http://a6613a189230d48f4aa6c08d7d8b30f9-1014676064.us-east-1.elb.amazonaws.com/api';
+    window.VUE_APP_API_URL = 'http://a45b23d9254bc407a9819a594f047ee2-769566641.us-east-1.elb.amazonaws.com/api';
     window.VUE_APP_GOOGLE_CLIENT_ID = '1088462991637-hqvnr9hmlqpv6lfin0sga0o1h5k4kv21.apps.googleusercontent.com';
 ---
 apiVersion: apps/v1
