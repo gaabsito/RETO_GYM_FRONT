@@ -347,10 +347,10 @@ watch([() => form.value.email, () => form.value.password], clearError)
   backdrop-filter: blur(10px);
   border: 1px solid rgba(0, 0, 0, 0.1);
 
-  /* CAMBIO: Título sin degradado, con fondo simple */
+  /* CAMBIO: Título con fondo naranja sólido */
   .login-title {
-    background: #f5f5f5; /* Fondo gris claro sólido */
-    color: #333333; /* Texto oscuro */
+    background: #ff6b35; /* Color naranja sólido */
+    color: white; /* Texto blanco */
     position: relative;
     
     /* Eliminar el ::after que creaba la línea de degradado */
