@@ -9,12 +9,10 @@ data:
         server_name _;
         root /usr/share/nginx/html;
         index index.html;
-        
         # Configuración para Vue Router (modo history)
         location / {
             try_files $uri $uri/ /index.html;
         }
-        
         # Configuración para proxy inverso a la API backend
         location /api/ {
             proxy_pass https://entrenateapi.retocsv.es/api/;
@@ -52,6 +50,14 @@ spec:
           imagePullPolicy: Always
           ports:
             - containerPort: 80
+          # AGREGAR ESTAS VARIABLES DE ENTORNO AQUÍ:
+          env:
+            - name: VUE_APP_API_URL
+              value: "/api"
+            - name: API_URL
+              value: "/api"
+            - name: VITE_API_URL
+              value: "/api"
           resources:
             limits:
               cpu: "500m"
