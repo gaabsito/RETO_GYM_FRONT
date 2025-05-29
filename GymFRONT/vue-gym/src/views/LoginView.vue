@@ -12,6 +12,9 @@
               {{ error }}
             </v-alert>
 
+            <!-- Info sobre cuenta de admin -->
+            
+
             <v-form ref="formRef" @submit.prevent="handleSubmit">
               <v-text-field 
                 class="login-form" 
@@ -79,25 +82,7 @@
               <span class="px-3">o</span>
             </v-divider>
 
-            <!-- BOTÓN DE GOOGLE CORREGIDO -->
-            <div class="d-flex justify-center mb-4">
-              <v-btn
-                @click="handleGoogleSignIn"
-                variant="outlined"
-                size="large"
-                block
-                :disabled="loading || googleLoading"
-                :loading="googleLoading"
-                prepend-icon="mdi-google"
-              >
-                <template v-if="googleLoading">
-                  Conectando con Google...
-                </template>
-                <template v-else>
-                  Continuar con Google
-                </template>
-              </v-btn>
-            </div>
+            <div id="googleBtn" class="d-flex justify-center mb-4"></div>
 
           </v-card-text>
 
@@ -141,6 +126,7 @@ const router = useRouter()
 const route = useRoute()
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+let googleAuth = null
 
 // Estado del componente
 const form = ref({
@@ -151,17 +137,14 @@ const form = ref({
 const formRef = ref<VForm | null>(null)
 const rememberMe = ref(false)
 const loading = ref(false)
-const googleLoading = ref(false) // NUEVO: loading específico para Google
 const error = ref('')
 const showPassword = ref(false)
+const showAdminInfo = ref(true)
 
 // Snackbar
 const showSnackbar = ref(false)
 const snackbarMessage = ref('')
 const snackbarColor = ref('success')
-
-// Variable para almacenar la instancia de Google
-let googleInitialized = false
 
 // Computed para el texto del botón de login
 const loginButtonText = computed(() => {
@@ -183,97 +166,40 @@ const rules = {
   ]
 }
 
-// NUEVA FUNCIÓN: Inicializar Google correctamente
-const initializeGoogle = async () => {
-  if (googleInitialized || !googleClientId) return
-
-  try {
-    // Cargar el script de Google si no está cargado
-    if (!window.google) {
-      await loadGoogleScript()
-    }
-
-    // Inicializar Google Identity Services
-    window.google.accounts.id.initialize({
-      client_id: googleClientId,
-      callback: handleCredentialResponse,
-      auto_select: false,
-      cancel_on_tap_outside: false
-    })
-
-    googleInitialized = true
-    console.log('Google Identity Services inicializado correctamente')
-  } catch (error) {
-    console.error('Error inicializando Google:', error)
-    showNotification('Error al cargar Google Sign-In', 'error')
+// Inicialización de Google
+onMounted(() => {
+  // Si ya está autenticado, redirigir
+  if (authStore.isAuthenticated) {
+    redirectUser()
+    return
   }
-}
 
-// NUEVA FUNCIÓN: Cargar script de Google
-const loadGoogleScript = (): Promise<void> => {
-  return new Promise((resolve, reject) => {
+  // Cargar la API de Google
+  const script = document.createElement('script')
+  script.src = 'https://accounts.google.com/gsi/client'
+  script.async = true
+  script.defer = true
+  document.head.appendChild(script)
+
+  script.onload = () => {
     if (window.google) {
-      resolve()
-      return
+      window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        callback: handleGoogleLogin
+      })
+      window.google.accounts.id.renderButton(
+        document.getElementById('googleBtn'),
+        { theme: 'outline', size: 'large', width: '100%' }
+      )
     }
-
-    const script = document.createElement('script')
-    script.src = 'https://accounts.google.com/gsi/client'
-    script.async = true
-    script.defer = true
-    
-    script.onload = () => resolve()
-    script.onerror = () => reject(new Error('Failed to load Google script'))
-    
-    document.head.appendChild(script)
-  })
-}
-
-// NUEVA FUNCIÓN: Manejar click en botón de Google
-const handleGoogleSignIn = async () => {
-  try {
-    googleLoading.value = true
-    error.value = ''
-
-    if (!googleInitialized) {
-      await initializeGoogle()
-    }
-
-    if (!window.google) {
-      throw new Error('Google SDK no está disponible')
-    }
-
-    // Usar el método prompt() que es más confiable
-    window.google.accounts.id.prompt((notification: any) => {
-      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-        console.log('Google prompt no se mostró, intentando con método alternativo...')
-        // Si el prompt no se muestra, intentar con disableAutoSelect
-        window.google.accounts.id.disableAutoSelect()
-        window.google.accounts.id.prompt()
-      }
-    })
-
-  } catch (err) {
-    console.error('Error al iniciar Google Sign-In:', err)
-    error.value = 'Error al conectar con Google. Intenta nuevamente.'
-    showNotification('Error al conectar con Google', 'error')
-  } finally {
-    googleLoading.value = false
   }
-}
+})
 
-// FUNCIÓN CORREGIDA: Manejar respuesta de credenciales
-const handleCredentialResponse = async (response: any) => {
+// Manejar login con Google
+const handleGoogleLogin = async (response: any) => {
   try {
     loading.value = true
-    googleLoading.value = true
     error.value = ''
-
-    console.log('Respuesta de Google recibida')
-
-    if (!response.credential) {
-      throw new Error('No se recibió credencial de Google')
-    }
 
     const result = await authStore.googleLogin(response.credential)
     
@@ -295,28 +221,14 @@ const handleCredentialResponse = async (response: any) => {
     }, 1500)
 
   } catch (err) {
-    console.error('Error en handleCredentialResponse:', err)
     error.value = err instanceof Error ? err.message : 'Error al iniciar sesión con Google'
     showNotification('Error al iniciar sesión con Google', 'error')
   } finally {
     loading.value = false
-    googleLoading.value = false
   }
 }
 
-// Inicialización
-onMounted(async () => {
-  // Si ya está autenticado, redirigir
-  if (authStore.isAuthenticated) {
-    redirectUser()
-    return
-  }
-
-  // Inicializar Google
-  await initializeGoogle()
-})
-
-// Manejar submit del formulario (sin cambios)
+// Manejar submit del formulario
 const handleSubmit = async () => {
   if (!formRef.value) return
 
@@ -327,23 +239,27 @@ const handleSubmit = async () => {
     loading.value = true
     error.value = ''
 
+    // Intentar login
     const result = await authStore.login({
       email: form.value.email,
       password: form.value.password,
       remember: rememberMe.value
     })
 
+    // Mostrar mensaje de bienvenida
     const welcomeMessage = result.isAdmin 
       ? '¡Bienvenido Administrador! Redirigiendo al panel de control...'
       : '¡Bienvenido! Iniciando sesión...'
 
     showNotification(welcomeMessage, 'success')
 
+    // Pequeña pausa para mostrar el mensaje antes de redirigir
     setTimeout(() => {
       redirectUser(result.isAdmin)
     }, 1500)
 
   } catch (err: any) {
+    // Manejar errores específicos
     if (err.message === "Email o contraseña incorrectos") {
       error.value = "Email o contraseña incorrectos"
     } else if (err.message === "La cuenta está desactivada") {
@@ -365,8 +281,10 @@ const redirectUser = (isAdmin?: boolean) => {
   const userIsAdmin = isAdmin !== undefined ? isAdmin : authStore.isAdmin
   
   if (userIsAdmin) {
+    // REDIRIGIR A PANEL DE ADMIN
     router.push('/admin')
   } else {
+    // Redirigir a la página solicitada o al perfil
     const redirectTo = route.query.redirect as string || '/profile'
     router.push(redirectTo)
   }
@@ -420,7 +338,7 @@ watch([() => form.value.email, () => form.value.password], clearError)
   min-height: calc(100vh - var(--v-layout-top)) !important;
   display: flex;
   align-items: center;
-  background: #ffffff;
+  background: #ffffff; /* Fondo blanco sólido */
 }
 
 .login-card {
@@ -429,11 +347,13 @@ watch([() => form.value.email, () => form.value.password], clearError)
   backdrop-filter: blur(10px);
   border: 1px solid rgba(0, 0, 0, 0.1);
 
+  /* CAMBIO: Título sin degradado, con fondo simple */
   .login-title {
-    background: #ff6b35;
-    color: white;
+    background: #f5f5f5; /* Fondo gris claro sólido */
+    color: #333333; /* Texto oscuro */
     position: relative;
     
+    /* Eliminar el ::after que creaba la línea de degradado */
     &::after {
       display: none;
     }
@@ -497,11 +417,21 @@ a {
   font-family: $font-family-text;
 }
 
+// Animaciones para los elementos del formulario
 .login-form {
   transition: all 0.3s ease;
   
   &:hover {
     transform: translateY(-1px);
+  }
+}
+
+// Estilos para el botón de Google
+#googleBtn {
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2px);
   }
 }
 
@@ -536,6 +466,7 @@ a {
   }
 }
 
+// Animación de carga
 @keyframes pulse {
   0% {
     opacity: 1;
