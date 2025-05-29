@@ -40,6 +40,17 @@
                       :showBorder="true"
                       class="user-avatar-header"
                     />
+                    <!-- Badge de Admin -->
+                    <v-chip 
+                      v-if="authStore.isAdmin" 
+                      color="warning" 
+                      size="x-small" 
+                      variant="elevated"
+                      class="admin-badge"
+                    >
+                      <v-icon start size="x-small">mdi-shield-crown</v-icon>
+                      ADMIN
+                    </v-chip>
                   </div>
                 </template>
                 
@@ -58,6 +69,10 @@
                     </template>
                     <v-list-item-title class="text-subtitle-1 font-weight-medium ml-3">
                       {{ authStore.user?.nombre }} {{ authStore.user?.apellido }}
+                      <v-chip v-if="authStore.isAdmin" color="primary" size="small" class="ml-2">
+                        <v-icon start size="small">mdi-shield-crown</v-icon>
+                        Admin
+                      </v-chip>
                     </v-list-item-title>
                     <v-list-item-subtitle class="text-caption ml-3">
                       {{ authStore.user?.email }}
@@ -66,12 +81,42 @@
                   
                   <v-divider></v-divider>
                   
+                  <!-- Sección de Admin (si es administrador) -->
+                  <template v-if="authStore.isAdmin">
+                    <v-list-subheader class="text-uppercase text-primary font-weight-bold">
+                      <v-icon start size="small">mdi-shield-crown</v-icon>
+                      Administración
+                    </v-list-subheader>
+                    
+                    <v-list-item to="/admin" prepend-icon="mdi-view-dashboard">
+                      <v-list-item-title>Panel de Control</v-list-item-title>
+                    </v-list-item>
+
+                    <v-list-item to="/admin/usuarios" prepend-icon="mdi-account-group">
+                      <v-list-item-title>Gestionar Usuarios</v-list-item-title>
+                    </v-list-item>
+
+                    <v-list-item to="/admin/entrenamientos" prepend-icon="mdi-dumbbell">
+                      <v-list-item-title>Gestionar Entrenamientos</v-list-item-title>
+                    </v-list-item>
+
+                    <v-list-item to="/admin/ejercicios" prepend-icon="mdi-arm-flex">
+                      <v-list-item-title>Gestionar Ejercicios</v-list-item-title>
+                    </v-list-item>
+                    
+                    <v-divider></v-divider>
+                  </template>
+                  
                   <v-list-item to="/profile" prepend-icon="mdi-account">
                     <v-list-item-title>Mi Perfil</v-list-item-title>
                   </v-list-item>
 
                   <v-list-item to="/mis-entrenamientos" prepend-icon="mdi-notebook">
                     <v-list-item-title>Mis Entrenamientos</v-list-item-title>
+                  </v-list-item>
+
+                  <v-list-item to="/mediciones" prepend-icon="mdi-tape-measure">
+                    <v-list-item-title>Mis Mediciones</v-list-item-title>
                   </v-list-item>
 
                   <!-- Nueva opción para Logros -->
@@ -131,8 +176,29 @@
               </div>
             </template>
             <v-list-item-title class="ml-2">{{ authStore.user.nombre }}</v-list-item-title>
-            <v-list-item-subtitle class="text-caption ml-2">{{ authStore.user.email }}</v-list-item-subtitle>
+            <v-list-item-subtitle class="text-caption ml-2">
+              {{ authStore.user.email }}
+              <v-chip v-if="authStore.isAdmin" color="primary" size="x-small" class="ml-1">
+                Admin
+              </v-chip>
+            </v-list-item-subtitle>
           </v-list-item>
+          
+          <!-- Sección de Admin en el drawer -->
+          <template v-if="authStore.isAdmin">
+            <v-divider class="my-2"></v-divider>
+            <v-list-subheader class="text-uppercase text-primary font-weight-bold px-4">
+              <v-icon start size="small">mdi-shield-crown</v-icon>
+              Administración
+            </v-list-subheader>
+            
+            <v-list-item to="/admin" prepend-icon="mdi-view-dashboard" title="Panel Admin" @click="closeDrawer" class="admin-menu-item"></v-list-item>
+            <v-list-item to="/admin/usuarios" prepend-icon="mdi-account-group" title="Usuarios" @click="closeDrawer" class="admin-menu-item"></v-list-item>
+            <v-list-item to="/admin/entrenamientos" prepend-icon="mdi-dumbbell" title="Entrenamientos" @click="closeDrawer" class="admin-menu-item"></v-list-item>
+            <v-list-item to="/admin/ejercicios" prepend-icon="mdi-arm-flex" title="Ejercicios" @click="closeDrawer" class="admin-menu-item"></v-list-item>
+            
+            <v-divider class="my-2"></v-divider>
+          </template>
           
           <!-- Iteramos sobre authMenuItems -->
           <v-list-item v-for="item in authMenuItems" :key="item.title"
@@ -203,13 +269,17 @@ const menuItems = [
   { title: 'Contacto', icon: 'mdi-email', route: '/contact' }
 ]
 
-// Items del menú disponibles solo para usuarios autenticados
-const authMenuItems = [
-  { title: 'Mi Perfil', icon: 'mdi-account', route: '/profile' },
-  { title: 'Mis Entrenamientos', icon: 'mdi-notebook', route: '/mis-entrenamientos' },
-  { title: 'Mis Mediciones', icon: 'mdi-tape-measure', route: '/mediciones' },
-  { title: 'Mis Logros', icon: 'mdi-trophy', route: '/logros' }, // Nuevo ítem para logros
-]
+// Items de menú disponibles solo para usuarios autenticados
+const authMenuItems = computed(() => {
+  const baseItems = [
+    { title: 'Mi Perfil', icon: 'mdi-account', route: '/profile' },
+    { title: 'Mis Entrenamientos', icon: 'mdi-notebook', route: '/mis-entrenamientos' },
+    { title: 'Mis Mediciones', icon: 'mdi-tape-measure', route: '/mediciones' },
+    { title: 'Mis Logros', icon: 'mdi-trophy', route: '/logros' },
+  ]
+  
+  return baseItems
+})
 
 // Método para cerrar drawer
 const closeDrawer = () => {
@@ -278,6 +348,19 @@ const toggleDrawer = () => {
   align-items: center;
   height: 100%;
   padding-bottom: 3px; /* Pequeño ajuste para compensar la diferencia visual */
+  position: relative;
+}
+
+/* Badge de Admin en el header */
+.admin-badge {
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  z-index: 10;
+  font-weight: bold;
+  font-size: 10px !important;
+  height: 20px !important;
+  min-width: 50px !important;
 }
 
 /* Button styles */
@@ -322,6 +405,16 @@ const toggleDrawer = () => {
 .user-drawer-info {
   padding: 16px;
   background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* Estilos para items de admin en el drawer */
+.admin-menu-item {
+  background-color: rgba(25, 118, 210, 0.1);
+  border-left: 3px solid $primary-color;
+  
+  &:hover {
+    background-color: rgba(25, 118, 210, 0.2);
+  }
 }
 
 .logo-container {
@@ -401,6 +494,14 @@ const toggleDrawer = () => {
     align-items: center;
     height: 100%;
     padding-bottom: 3px;
+  }
+  
+  .admin-badge {
+    font-size: 9px !important;
+    height: 18px !important;
+    min-width: 45px !important;
+    top: -6px;
+    right: -8px;
   }
   
   .drawer-title {
