@@ -14,14 +14,42 @@ const emit = defineEmits(['update:show', 'completada'])
 
 const rutinasCompletadasStore = useRutinasCompletadasStore()
 
-// Obtener la fecha actual en formato YYYY-MM-DD
-const today = new Date()
-const formattedToday = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`
+// Función para obtener el lunes de una semana específica
+const getMondayOfWeek = (date: Date): Date => {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Ajustar para que lunes sea el primer día
+  return new Date(d.setDate(diff))
+}
 
-// Calcular fecha una semana más adelante para permitir planificación
-const nextWeek = new Date(today)
-nextWeek.setDate(today.getDate() + 7)
-const formattedNextWeek = `${nextWeek.getFullYear()}-${(nextWeek.getMonth() + 1).toString().padStart(2, '0')}-${nextWeek.getDate().toString().padStart(2, '0')}`
+// Función para obtener el domingo de una semana específica
+const getSundayOfWeek = (date: Date): Date => {
+  const monday = getMondayOfWeek(date)
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  return sunday
+}
+
+// Calcular fechas permitidas: desde el lunes de la semana anterior hasta el domingo de la semana siguiente
+const today = new Date()
+const currentMonday = getMondayOfWeek(today)
+
+// Lunes de la semana anterior
+const previousWeekMonday = new Date(currentMonday)
+previousWeekMonday.setDate(currentMonday.getDate() - 7)
+
+// Domingo de la semana siguiente
+const nextWeekSunday = new Date(currentMonday)
+nextWeekSunday.setDate(currentMonday.getDate() + 13) // +6 para llegar al domingo actual, +7 para la siguiente semana
+
+// Formatear fechas para el input
+const formatDateForInput = (date: Date): string => {
+  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
+}
+
+const minDate = formatDateForInput(previousWeekMonday)
+const maxDate = formatDateForInput(nextWeekSunday)
+const formattedToday = formatDateForInput(today)
 
 // Fecha directamente como string en formato YYYY-MM-DD
 const fechaSeleccionada = ref(formattedToday)
@@ -51,28 +79,26 @@ watch(() => props.show, (newVal) => {
   }
 })
 
-// Verificar si la fecha seleccionada es inválida (permitimos fechas futuras hasta una semana adelante)
+// Verificar si la fecha seleccionada es válida
 const fechaInvalida = computed(() => {
-  // Intentar convertir la fecha a un objeto Date
   try {
     const selectedDate = new Date(fechaSeleccionada.value)
-    const todayDate = new Date()
-    const maxFutureDate = new Date(todayDate)
-    maxFutureDate.setDate(todayDate.getDate() + 7) // Permitir hasta 7 días en el futuro
+    const minDateObj = new Date(minDate)
+    const maxDateObj = new Date(maxDate)
     
     // Resetear las horas para comparar solo las fechas
     selectedDate.setHours(0, 0, 0, 0)
-    todayDate.setHours(0, 0, 0, 0)
-    maxFutureDate.setHours(0, 0, 0, 0)
+    minDateObj.setHours(0, 0, 0, 0)
+    maxDateObj.setHours(0, 0, 0, 0)
     
     // Verificar si es una fecha válida
     if (isNaN(selectedDate.getTime())) {
       return 'Fecha inválida'
     }
     
-    // Verificar si la fecha está más de una semana en el futuro
-    if (selectedDate > maxFutureDate) {
-      return 'No puedes planificar entrenamientos más allá de una semana'
+    // Verificar si la fecha está fuera del rango permitido
+    if (selectedDate < minDateObj || selectedDate > maxDateObj) {
+      return 'Solo puedes seleccionar fechas de la semana anterior, actual o siguiente'
     }
     
     return null
@@ -81,10 +107,40 @@ const fechaInvalida = computed(() => {
   }
 })
 
+// Función para obtener el nombre del día de la semana
+const getDayName = (dateString: string): string => {
+  try {
+    const date = new Date(dateString + 'T12:00:00')
+    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+    return days[date.getDay()]
+  } catch {
+    return ''
+  }
+}
+
+// Función para determinar qué semana es
+const getWeekDescription = (dateString: string): string => {
+  try {
+    const selectedDate = new Date(dateString + 'T12:00:00')
+    const selectedMonday = getMondayOfWeek(selectedDate)
+    const todayMonday = getMondayOfWeek(today)
+    
+    const diffDays = Math.round((selectedMonday.getTime() - todayMonday.getTime()) / (1000 * 60 * 60 * 24))
+    
+    if (diffDays === 0) return 'Esta semana'
+    if (diffDays === -7) return 'Semana anterior'
+    if (diffDays === 7) return 'Semana siguiente'
+    
+    return ''
+  } catch {
+    return ''
+  }
+}
+
 // Cada vez que se abre el modal, restablecer los valores
 const resetForm = () => {
   const today = new Date()
-  fechaSeleccionada.value = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`
+  fechaSeleccionada.value = formatDateForInput(today)
   
   form.value = {
     entrenamientoID: props.entrenamientoID,
@@ -268,7 +324,7 @@ onMounted(() => {
 
           <v-row dense>
             <v-col cols="12">
-              <div class="text-subtitle-2 mb-2">¿Qué día planeas completar este entrenamiento?</div>
+              <div class="text-subtitle-2 mb-2">¿Qué día completaste/completarás este entrenamiento?</div>
               
               <!-- Input de fecha con enfoque directo -->
               <div class="date-input-container">
@@ -277,11 +333,21 @@ onMounted(() => {
                   type="date" 
                   v-model="fechaSeleccionada"
                   class="date-native-input"
-                  :min="formattedToday"
-                  :max="formattedNextWeek"
+                  :min="minDate"
+                  :max="maxDate"
                   @input="handleDateInput"
                 />
-                <div class="text-caption mt-1">Puedes seleccionar cualquier fecha hasta una semana en el futuro</div>
+                
+                <!-- Información adicional sobre la fecha seleccionada -->
+                <div v-if="fechaSeleccionada && !fechaInvalida" class="date-info mt-2">
+                  <div class="text-caption">
+                    <strong>{{ getDayName(fechaSeleccionada) }}</strong> - {{ getWeekDescription(fechaSeleccionada) }}
+                  </div>
+                </div>
+                
+                <div class="text-caption mt-1">
+                  Puedes seleccionar fechas de la semana anterior, actual o siguiente (lunes a domingo)
+                </div>
                 
                 <v-alert 
                   v-if="fechaInvalida" 
@@ -434,6 +500,13 @@ onMounted(() => {
     outline: none;
     box-shadow: 0 0 0 2px rgba($primary-color, 0.25);
   }
+}
+
+.date-info {
+  background-color: rgba(226, 84, 1, 0.1);
+  padding: 8px 12px;
+  border-radius: $border-radius;
+  border-left: 4px solid $primary-color;
 }
 
 :deep(.v-field) {

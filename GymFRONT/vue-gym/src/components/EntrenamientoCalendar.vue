@@ -17,15 +17,33 @@ const rolesStore = useRolesStore();
 const loading = ref(false);
 const error = ref('');
 const rutinasCompletadas = ref<RutinaCompletada[]>([]);
-const currentMonth = ref(props.month || new Date().getMonth() + 1);
-const currentYear = ref(props.year || new Date().getFullYear());
+const currentWeekOffset = ref(0); // 0 = semana actual, -1 = anterior, +1 = siguiente
 const diasUnicosEntrenados = ref(0);
 
-// Nombres de los meses
-const monthNames = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
-];
+// Función para obtener el lunes de una semana específica
+const getMondayOfWeek = (date: Date): Date => {
+  const d = new Date(date)
+  const day = d.getDay()
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1) // Ajustar para que lunes sea el primer día
+  return new Date(d.setDate(diff))
+}
+
+// Función para obtener el domingo de una semana específica
+const getSundayOfWeek = (date: Date): Date => {
+  const monday = getMondayOfWeek(date)
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  return sunday
+}
+
+// Obtener la fecha de inicio de la semana a mostrar
+const getWeekStartDate = (): Date => {
+  const today = new Date()
+  const currentMonday = getMondayOfWeek(today)
+  const weekStart = new Date(currentMonday)
+  weekStart.setDate(currentMonday.getDate() + (currentWeekOffset.value * 7))
+  return weekStart
+}
 
 // Nombres de los días de la semana
 const weekDays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -35,10 +53,6 @@ const loadData = async () => {
   try {
     loading.value = true;
     error.value = '';
-    
-    // Obtener el número de la semana actual
-    const today = new Date();
-    const weekNumber = getWeekNumber(today);
     
     // Cargar todas las rutinas completadas
     await rutinasCompletadasStore.fetchRutinasCompletadas();
@@ -50,187 +64,158 @@ const loadData = async () => {
       diasUnicosEntrenados.value = rolesStore.currentRole?.diasEntrenadosSemanales || 0;
     }
   } catch (e) {
-    error.value = e instanceof Error ? e.message : 'Error al cargar datos de entrenos';
+    error.value = e instanceof Error ? e.message : 'Error al cargar datos de entrenamientos';
   } finally {
     loading.value = false;
   }
 };
 
-// Función para obtener el número de semana del año
-const getWeekNumber = (date: Date) => {
-  const target = new Date(date.valueOf());
-  const dayNr = (date.getDay() + 6) % 7;
-  target.setDate(target.getDate() - dayNr + 3);
-  const firstThursday = target.valueOf();
-  target.setMonth(0, 1);
-  if (target.getDay() !== 4) {
-    target.setMonth(0, 1 + ((4 - target.getDay()) + 7) % 7);
-  }
-  return 1 + Math.ceil((firstThursday - target.valueOf()) / 604800000);
+// Cambiar a la semana anterior
+const previousWeek = () => {
+  currentWeekOffset.value -= 1;
 };
 
-// Cambiar al mes anterior
-const previousMonth = () => {
-  if (currentMonth.value === 1) {
-    currentMonth.value = 12;
-    currentYear.value--;
-  } else {
-    currentMonth.value--;
-  }
+// Cambiar a la semana siguiente
+const nextWeek = () => {
+  currentWeekOffset.value += 1;
 };
 
-// Cambiar al mes siguiente
-const nextMonth = () => {
-  if (currentMonth.value === 12) {
-    currentMonth.value = 1;
-    currentYear.value++;
-  } else {
-    currentMonth.value++;
-  }
+// Volver a la semana actual
+const goToCurrentWeek = () => {
+  currentWeekOffset.value = 0;
 };
 
-// Volver al mes actual
-const goToCurrentMonth = () => {
-  const today = new Date();
-  currentMonth.value = today.getMonth() + 1;
-  currentYear.value = today.getFullYear();
-};
-
-// Generar los días del calendario para el mes actual
-const calendarDays = computed(() => {
-  // Crear una fecha para el primer día del mes
-  const firstDay = new Date(currentYear.value, currentMonth.value - 1, 1);
+// Generar los días de la semana actual (lunes a domingo)
+const weekDates = computed(() => {
+  const weekStart = getWeekStartDate();
+  const dates = [];
   
-  // Obtener el día de la semana del primer día (0: domingo, 1: lunes, ..., 6: sábado)
-  // Necesitamos ajustar para que lunes sea 0
-  let firstDayOfWeek = firstDay.getDay() - 1;
-  if (firstDayOfWeek === -1) firstDayOfWeek = 6; // Si es domingo (0), lo convertimos a 6
-  
-  // Calcular el último día del mes
-  const lastDay = new Date(currentYear.value, currentMonth.value, 0);
-  const totalDays = lastDay.getDate();
-  
-  // Días del mes anterior
-  const prevMonthDays = [];
-  if (firstDayOfWeek > 0) {
-    const prevMonthLastDay = new Date(currentYear.value, currentMonth.value - 1, 0).getDate();
-    for (let i = 0; i < firstDayOfWeek; i++) {
-      prevMonthDays.push({
-        day: prevMonthLastDay - firstDayOfWeek + i + 1,
-        current: false,
-        trained: false,
-        isCurrentWeek: false,
-        isToday: false
-      });
-    }
+  for (let i = 0; i < 7; i++) {
+    const date = new Date(weekStart);
+    date.setDate(weekStart.getDate() + i);
+    dates.push(date);
   }
   
-  // Crear conjunto de fechas entrenadas en formato 'YYYY-MM-DD'
-  const trainedDatesSet = new Set(
+  return dates;
+});
+
+// Crear conjunto de fechas entrenadas en formato 'YYYY-MM-DD'
+const trainedDatesSet = computed(() => {
+  return new Set(
     rutinasCompletadas.value
       .map(rutina => {
         const date = new Date(rutina.fechaCompletada);
         return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
       })
   );
+});
 
-  // Obtener la semana actual
+// Información de los días de la semana con datos de entrenamiento
+const weekDaysInfo = computed(() => {
   const today = new Date();
-  const currentWeek = getWeekNumber(today);
+  today.setHours(0, 0, 0, 0);
   
-  // Días del mes actual con información de entrenamientos
-  const currentMonthDays = [];
-  for (let i = 1; i <= totalDays; i++) {
-    const currentDate = new Date(currentYear.value, currentMonth.value - 1, i);
-    const dateStr = `${currentYear.value}-${currentMonth.value.toString().padStart(2, '0')}-${i.toString().padStart(2, '0')}`;
-    const isTrained = trainedDatesSet.has(dateStr);
-    const isThisWeek = getWeekNumber(currentDate) === currentWeek && 
-                       currentDate.getFullYear() === today.getFullYear();
+  return weekDates.value.map((date, index) => {
+    const dateStr = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+    const isTrained = trainedDatesSet.value.has(dateStr);
     
-    currentMonthDays.push({
-      day: i,
-      current: true,
-      trained: isTrained,
-      isCurrentWeek: isThisWeek,
-      isToday: isToday(i)
-    });
-  }
-  
-  // Días del mes siguiente
-  const nextMonthDays = [];
-  const totalCells = Math.ceil((firstDayOfWeek + totalDays) / 7) * 7;
-  const remainingCells = totalCells - (prevMonthDays.length + currentMonthDays.length);
-  
-  for (let i = 1; i <= remainingCells; i++) {
-    nextMonthDays.push({
-      day: i,
-      current: false,
-      trained: false,
-      isCurrentWeek: false,
-      isToday: false
-    });
-  }
-  
-  // Combinar todos los días
-  return [...prevMonthDays, ...currentMonthDays, ...nextMonthDays];
+    // Determinar si es hoy
+    const isToday = date.getTime() === today.getTime();
+    
+    // Determinar si está en el futuro
+    const isFuture = date.getTime() > today.getTime();
+    
+    return {
+      date,
+      dayName: weekDays[index],
+      dayNumber: date.getDate(),
+      dateStr,
+      isTrained,
+      isToday,
+      isFuture,
+      monthName: date.toLocaleDateString('es-ES', { month: 'short' })
+    };
+  });
 });
 
-// Verificar si un día es hoy
-const isToday = (day: number) => {
-  const today = new Date();
-  return day === today.getDate() && 
-         currentMonth.value === today.getMonth() + 1 && 
-         currentYear.value === today.getFullYear();
-};
-
-// Agrupar los días en semanas
-const calendarWeeks = computed(() => {
-  const weeks = [];
-  const days = [...calendarDays.value];
-  
-  while (days.length) {
-    weeks.push(days.splice(0, 7));
-  }
-  
-  return weeks;
-});
-
-// Calcular estadísticas del mes actual
-const monthStats = computed(() => {
-  const trainedDays = calendarDays.value.filter(day => day.current && day.trained).length;
-  const totalDays = calendarDays.value.filter(day => day.current).length;
-  const percentage = totalDays > 0 ? Math.round((trainedDays / totalDays) * 100) : 0;
-  
-  return {
-    trainedDays,
-    totalDays,
-    percentage
-  };
-});
-
-// Calcular el progreso de la semana actual
+// Calcular el progreso de la semana actual (solo si estamos viendo la semana actual)
 const weeklyProgressPercentage = computed(() => {
-  // La semana tiene 7 días, por lo que cada día representa aproximadamente un 14.29% del progreso
+  if (currentWeekOffset.value !== 0) {
+    // Si no estamos en la semana actual, calcular el progreso basado en los entrenamientos de esa semana
+    const weekStart = getWeekStartDate();
+    const weekEnd = getSundayOfWeek(weekStart);
+    
+    let trainedDaysInWeek = 0;
+    weekDaysInfo.value.forEach(dayInfo => {
+      if (dayInfo.isTrained) {
+        trainedDaysInWeek++;
+      }
+    });
+    
+    return Math.min(100, (trainedDaysInWeek / 7) * 100);
+  }
+  
+  // Para la semana actual, usar los días únicos entrenados del rol
   return Math.min(100, (diasUnicosEntrenados.value / 7) * 100);
 });
 
 // Calcular color del progreso basado en la cantidad de días
 const progressColor = computed(() => {
-  if (diasUnicosEntrenados.value <= 2) return 'success'; // Verde para principiante/constante
-  if (diasUnicosEntrenados.value <= 4) return 'info';    // Azul para comprometido/dedicado
-  if (diasUnicosEntrenados.value <= 6) return 'warning'; // Naranja para disciplinado/atleta
-  return 'error';                                        // Rojo para élite
+  const daysCount = currentWeekOffset.value === 0 
+    ? diasUnicosEntrenados.value 
+    : weekDaysInfo.value.filter(day => day.isTrained).length;
+    
+  if (daysCount <= 2) return 'success'; // Verde para principiante/constante
+  if (daysCount <= 4) return 'info';    // Azul para comprometido/dedicado
+  if (daysCount <= 6) return 'warning'; // Naranja para disciplinado/atleta
+  return 'error';                       // Rojo para élite
 });
 
-// Formato para representar el mes y año actual
-const currentMonthYear = computed(() => {
-  return `${monthNames[currentMonth.value - 1]} ${currentYear.value}`;
+// Formato para mostrar el rango de la semana
+const weekRange = computed(() => {
+  const weekStart = getWeekStartDate();
+  const weekEnd = getSundayOfWeek(weekStart);
+  
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString('es-ES', { 
+      day: 'numeric', 
+      month: 'short' 
+    });
+  };
+  
+  const startFormatted = formatDate(weekStart);
+  const endFormatted = formatDate(weekEnd);
+  
+  // Si es la misma semana del año, mostrar el año
+  const year = weekStart.getFullYear();
+  const currentYear = new Date().getFullYear();
+  const yearSuffix = year !== currentYear ? ` ${year}` : '';
+  
+  return `${startFormatted} - ${endFormatted}${yearSuffix}`;
 });
 
-// Verificar si estamos visualizando el mes actual
-const isCurrentMonth = computed(() => {
-  const today = new Date();
-  return currentMonth.value === today.getMonth() + 1 && currentYear.value === today.getFullYear();
+// Descripción de la semana actual
+const weekDescription = computed(() => {
+  if (currentWeekOffset.value === 0) return 'Esta semana';
+  if (currentWeekOffset.value === -1) return 'Semana anterior';
+  if (currentWeekOffset.value === 1) return 'Semana siguiente';
+  if (currentWeekOffset.value < -1) return `${Math.abs(currentWeekOffset.value)} semanas atrás`;
+  return `En ${currentWeekOffset.value} semanas`;
+});
+
+// Verificar si estamos visualizando la semana actual
+const isCurrentWeek = computed(() => currentWeekOffset.value === 0);
+
+// Estadísticas de la semana
+const weekStats = computed(() => {
+  const trainedDays = weekDaysInfo.value.filter(day => day.isTrained).length;
+  const percentage = Math.round((trainedDays / 7) * 100);
+  
+  return {
+    trainedDays,
+    totalDays: 7,
+    percentage
+  };
 });
 
 // Cargar datos al montar el componente
@@ -238,9 +223,10 @@ onMounted(() => {
   loadData();
 });
 
-// Observar cambios en el mes o año para actualizar el calendario
-watch([() => currentMonth.value, () => currentYear.value], () => {
-  // Si se necesita recargar datos específicos del mes, activar aquí
+// Observar cambios en currentWeekOffset para recargar datos si es necesario
+watch(() => currentWeekOffset.value, () => {
+  // Aquí podrías cargar datos específicos de la semana si fuera necesario
+  // Por ahora, los datos se filtran en computed properties
 });
 </script>
 
@@ -261,8 +247,12 @@ watch([() => currentMonth.value, () => currentYear.value], () => {
       <!-- Barra de progreso semanal (opcional) -->
       <div v-if="props.showWeekProgress" class="weekly-progress mb-4">
         <div class="d-flex justify-space-between align-center mb-1">
-          <div class="text-body-2 font-weight-medium">Progreso semanal</div>
-          <div class="text-caption">{{ diasUnicosEntrenados }}/7 días</div>
+          <div class="text-body-2 font-weight-medium">
+            {{ isCurrentWeek ? 'Progreso semanal' : 'Entrenamientos de la semana' }}
+          </div>
+          <div class="text-caption">
+            {{ isCurrentWeek ? diasUnicosEntrenados : weekStats.trainedDays }}/7 días
+          </div>
         </div>
         
         <v-progress-linear
@@ -275,84 +265,110 @@ watch([() => currentMonth.value, () => currentYear.value], () => {
         ></v-progress-linear>
         
         <div class="text-caption mt-1 text-center">
-          {{ diasUnicosEntrenados < 7 
-            ? `${7 - diasUnicosEntrenados} días más para completar la semana` 
-            : '¡Semana completa!' }}
+          <span v-if="isCurrentWeek">
+            {{ diasUnicosEntrenados < 7 
+              ? `${7 - diasUnicosEntrenados} días más para completar la semana` 
+              : '¡Semana completa!' }}
+          </span>
+          <span v-else>
+            {{ weekStats.trainedDays < 7 
+              ? `${weekStats.trainedDays} de 7 días entrenados` 
+              : '¡Semana completa!' }}
+          </span>
         </div>
       </div>
       
-      <!-- Cabecera del calendario -->
+      <!-- Cabecera del calendario con navegación por semanas -->
       <div class="calendar-header">
         <v-btn 
           icon 
           variant="text" 
-          @click="previousMonth" 
+          @click="previousWeek" 
           size="small"
         >
           <v-icon>mdi-chevron-left</v-icon>
         </v-btn>
         
-        <div class="current-month">
-          <span class="month-year">{{ currentMonthYear }}</span>
+        <div class="current-week-info">
+          <div class="week-description">{{ weekDescription }}</div>
+          <div class="week-range">{{ weekRange }}</div>
           <v-btn
+            v-if="!isCurrentWeek"
             size="x-small"
             variant="text"
-            @click="goToCurrentMonth"
+            @click="goToCurrentWeek"
             class="today-btn"
-            v-if="!isCurrentMonth"
           >
-            Hoy
+            Esta semana
           </v-btn>
         </div>
         
         <v-btn 
           icon 
           variant="text" 
-          @click="nextMonth"
+          @click="nextWeek"
           size="small"
         >
           <v-icon>mdi-chevron-right</v-icon>
         </v-btn>
       </div>
       
-      <!-- Días de la semana -->
-      <div class="weekdays">
-        <div v-for="day in weekDays" :key="day" class="weekday">
-          {{ day }}
+      <!-- Vista semanal (Lunes a Domingo) -->
+      <div class="week-calendar">
+        <!-- Cabecera con nombres de días -->
+        <div class="week-header">
+          <div v-for="(dayInfo, index) in weekDaysInfo" :key="index" class="day-header">
+            <div class="day-name">{{ dayInfo.dayName }}</div>
+            <div class="day-date">{{ dayInfo.dayNumber }}</div>
+            <div v-if="dayInfo.monthName" class="month-name">{{ dayInfo.monthName }}</div>
+          </div>
         </div>
-      </div>
-      
-      <!-- Semanas del mes -->
-      <div class="calendar-grid">
-        <div v-for="(week, weekIndex) in calendarWeeks" :key="'week-' + weekIndex" class="week-row">
+        
+        <!-- Cuerpo del calendario con indicadores de entrenamiento -->
+        <div class="week-body">
           <div
-            v-for="(day, dayIndex) in week"
-            :key="'day-' + weekIndex + '-' + dayIndex"
-            class="day"
+            v-for="(dayInfo, index) in weekDaysInfo"
+            :key="index"
+            class="day-cell"
             :class="{
-              'current-month': day.current,
-              'other-month': !day.current,
-              'trained-day': day.trained,
-              'current-week': day.isCurrentWeek,
-              'today': day.isToday
+              'trained-day': dayInfo.isTrained,
+              'today': dayInfo.isToday,
+              'future-day': dayInfo.isFuture && isCurrentWeek
             }"
           >
-            <span class="day-number">{{ day.day }}</span>
-            <div v-if="day.trained" class="trained-indicator"></div>
+            <!-- Indicador de entrenamiento -->
+            <div v-if="dayInfo.isTrained" class="training-indicator">
+              <v-icon color="white" size="small">mdi-check</v-icon>
+            </div>
+            
+            <!-- Indicador de día actual -->
+            <div v-else-if="dayInfo.isToday" class="today-indicator">
+              <v-icon color="white" size="small">mdi-calendar-today</v-icon>
+            </div>
+            
+            <!-- Espacio vacío para días sin entrenamiento -->
+            <div v-else class="empty-indicator">
+              <v-icon color="grey-lighten-1" size="small">mdi-calendar-blank</v-icon>
+            </div>
           </div>
         </div>
       </div>
       
-      <!-- Estadísticas del mes -->
-      <div class="month-summary">
+      <!-- Estadísticas de la semana -->
+      <div class="week-summary">
         <div class="stats-item">
-          <div class="stats-value">{{ monthStats.trainedDays }}</div>
+          <div class="stats-value">{{ weekStats.trainedDays }}</div>
           <div class="stats-label">Días entrenados</div>
         </div>
         
         <div class="stats-item">
-          <div class="stats-value">{{ monthStats.percentage }}%</div>
-          <div class="stats-label">Del mes</div>
+          <div class="stats-value">{{ weekStats.percentage }}%</div>
+          <div class="stats-label">De la semana</div>
+        </div>
+        
+        <div v-if="isCurrentWeek" class="stats-item">
+          <div class="stats-value">{{ 7 - weekStats.trainedDays }}</div>
+          <div class="stats-label">Días restantes</div>
         </div>
       </div>
     </div>
@@ -395,59 +411,77 @@ watch([() => currentMonth.value, () => currentYear.value], () => {
   align-items: center;
   margin-bottom: 16px;
   
-  .current-month {
+  .current-week-info {
     display: flex;
     flex-direction: column;
     align-items: center;
     position: relative;
+    text-align: center;
     
-    .month-year {
+    .week-description {
       font-weight: 600;
       font-family: $font-family-base;
       font-size: 1.1rem;
       color: $secondary-color;
-      text-transform: capitalize;
+    }
+    
+    .week-range {
+      font-size: 0.9rem;
+      color: rgba(0, 0, 0, 0.6);
+      margin-top: 2px;
     }
     
     .today-btn {
-      margin-top: 2px;
+      margin-top: 4px;
       font-size: 0.7rem;
-      padding: 0 4px;
+      padding: 0 6px;
       height: 20px;
       color: $primary-color;
     }
   }
 }
 
-.weekdays {
+.week-calendar {
+  margin-bottom: 16px;
+}
+
+.week-header {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  text-align: center;
-  font-weight: 500;
-  font-size: 0.8rem;
-  color: rgba(0, 0, 0, 0.6);
-  border-bottom: 1px solid $light-gray;
-  padding-bottom: 8px;
-  margin-bottom: 8px;
+  gap: 8px;
+  margin-bottom: 12px;
   
-  .weekday {
-    padding: 5px 0;
+  .day-header {
+    text-align: center;
+    padding: 8px 4px;
+    
+    .day-name {
+      font-weight: 500;
+      font-size: 0.8rem;
+      color: rgba(0, 0, 0, 0.6);
+      margin-bottom: 2px;
+    }
+    
+    .day-date {
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: $secondary-color;
+    }
+    
+    .month-name {
+      font-size: 0.7rem;
+      color: rgba(0, 0, 0, 0.4);
+      margin-top: 1px;
+    }
   }
 }
 
-.calendar-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.week-body {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
   
-  .week-row {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
-  }
-  
-  .day {
-    position: relative;
+  .day-cell {
     aspect-ratio: 1;
     display: flex;
     align-items: center;
@@ -455,65 +489,56 @@ watch([() => currentMonth.value, () => currentYear.value], () => {
     border-radius: 50%;
     cursor: pointer;
     transition: all 0.2s ease;
-    
-    .day-number {
-      font-weight: 500;
-      font-size: 0.9rem;
-    }
-    
-    &.current-month {
-      color: $secondary-color;
-    }
-    
-    &.other-month {
-      color: rgba(0, 0, 0, 0.3);
-    }
-    
-    &.current-week {
-      background-color: rgba($primary-color, 0.05);
-    }
+    position: relative;
     
     &.trained-day {
-      background-color: rgba($primary-color, 0.15);
-      
-      .trained-indicator {
-        position: absolute;
-        bottom: 5px;
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background-color: $primary-color;
-      }
-    }
-    
-    &.today {
-      color: white;
       background-color: $primary-color;
-      font-weight: 600;
       
-      .trained-indicator {
-        background-color: white;
+      &:hover {
+        background-color: darken($primary-color, 10%);
       }
     }
     
-    &:hover {
+    &.today:not(.trained-day) {
+      background-color: rgba($primary-color, 0.2);
+      border: 2px solid $primary-color;
+      
+      &:hover {
+        background-color: rgba($primary-color, 0.3);
+      }
+    }
+    
+    &.future-day:not(.trained-day):not(.today) {
       background-color: rgba(0, 0, 0, 0.05);
       
-      &.trained-day {
-        background-color: rgba($primary-color, 0.25);
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.1);
       }
+    }
+    
+    &:not(.trained-day):not(.today):not(.future-day) {
+      background-color: rgba(0, 0, 0, 0.03);
       
-      &.today {
-        background-color: darken($primary-color, 5%);
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.08);
       }
     }
   }
 }
 
-.month-summary {
+.training-indicator,
+.today-indicator,
+.empty-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.week-summary {
   display: flex;
   justify-content: space-around;
-  margin-top: 16px;
   padding-top: 16px;
   border-top: 1px solid $light-gray;
   
@@ -531,6 +556,7 @@ watch([() => currentMonth.value, () => currentYear.value], () => {
       font-size: 0.8rem;
       color: rgba(0, 0, 0, 0.6);
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
   }
 }
@@ -541,9 +567,29 @@ watch([() => currentMonth.value, () => currentYear.value], () => {
     padding: 12px;
   }
   
-  .day {
-    .day-number {
-      font-size: 0.8rem !important;
+  .week-header .day-header {
+    padding: 6px 2px;
+    
+    .day-name {
+      font-size: 0.7rem;
+    }
+    
+    .day-date {
+      font-size: 1rem;
+    }
+  }
+  
+  .week-body {
+    gap: 6px;
+  }
+  
+  .current-week-info {
+    .week-description {
+      font-size: 1rem;
+    }
+    
+    .week-range {
+      font-size: 0.8rem;
     }
   }
 }
