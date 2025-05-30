@@ -222,7 +222,7 @@
               <v-col cols="12">
                 <v-text-field
                   v-model="exerciseFormData.imagenURL"
-                  label="URL de imagen (opcional)"
+                  label="URL de imagen (obligatorio)"
                   variant="outlined"
                   hint="URL de la imagen del ejercicio"
                   persistent-hint
@@ -231,7 +231,7 @@
               <v-col cols="12">
                 <v-text-field
                   v-model="exerciseFormData.videoURL"
-                  label="URL de video (opcional)"
+                  label="URL de video (obligatorio)"
                   variant="outlined"
                   hint="URL del video demostrativo (YouTube, etc.)"
                   persistent-hint
