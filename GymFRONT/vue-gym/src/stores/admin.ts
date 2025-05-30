@@ -41,7 +41,6 @@ export interface AdminExercise {
   equipamientoNecesario: boolean
 }
 
-// Interfaz actualizada con el nuevo campo
 export interface AdminStats {
   totalUsuarios: number
   usuariosActivos: number
@@ -50,7 +49,7 @@ export interface AdminStats {
   totalEntrenamientos: number
   entrenamientosPublicos: number
   usuariosRegistradosHoy: number
-  usuariosRegistradosEsteMes: number  // CAMPO AÑADIDO
+  usuariosRegistradosEsteMes: number
 }
 
 export const useAdminStore = defineStore('admin', () => {
@@ -76,17 +75,23 @@ export const useAdminStore = defineStore('admin', () => {
   const stats = ref<AdminStats | null>(null)
   const statsLoading = ref(false)
 
-  // Helper function to get headers
+  // Helper function to get headers for JSON requests
   const getHeaders = () => ({
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${authStore.token}`
   })
 
-  // Stats - Endpoint correcto: /admin/dashboard
+  // Helper function to get headers for FormData requests (no Content-Type)
+  const getAuthHeaders = () => ({
+    'Authorization': `Bearer ${authStore.token}`
+  })
+
+  // ============ STATS ============
   async function fetchStats() {
     statsLoading.value = true
     error.value = null
     try {
+      // 🔥 CORREGIDO: Sin /api/ al principio
       const response = await fetch(`${API_URL}/admin/dashboard`, {
         headers: getHeaders()
       })
@@ -105,11 +110,12 @@ export const useAdminStore = defineStore('admin', () => {
     }
   }
 
-  // Users Management
+  // ============ USERS MANAGEMENT ============
   async function fetchUsers() {
     userLoading.value = true
     error.value = null
     try {
+      // 🔥 CORREGIDO: Sin /api/ al principio
       const response = await fetch(`${API_URL}/admin/usuarios`, {
         headers: getHeaders()
       })
@@ -212,7 +218,7 @@ export const useAdminStore = defineStore('admin', () => {
     }
   }
 
-  // Workouts Management
+  // ============ WORKOUTS MANAGEMENT ============
   async function fetchWorkouts() {
     workoutLoading.value = true
     error.value = null
@@ -235,59 +241,67 @@ export const useAdminStore = defineStore('admin', () => {
     }
   }
 
-  async function createWorkout(workoutData: {
-    titulo: string
-    descripcion: string
-    duracionMinutos: number
-    dificultad: string
-    imagenURL?: string
-    publico: boolean
-    autorID?: number
-  }) {
+  // CORREGIDO: Usar FormData para crear entrenamientos
+  async function createWorkout(formData: FormData) {
     loading.value = true
     error.value = null
     try {
+      console.log('🔥 Creando entrenamiento...')
+      
       const response = await fetch(`${API_URL}/admin/entrenamientos`, {
         method: 'POST',
-        headers: getHeaders(),
-        body: JSON.stringify(workoutData)
+        headers: getAuthHeaders(), // Solo Authorization, sin Content-Type
+        body: formData // Enviar FormData directamente
       })
       
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.message || 'Error al crear entrenamiento')
+        console.error('❌ Error del servidor:', errorData)
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`)
       }
+      
+      const result = await response.json()
+      console.log('✅ Entrenamiento creado exitosamente:', result)
       
       await fetchWorkouts() // Refresh list
       return true
     } catch (e) {
+      console.error('❌ Error en createWorkout:', e)
       error.value = e instanceof Error ? e.message : 'Error desconocido'
-      throw e
+      return false // Devolver false en caso de error
     } finally {
       loading.value = false
     }
   }
 
-  async function updateWorkout(id: number, workoutData: Partial<AdminWorkout>) {
+  // CORREGIDO: Usar FormData para actualizar entrenamientos
+  async function updateWorkout(id: number, formData: FormData) {
     loading.value = true
     error.value = null
     try {
+      console.log('🔥 Actualizando entrenamiento ID:', id)
+      
       const response = await fetch(`${API_URL}/admin/entrenamientos/${id}`, {
         method: 'PUT',
-        headers: getHeaders(),
-        body: JSON.stringify(workoutData)
+        headers: getAuthHeaders(), // Solo Authorization, sin Content-Type
+        body: formData // Enviar FormData directamente
       })
       
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.message || 'Error al actualizar entrenamiento')
+        console.error('❌ Error del servidor:', errorData)
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`)
       }
+      
+      const result = await response.json()
+      console.log('✅ Entrenamiento actualizado exitosamente:', result)
       
       await fetchWorkouts() // Refresh list
       return true
     } catch (e) {
+      console.error('❌ Error en updateWorkout:', e)
       error.value = e instanceof Error ? e.message : 'Error desconocido'
-      throw e
+      return false // Devolver false en caso de error
     } finally {
       loading.value = false
     }
@@ -317,7 +331,7 @@ export const useAdminStore = defineStore('admin', () => {
     }
   }
 
-  // Exercises Management
+  // ============ EXERCISES MANAGEMENT ============
   async function fetchExercises() {
     exerciseLoading.value = true
     error.value = null
@@ -421,6 +435,70 @@ export const useAdminStore = defineStore('admin', () => {
     }
   }
 
+  // ============ UTILITY FUNCTIONS ============
+  
+  function validateWorkoutFormData(formData: FormData): boolean {
+    const titulo = formData.get('Titulo')
+    const dificultad = formData.get('Dificultad')
+    const duracionMinutos = formData.get('DuracionMinutos')
+
+    if (!titulo || titulo.toString().trim().length === 0) {
+      throw new Error('El título es requerido')
+    }
+
+    if (!dificultad || !['Fácil', 'Media', 'Difícil'].includes(dificultad.toString())) {
+      throw new Error('La dificultad debe ser Fácil, Media o Difícil')
+    }
+
+    const duracion = parseInt(duracionMinutos?.toString() || '0')
+    if (!duracion || duracion < 5 || duracion > 300) {
+      throw new Error('La duración debe estar entre 5 y 300 minutos')
+    }
+
+    return true
+  }
+
+  async function createWorkoutValidated(formData: FormData) {
+    loading.value = true
+    error.value = null
+    
+    try {
+      // Validar datos antes de enviar
+      validateWorkoutFormData(formData)
+      
+      // Log para debug
+      console.log('🔥 Creando entrenamiento validado con datos:', {
+        titulo: formData.get('Titulo'),
+        dificultad: formData.get('Dificultad'),
+        duracion: formData.get('DuracionMinutos'),
+        publico: formData.get('Publico')
+      })
+      
+      const response = await fetch(`${API_URL}/admin/entrenamientos`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: formData
+      })
+      
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Error al crear entrenamiento')
+      }
+      
+      await fetchWorkouts()
+      return true
+      
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Error desconocido'
+      error.value = errorMsg
+      console.error('❌ Error en createWorkoutValidated:', e)
+      throw e
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // ============ RETURN STORE ============
   return {
     // State
     loading,
@@ -439,6 +517,7 @@ export const useAdminStore = defineStore('admin', () => {
     workoutLoading,
     fetchWorkouts,
     createWorkout,
+    createWorkoutValidated,
     updateWorkout,
     deleteWorkout,
     
@@ -453,6 +532,9 @@ export const useAdminStore = defineStore('admin', () => {
     // Stats
     stats,
     statsLoading,
-    fetchStats
+    fetchStats,
+    
+    // Utility
+    validateWorkoutFormData
   }
 })
