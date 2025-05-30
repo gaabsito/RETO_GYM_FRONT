@@ -12,7 +12,9 @@ import CreateWorkoutView from '@/views/CreateWorkoutView.vue'
 import MisEntrenamientosView from '@/views/MisEntrenamientosView.vue'
 import MedicionesView from '@/views/MedicionView.vue'
 import LogrosView from '@/views/LogrosView.vue'
-
+import SobreNosotrosView from '@/views/SobreNosotrosView.vue'
+import ContactView from '@/views/ContactView.vue'
+import TermsView from '@/views/TermsUseView.vue'
 // Admin Views
 import AdminDashboardView from '@/views/admin/AdminDashboardView.vue'
 import AdminUsersView from '@/views/admin/AdminUsersView.vue'
@@ -57,6 +59,21 @@ const router = createRouter({
       path: '/workouts',
       name: 'workouts',
       component: WorkoutsView,
+    },
+       {
+      path: '/about',
+      name: 'about',
+      component: SobreNosotrosView,
+    },
+        {
+      path: '/contact',
+      name: 'contact',
+      component: ContactView,
+    },
+    {
+      path: '/terms',
+      name: 'terms',
+      component: TermsView,
     },
     {
       path: '/workouts/:id',
