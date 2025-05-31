@@ -91,7 +91,6 @@ export const useAdminStore = defineStore('admin', () => {
     statsLoading.value = true
     error.value = null
     try {
-      // 🔥 CORREGIDO: Sin /api/ al principio
       const response = await fetch(`${API_URL}/admin/dashboard`, {
         headers: getHeaders()
       })
@@ -115,7 +114,6 @@ export const useAdminStore = defineStore('admin', () => {
     userLoading.value = true
     error.value = null
     try {
-      // 🔥 CORREGIDO: Sin /api/ al principio
       const response = await fetch(`${API_URL}/admin/usuarios`, {
         headers: getHeaders()
       })
@@ -148,20 +146,33 @@ export const useAdminStore = defineStore('admin', () => {
     loading.value = true
     error.value = null
     try {
+      console.log('🔥 createUser - Creando usuario con datos:', userData)
+
       const response = await fetch(`${API_URL}/admin/usuarios`, {
         method: 'POST',
         headers: getHeaders(),
         body: JSON.stringify(userData)
       })
       
+      console.log('🔥 createUser - Respuesta del servidor:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      })
+      
       if (!response.ok) {
         const errorData = await response.json()
+        console.error('❌ createUser - Error del servidor:', errorData)
         throw new Error(errorData.message || 'Error al crear usuario')
       }
+      
+      const result = await response.json()
+      console.log('✅ createUser - Usuario creado exitosamente:', result)
       
       await fetchUsers() // Refresh list
       return true
     } catch (e) {
+      console.error('❌ createUser - Error en catch:', e)
       error.value = e instanceof Error ? e.message : 'Error desconocido'
       throw e
     } finally {
@@ -173,20 +184,68 @@ export const useAdminStore = defineStore('admin', () => {
     loading.value = true
     error.value = null
     try {
+      console.log('🔥 updateUser - Iniciando actualización:', {
+        id,
+        userData,
+        url: `${API_URL}/admin/usuarios/${id}`,
+        headers: getHeaders(),
+        userDataStringified: JSON.stringify(userData)
+      })
+
       const response = await fetch(`${API_URL}/admin/usuarios/${id}`, {
         method: 'PUT',
         headers: getHeaders(),
         body: JSON.stringify(userData)
       })
       
+      console.log('🔥 updateUser - Respuesta del servidor:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      })
+
+      const responseText = await response.text()
+      console.log('🔥 updateUser - Texto de respuesta:', responseText)
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Error al actualizar usuario')
+        let errorData
+        try {
+          errorData = JSON.parse(responseText)
+        } catch {
+          errorData = { message: responseText }
+        }
+        console.error('❌ updateUser - Error del servidor:', errorData)
+        throw new Error(errorData.message || `Error ${response.status}: ${response.statusText}`)
       }
       
-      await fetchUsers() // Refresh list
+      let result
+      try {
+        result = JSON.parse(responseText)
+      } catch {
+        result = { success: true, data: responseText }
+      }
+      console.log('✅ updateUser - Respuesta exitosa:', result)
+      
+      // Refrescar la lista de usuarios
+      console.log('🔄 updateUser - Refrescando lista de usuarios...')
+      await fetchUsers()
+      
+      // Verificar si el usuario se actualizó correctamente
+      const updatedUser = users.value.find(u => u.usuarioID === id)
+      console.log('🔍 updateUser - Usuario actualizado en la lista:', updatedUser)
+      
+      if (updatedUser && userData.esAdmin !== undefined) {
+        console.log('🔍 updateUser - Verificación esAdmin:', {
+          valorEnviado: userData.esAdmin,
+          valorActual: updatedUser.esAdmin,
+          coincide: userData.esAdmin === updatedUser.esAdmin
+        })
+      }
+      
       return true
     } catch (e) {
+      console.error('❌ updateUser - Error en catch:', e)
       error.value = e instanceof Error ? e.message : 'Error desconocido'
       throw e
     } finally {
@@ -198,19 +257,32 @@ export const useAdminStore = defineStore('admin', () => {
     loading.value = true
     error.value = null
     try {
+      console.log('🔥 deleteUser - Eliminando usuario:', id)
+
       const response = await fetch(`${API_URL}/admin/usuarios/${id}`, {
         method: 'DELETE',
         headers: getHeaders()
       })
       
+      console.log('🔥 deleteUser - Respuesta del servidor:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok
+      })
+      
       if (!response.ok) {
         const errorData = await response.json()
+        console.error('❌ deleteUser - Error del servidor:', errorData)
         throw new Error(errorData.message || 'Error al eliminar usuario')
       }
+      
+      const result = await response.json()
+      console.log('✅ deleteUser - Usuario eliminado exitosamente:', result)
       
       await fetchUsers() // Refresh list
       return true
     } catch (e) {
+      console.error('❌ deleteUser - Error en catch:', e)
       error.value = e instanceof Error ? e.message : 'Error desconocido'
       throw e
     } finally {
@@ -241,7 +313,6 @@ export const useAdminStore = defineStore('admin', () => {
     }
   }
 
-  // CORREGIDO: Usar FormData para crear entrenamientos
   async function createWorkout(formData: FormData) {
     loading.value = true
     error.value = null
@@ -250,8 +321,8 @@ export const useAdminStore = defineStore('admin', () => {
       
       const response = await fetch(`${API_URL}/admin/entrenamientos`, {
         method: 'POST',
-        headers: getAuthHeaders(), // Solo Authorization, sin Content-Type
-        body: formData // Enviar FormData directamente
+        headers: getAuthHeaders(),
+        body: formData
       })
       
       if (!response.ok) {
@@ -263,18 +334,17 @@ export const useAdminStore = defineStore('admin', () => {
       const result = await response.json()
       console.log('✅ Entrenamiento creado exitosamente:', result)
       
-      await fetchWorkouts() // Refresh list
+      await fetchWorkouts()
       return true
     } catch (e) {
       console.error('❌ Error en createWorkout:', e)
       error.value = e instanceof Error ? e.message : 'Error desconocido'
-      return false // Devolver false en caso de error
+      return false
     } finally {
       loading.value = false
     }
   }
 
-  // CORREGIDO: Usar FormData para actualizar entrenamientos
   async function updateWorkout(id: number, formData: FormData) {
     loading.value = true
     error.value = null
@@ -283,8 +353,8 @@ export const useAdminStore = defineStore('admin', () => {
       
       const response = await fetch(`${API_URL}/admin/entrenamientos/${id}`, {
         method: 'PUT',
-        headers: getAuthHeaders(), // Solo Authorization, sin Content-Type
-        body: formData // Enviar FormData directamente
+        headers: getAuthHeaders(),
+        body: formData
       })
       
       if (!response.ok) {
@@ -296,12 +366,12 @@ export const useAdminStore = defineStore('admin', () => {
       const result = await response.json()
       console.log('✅ Entrenamiento actualizado exitosamente:', result)
       
-      await fetchWorkouts() // Refresh list
+      await fetchWorkouts()
       return true
     } catch (e) {
       console.error('❌ Error en updateWorkout:', e)
       error.value = e instanceof Error ? e.message : 'Error desconocido'
-      return false // Devolver false en caso de error
+      return false
     } finally {
       loading.value = false
     }
@@ -321,7 +391,7 @@ export const useAdminStore = defineStore('admin', () => {
         throw new Error(errorData.message || 'Error al eliminar entrenamiento')
       }
       
-      await fetchWorkouts() // Refresh list
+      await fetchWorkouts()
       return true
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Error desconocido'
@@ -376,7 +446,7 @@ export const useAdminStore = defineStore('admin', () => {
         throw new Error(errorData.message || 'Error al crear ejercicio')
       }
       
-      await fetchExercises() // Refresh list
+      await fetchExercises()
       return true
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Error desconocido'
@@ -401,7 +471,7 @@ export const useAdminStore = defineStore('admin', () => {
         throw new Error(errorData.message || 'Error al actualizar ejercicio')
       }
       
-      await fetchExercises() // Refresh list
+      await fetchExercises()
       return true
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Error desconocido'
@@ -425,7 +495,7 @@ export const useAdminStore = defineStore('admin', () => {
         throw new Error(errorData.message || 'Error al eliminar ejercicio')
       }
       
-      await fetchExercises() // Refresh list
+      await fetchExercises()
       return true
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Error desconocido'
@@ -463,10 +533,8 @@ export const useAdminStore = defineStore('admin', () => {
     error.value = null
     
     try {
-      // Validar datos antes de enviar
       validateWorkoutFormData(formData)
       
-      // Log para debug
       console.log('🔥 Creando entrenamiento validado con datos:', {
         titulo: formData.get('Titulo'),
         dificultad: formData.get('Dificultad'),

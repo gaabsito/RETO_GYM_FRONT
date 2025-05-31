@@ -199,6 +199,27 @@
                   required
                 ></v-text-field>
               </v-col>
+              <!-- Cambio de contraseña para edición -->
+              <v-col cols="12" v-if="editingUser">
+                <v-checkbox
+                  v-model="changePassword"
+                  label="Cambiar contraseña"
+                  color="primary"
+                ></v-checkbox>
+              </v-col>
+              <v-col cols="12" v-if="editingUser && changePassword">
+                <v-text-field
+                  v-model="userFormData.password"
+                  label="Nueva contraseña"
+                  type="password"
+                  :rules="[
+                    v => !changePassword || !!v || 'La nueva contraseña es requerida',
+                    v => !changePassword || v.length >= 6 || 'La contraseña debe tener al menos 6 caracteres'
+                  ]"
+                  variant="outlined"
+                  :required="changePassword"
+                ></v-text-field>
+              </v-col>
               <v-col cols="6">
                 <v-text-field
                   v-model.number="userFormData.edad"
@@ -299,6 +320,7 @@ const editingUser = ref<AdminUser | null>(null)
 const userToDelete = ref<AdminUser | null>(null)
 const formValid = ref(false)
 const userForm = ref()
+const changePassword = ref(false) // Nueva variable para controlar cambio de contraseña
 
 // Snackbar
 const showSnackbar = ref(false)
@@ -366,6 +388,7 @@ const clearFilters = () => {
 
 const openCreateDialog = () => {
   editingUser.value = null
+  changePassword.value = false
   userFormData.value = {
     nombre: '',
     apellido: '',
@@ -381,11 +404,12 @@ const openCreateDialog = () => {
 
 const editUser = (user: AdminUser) => {
   editingUser.value = user
+  changePassword.value = false // Reset change password flag
   userFormData.value = {
     nombre: user.nombre,
     apellido: user.apellido,
     email: user.email,
-    password: '',
+    password: '', // Se mantendrá vacío inicialmente
     esAdmin: user.esAdmin,
     estaActivo: user.estaActivo,
     edad: user.edad || null,
@@ -397,6 +421,7 @@ const editUser = (user: AdminUser) => {
 const closeDialog = () => {
   showDialog.value = false
   editingUser.value = null
+  changePassword.value = false
   userForm.value?.reset()
 }
 
@@ -405,14 +430,67 @@ const saveUser = async () => {
 
   try {
     if (editingUser.value) {
-      await adminStore.updateUser(editingUser.value.usuarioID, userFormData.value)
-      showNotification('Usuario actualizado correctamente', 'success')
+      // Para edición, solo enviar los campos que queremos actualizar
+      const updateData: any = {
+        nombre: userFormData.value.nombre,
+        apellido: userFormData.value.apellido,
+        email: userFormData.value.email,
+        esAdmin: userFormData.value.esAdmin,
+        estaActivo: userFormData.value.estaActivo,
+      }
+
+      // Solo incluir campos opcionales si tienen valor
+      if (userFormData.value.edad) {
+        updateData.edad = userFormData.value.edad
+      }
+      if (userFormData.value.peso) {
+        updateData.peso = userFormData.value.peso
+      }
+
+      // Solo incluir contraseña si se quiere cambiar y no está vacía
+      if (changePassword.value && userFormData.value.password && userFormData.value.password.trim() !== '') {
+        updateData.password = userFormData.value.password
+      }
+
+      // 🔥 DEBUG: Log para verificar los datos que se envían
+      console.log('🔍 Datos antes de actualizar:', {
+        usuarioID: editingUser.value.usuarioID,
+        datosOriginales: {
+          nombre: editingUser.value.nombre,
+          apellido: editingUser.value.apellido,
+          email: editingUser.value.email,
+          esAdmin: editingUser.value.esAdmin,
+          estaActivo: editingUser.value.estaActivo
+        },
+        datosNuevos: updateData,
+        cambioDeAdmin: editingUser.value.esAdmin !== userFormData.value.esAdmin
+      })
+
+      await adminStore.updateUser(editingUser.value.usuarioID, updateData)
+      
+      // 🔥 Esperar un momento y verificar si el cambio se aplicó
+      setTimeout(async () => {
+        await adminStore.fetchUsers()
+        const usuarioActualizado = adminStore.users.find(u => u.usuarioID === editingUser.value?.usuarioID)
+        console.log('🔍 Usuario después de actualizar:', usuarioActualizado)
+        
+        if (usuarioActualizado && usuarioActualizado.esAdmin !== updateData.esAdmin) {
+          console.warn('⚠️ PROBLEMA: El campo esAdmin no se actualizó correctamente')
+          showNotification('Usuario actualizado, pero el estado de administrador puede no haberse cambiado. Verifica con el administrador del sistema.', 'warning')
+        } else {
+          showNotification('Usuario actualizado correctamente', 'success')
+        }
+      }, 1000)
+      
     } else {
+      // Para creación, enviar todos los datos necesarios
+      console.log('🔍 Creando usuario con datos:', userFormData.value)
       await adminStore.createUser(userFormData.value)
       showNotification('Usuario creado correctamente', 'success')
     }
     closeDialog()
   } catch (error) {
+    console.error('❌ Error al guardar usuario:', error)
     showNotification(adminStore.error || 'Error al guardar usuario', 'error')
   }
 }
